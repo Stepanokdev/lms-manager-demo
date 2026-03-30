@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMS Registry</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; }
+
+.header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 20px; }
+.header .user-info { display: flex; align-items: center; gap: 12px; }
+.header .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.badge.admin { background: #ffd60a; color: #1d1d1f; }
+.badge.user { background: #007aff; color: #fff; }
+
+.container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+/* Auth */
+#auth-section { display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+.auth-card { background: #fff; border-radius: 12px; padding: 32px; width: 380px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.auth-card h2 { margin-bottom: 20px; text-align: center; }
+.tabs { display: flex; gap: 0; margin-bottom: 24px; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }
+.tabs button { flex: 1; padding: 10px; border: none; background: #f5f5f7; cursor: pointer; font-size: 14px; font-weight: 500; }
+.tabs button.active { background: #007aff; color: #fff; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: #666; }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 14px; outline: none; }
+.form-group input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+
+.btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-primary { background: #007aff; color: #fff; }
+.btn-primary:hover { background: #0056b3; }
+.btn-danger { background: #ff3b30; color: #fff; }
+.btn-success { background: #34c759; color: #fff; }
+.btn-sm { width: auto; padding: 6px 16px; font-size: 13px; }
+.btn-outline { background: transparent; border: 1px solid #d1d1d6; color: #1d1d1f; }
+
+.error { color: #ff3b30; font-size: 13px; margin-top: 8px; text-align: center; }
+.success { color: #34c759; font-size: 13px; margin-top: 8px; text-align: center; }
+
+/* Dashboard */
+#app-section { display: none; }
+.section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+
+.lms-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 16px; }
+.lms-badge { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.lms-info { flex: 1; }
+.lms-info .name { font-weight: 600; font-size: 15px; }
+.lms-info .url { font-size: 13px; color: #888; margin-top: 2px; }
+.lms-info .meta { font-size: 12px; color: #aaa; margin-top: 4px; }
+.lms-status { font-size: 12px; padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+.status-approved { background: #d4edda; color: #155724; }
+.status-pending { background: #fff3cd; color: #856404; }
+.status-rejected { background: #f8d7da; color: #721c24; }
+
+.lms-actions { display: flex; gap: 6px; }
+
+/* Submit form */
+.submit-form { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.submit-form h3 { margin-bottom: 16px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Auth Section -->
+<div id="auth-section">
+  <div class="auth-card">
+    <h2>LMS Registry</h2>
+    <div class="tabs">
+      <button class="active" onclick="showTab('login')">Login</button>
+      <button onclick="showTab('register')">Register</button>
+    </div>
+    <div id="login-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@demo.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="admin123">
+      </div>
+      <button class="btn btn-primary" onclick="login()">Sign In</button>
+      <div id="login-error" class="error"></div>
+      <p style="font-size:12px;color:#888;margin-top:12px;text-align:center">
+        Demo: admin@demo.com / admin123 &nbsp;|&nbsp; user@demo.com / user123
+      </p>
+    </div>
+    <div id="register-form" class="hidden">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="reg-name" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min 6 characters">
+      </div>
+      <button class="btn btn-primary" onclick="register()">Create Account</button>
+      <div id="reg-error" class="error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- App Section -->
+<div id="app-section">
+  <div class="header">
+    <h1>LMS Registry</h1>
+    <div class="user-info">
+      <span id="user-name"></span>
+      <span id="user-badge" class="badge"></span>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Submit LMS (visible to all logged-in users) -->
+    <div class="submit-form" id="submit-section">
+      <h3>Submit New LMS</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" id="lms-name" placeholder="My University LMS">
+        </div>
+        <div class="form-group">
+          <label>Base URL *</label>
+          <input type="url" id="lms-url" placeholder="https://lms.example.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Platform Name *</label>
+          <input type="text" id="lms-platform" placeholder="Open edX">
+        </div>
+        <div class="form-group">
+          <label>OAuth Client ID *</label>
+          <input type="text" id="lms-oauth" placeholder="your-oauth-client-id">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Accent Color</label>
+          <input type="text" id="lms-color" placeholder="#007AFF" value="#007AFF">
+        </div>
+        <div class="form-group">
+          <label>Feedback Email</label>
+          <input type="email" id="lms-email" placeholder="support@example.com">
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+        <button class="btn btn-primary btn-sm" onclick="submitLms()">Submit for Review</button>
+        <span id="submit-msg"></span>
+      </div>
+    </div>
+
+    <!-- My LMS (user view) -->
+    <div id="my-lms-section">
+      <div class="section-title">My Submissions</div>
+      <div id="my-lms-list"></div>
+    </div>
+
+    <!-- Admin: All LMS -->
+    <div id="admin-section" class="hidden">
+      <div class="section-title">
+        All LMS Instances (Admin)
+        <div>
+          <button class="btn btn-outline btn-sm" onclick="loadAdminLms('')">All</button>
+          <button class="btn btn-outline btn-sm" onclick="loadAdminLms('pending')" style="border-color:#856404;color:#856404">Pending</button>
+          <button class="btn btn-outline btn-sm" onclick="loadAdminLms('approved')" style="border-color:#155724;color:#155724">Approved</button>
+        </div>
+      </div>
+      <div id="admin-lms-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('token');
+let currentUser = null;
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...opts.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(API + path, { ...opts, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Error ${res.status}`);
+  }
+  return res.json();
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  if (tab === 'login') {
+    document.querySelector('.tabs button:first-child').classList.add('active');
+    document.getElementById('login-form').classList.remove('hidden');
+    document.getElementById('register-form').classList.add('hidden');
+  } else {
+    document.querySelector('.tabs button:last-child').classList.add('active');
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('register-form').classList.remove('hidden');
+  }
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  document.getElementById('login-error').textContent = '';
+  try {
+    const data = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+    token = data.access_token;
+    localStorage.setItem('token', token);
+    await loadApp();
+  } catch (e) {
+    document.getElementById('login-error').textContent = e.message;
+  }
+}
+
+async function register() {
+  const name = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-password').value;
+  document.getElementById('reg-error').textContent = '';
+  try {
+    const data = await api('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, name, password })
+    });
+    token = data.access_token;
+    localStorage.setItem('token', token);
+    await loadApp();
+  } catch (e) {
+    document.getElementById('reg-error').textContent = e.message;
+  }
+}
+
+function logout() {
+  token = null;
+  currentUser = null;
+  localStorage.removeItem('token');
+  document.getElementById('auth-section').style.display = 'flex';
+  document.getElementById('app-section').style.display = 'none';
+}
+
+async function loadApp() {
+  try {
+    currentUser = await api('/auth/me');
+  } catch {
+    logout();
+    return;
+  }
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('app-section').style.display = 'block';
+  document.getElementById('user-name').textContent = currentUser.name;
+  const badge = document.getElementById('user-badge');
+  badge.textContent = currentUser.role;
+  badge.className = `badge ${currentUser.role}`;
+
+  if (currentUser.role === 'admin') {
+    document.getElementById('admin-section').classList.remove('hidden');
+    loadAdminLms('');
+  } else {
+    document.getElementById('admin-section').classList.add('hidden');
+  }
+  loadMyLms();
+}
+
+function renderLmsCard(lms, showActions = false) {
+  const statusClass = `status-${lms.status}`;
+  const actions = showActions ? `
+    <div class="lms-actions">
+      ${lms.status !== 'approved' ? `<button class="btn btn-success btn-sm" onclick="updateStatus(${lms.id}, 'approved')">Approve</button>` : ''}
+      ${lms.status !== 'rejected' ? `<button class="btn btn-danger btn-sm" onclick="updateStatus(${lms.id}, 'rejected')">Reject</button>` : ''}
+    </div>
+  ` : '';
+  return `
+    <div class="lms-card">
+      <div class="lms-badge" style="background:${lms.accent_color}">${lms.name.substring(0,2).toUpperCase()}</div>
+      <div class="lms-info">
+        <div class="name">${lms.name}</div>
+        <div class="url">${lms.base_url}</div>
+        <div class="meta">Platform: ${lms.platform_name} &nbsp;|&nbsp; OAuth: ${lms.oauth_client_id.substring(0,12)}...</div>
+      </div>
+      <span class="lms-status ${statusClass}">${lms.status}</span>
+      ${actions}
+    </div>
+  `;
+}
+
+async function loadMyLms() {
+  try {
+    const list = await api('/my/lms');
+    const container = document.getElementById('my-lms-list');
+    if (list.length === 0) {
+      container.innerHTML = '<p style="color:#888;font-size:14px">No submissions yet. Submit your first LMS above.</p>';
+    } else {
+      container.innerHTML = list.map(l => renderLmsCard(l)).join('');
+    }
+  } catch {}
+}
+
+async function loadAdminLms(status) {
+  try {
+    const path = status ? `/admin/lms?status_filter=${status}` : '/admin/lms';
+    const list = await api(path);
+    document.getElementById('admin-lms-list').innerHTML = list.length
+      ? list.map(l => renderLmsCard(l, true)).join('')
+      : '<p style="color:#888;font-size:14px">No LMS instances found.</p>';
+  } catch (e) {
+    document.getElementById('admin-lms-list').innerHTML = `<p class="error">${e.message}</p>`;
+  }
+}
+
+async function updateStatus(id, status) {
+  try {
+    await api(`/admin/lms/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+    loadAdminLms('');
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function submitLms() {
+  const msg = document.getElementById('submit-msg');
+  msg.textContent = '';
+  msg.className = '';
+  try {
+    await api('/lms', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: document.getElementById('lms-name').value,
+        base_url: document.getElementById('lms-url').value,
+        platform_name: document.getElementById('lms-platform').value,
+        oauth_client_id: document.getElementById('lms-oauth').value,
+        accent_color: document.getElementById('lms-color').value || '#007AFF',
+        feedback_email: document.getElementById('lms-email').value,
+      })
+    });
+    msg.textContent = 'Submitted! Waiting for admin approval.';
+    msg.className = 'success';
+    document.querySelectorAll('.submit-form input').forEach(i => { if (i.id !== 'lms-color') i.value = ''; });
+    loadMyLms();
+    if (currentUser.role === 'admin') loadAdminLms('');
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = 'error';
+  }
+}
+
+// Auto-login if token exists
+if (token) loadApp();
+</script>
+</body>
+</html>
