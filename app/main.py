@@ -123,6 +123,62 @@ def admin_list_users(admin: User = Depends(require_admin), db: Session = Depends
     return db.query(User).all()
 
 
+# ── Mobile Directory API (iOS/Android compatible) ─────
+
+def _lms_to_directory_detail(lms: LMSInstance) -> dict:
+    return {
+        "id": str(lms.id),
+        "title": lms.name,
+        "description": lms.platform_name,
+        "short_description": lms.platform_name,
+        "base_url": lms.base_url,
+        "logo_url": lms.logo_url or None,
+        "accent_color": lms.accent_color or None,
+        "api": {
+            "host_url": lms.base_url,
+            "feedback_email": lms.feedback_email or "",
+            "oauth_client_id": lms.oauth_client_id,
+        },
+        "feature_flags": {
+            "pre_login_discovery": True,
+            "offline_downloads": False,
+            "smart_push_automation": False,
+        },
+    }
+
+
+@app.get("/api/v1/directory")
+def directory_search(q: str = "", db: Session = Depends(get_db)):
+    query = db.query(LMSInstance).filter(LMSInstance.status == LMSStatus.approved)
+    if q:
+        query = query.filter(
+            LMSInstance.name.ilike(f"%{q}%")
+            | LMSInstance.base_url.ilike(f"%{q}%")
+        )
+    items = [
+        {
+            "id": str(lms.id),
+            "title": lms.name,
+            "short_description": lms.platform_name,
+            "base_url": lms.base_url,
+            "logo_url": lms.logo_url or None,
+        }
+        for lms in query.all()
+    ]
+    return {"items": items}
+
+
+@app.get("/api/v1/directory/{lms_id}")
+def directory_detail(lms_id: str, db: Session = Depends(get_db)):
+    lms = db.query(LMSInstance).filter(
+        LMSInstance.id == int(lms_id),
+        LMSInstance.status == LMSStatus.approved,
+    ).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    return _lms_to_directory_detail(lms)
+
+
 # ── Web UI ────────────────────────────────────────────
 
 STATIC_DIR = Path(__file__).parent / "static"
