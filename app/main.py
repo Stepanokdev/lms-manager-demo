@@ -162,6 +162,7 @@ def directory_search(q: str = "", db: Session = Depends(get_db)):
             "short_description": lms.platform_name,
             "base_url": lms.base_url,
             "logo_url": lms.logo_url or None,
+            "accent_color": lms.accent_color or None,
         }
         for lms in query.all()
     ]
