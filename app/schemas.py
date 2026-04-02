@@ -38,6 +38,7 @@ class LMSCreateRequest(BaseModel):
     base_url: str
     platform_name: str
     oauth_client_id: str
+    description: str = ""
     token_type: str = "jwt"
     sso_url: str = ""
     sso_finished_url: str = ""
@@ -45,6 +46,9 @@ class LMSCreateRequest(BaseModel):
     logo_url: str = ""
     accent_color: str = "#007AFF"
     sso_button_title: str = "Sign in with SSO"
+    pre_login_discovery: bool = True
+    offline_downloads: bool = False
+    smart_push_automation: bool = False
 
 
 class LMSUpdateStatusRequest(BaseModel):
@@ -57,6 +61,7 @@ class LMSResponse(BaseModel):
     base_url: str
     platform_name: str
     oauth_client_id: str
+    description: str
     token_type: str
     sso_url: str
     sso_finished_url: str
@@ -64,6 +69,9 @@ class LMSResponse(BaseModel):
     logo_url: str
     accent_color: str
     sso_button_title: str
+    pre_login_discovery: bool
+    offline_downloads: bool
+    smart_push_automation: bool
     status: LMSStatus
     submitted_by: int
     created_at: datetime

@@ -215,6 +215,20 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
           <input type="text" id="lms-oauth" placeholder="e.g. K5TcezWSOG6WBzgjBcnn...">
         </div>
       </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="lms-description" placeholder="Brief description of this LMS instance">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Logo URL</label>
+          <input type="url" id="lms-logo" placeholder="https://example.com/logo.png">
+        </div>
+        <div class="form-group">
+          <label>Feedback email</label>
+          <input type="email" id="lms-email" placeholder="support@example.com">
+        </div>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Accent color</label>
@@ -223,9 +237,10 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
             <input type="color" id="lms-color-picker" value="#007AFF" oninput="syncColor(this.value,'to-text')">
           </div>
         </div>
-        <div class="form-group">
-          <label>Feedback email</label>
-          <input type="email" id="lms-email" placeholder="support@example.com">
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:center;gap:6px;padding-top:20px">
+          <label style="margin-bottom:0"><input type="checkbox" id="lms-pre-login" checked> Pre-login discovery</label>
+          <label style="margin-bottom:0"><input type="checkbox" id="lms-offline"> Offline downloads</label>
+          <label style="margin-bottom:0"><input type="checkbox" id="lms-push"> Smart push automation</label>
         </div>
       </div>
       <div style="margin-top:16px;display:flex;gap:12px;align-items:center">
@@ -416,8 +431,13 @@ async function submitLms(){
       base_url:document.getElementById('lms-url').value,
       platform_name:document.getElementById('lms-platform').value,
       oauth_client_id:document.getElementById('lms-oauth').value,
+      description:document.getElementById('lms-description').value,
+      logo_url:document.getElementById('lms-logo').value,
       accent_color:document.getElementById('lms-color').value||'#007AFF',
       feedback_email:document.getElementById('lms-email').value,
+      pre_login_discovery:document.getElementById('lms-pre-login').checked,
+      offline_downloads:document.getElementById('lms-offline').checked,
+      smart_push_automation:document.getElementById('lms-push').checked,
     })});
     msg.textContent='Submitted! Waiting for admin approval.';msg.className='success-msg';
     document.querySelectorAll('#submit-section input[type=text],#submit-section input[type=url],#submit-section input[type=email]').forEach(i=>{if(i.id!=='lms-color')i.value=''});

@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SAEnum, Boolean
 from sqlalchemy.orm import relationship
 import enum
 
@@ -44,7 +44,12 @@ class LMSInstance(Base):
     feedback_email = Column(String, default="")
     logo_url = Column(String, default="")
     accent_color = Column(String, default="#007AFF")
+    description = Column(String, default="")
     sso_button_title = Column(String, default="Sign in with SSO")
+
+    pre_login_discovery = Column(Boolean, default=True)
+    offline_downloads = Column(Boolean, default=False)
+    smart_push_automation = Column(Boolean, default=False)
 
     status = Column(SAEnum(LMSStatus), default=LMSStatus.pending, nullable=False)
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)

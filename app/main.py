@@ -129,7 +129,7 @@ def _lms_to_directory_detail(lms: LMSInstance) -> dict:
     return {
         "id": str(lms.id),
         "title": lms.name,
-        "description": lms.platform_name,
+        "description": lms.description or lms.platform_name,
         "short_description": lms.platform_name,
         "base_url": lms.base_url,
         "logo_url": lms.logo_url or None,
@@ -140,9 +140,9 @@ def _lms_to_directory_detail(lms: LMSInstance) -> dict:
             "oauth_client_id": lms.oauth_client_id,
         },
         "feature_flags": {
-            "pre_login_discovery": True,
-            "offline_downloads": False,
-            "smart_push_automation": False,
+            "pre_login_discovery": lms.pre_login_discovery,
+            "offline_downloads": lms.offline_downloads,
+            "smart_push_automation": lms.smart_push_automation,
         },
     }
 
@@ -177,6 +177,18 @@ def directory_detail(lms_id: str, db: Session = Depends(get_db)):
     if not lms:
         raise HTTPException(status_code=404, detail="LMS not found")
     return _lms_to_directory_detail(lms)
+
+
+# ── Aliases matching iOS backend.md paths ─────────────
+
+@app.get("/api/universal-login/lms/search")
+def ul_search(query: str = "", limit: int = 20, db: Session = Depends(get_db)):
+    return directory_search(q=query, db=db)
+
+
+@app.get("/api/universal-login/lms/{lms_id}")
+def ul_detail(lms_id: str, db: Session = Depends(get_db)):
+    return directory_detail(lms_id=lms_id, db=db)
 
 
 # ── Web UI ────────────────────────────────────────────
