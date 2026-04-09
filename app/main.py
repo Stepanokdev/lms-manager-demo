@@ -83,6 +83,70 @@ async def upload_file(
     return {"url": f"/uploads/{filename}"}
 
 
+# ── LMS Validation ────────────────────────────────────
+
+import httpx
+from pydantic import BaseModel as _BaseModel
+
+class LMSValidateRequest(_BaseModel):
+    base_url: str
+    oauth_client_id: str = ""
+
+
+@app.post("/validate-lms")
+async def validate_lms(req: LMSValidateRequest):
+    """Validate LMS reachability and OAuth Client ID without user credentials."""
+    base = req.base_url.rstrip("/")
+    result = {"url_valid": False, "oauth_valid": False, "url_error": None, "oauth_error": None}
+
+    # Step 1: Check LMS reachability
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
+        try:
+            r = await client.get(f"{base}/user_api/v1/account/registration/")
+            if 200 <= r.status_code < 300:
+                result["url_valid"] = True
+            else:
+                # Fallback check
+                r2 = await client.get(f"{base}/oauth2/login/")
+                if 200 <= r2.status_code < 400:
+                    result["url_valid"] = True
+                else:
+                    result["url_error"] = f"LMS responded with status {r.status_code}"
+        except httpx.ConnectError:
+            result["url_error"] = "Cannot connect to this URL. Check that the address is correct."
+        except httpx.TimeoutException:
+            result["url_error"] = "Connection timed out. The server may be down or unreachable."
+        except Exception as e:
+            result["url_error"] = f"Connection failed: {str(e)[:100]}"
+
+    # Step 2: Validate OAuth Client ID (only if URL is valid and client_id provided)
+    if result["url_valid"] and req.oauth_client_id:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
+            try:
+                r = await client.post(
+                    f"{base}/oauth2/access_token",
+                    data={
+                        "client_id": req.oauth_client_id,
+                        "grant_type": "password",
+                        "username": "_validate_",
+                        "password": "_validate_",
+                    },
+                )
+                body = r.text.lower()
+                if "invalid_client" in body:
+                    result["oauth_error"] = "OAuth Client ID not found on this LMS. Check the ID."
+                elif "invalid_grant" in body or "unauthorized" in body:
+                    # invalid_grant = client_id recognized, just bad credentials — that's what we want
+                    result["oauth_valid"] = True
+                else:
+                    # Any other non-error response also means the client_id exists
+                    result["oauth_valid"] = True
+            except Exception as e:
+                result["oauth_error"] = f"Could not verify OAuth ID: {str(e)[:100]}"
+
+    return result
+
+
 # ── Public LMS list ───────────────────────────────────
 
 @app.get("/lms", response_model=list[LMSResponse])
@@ -296,6 +360,14 @@ if (STATIC_DIR / "landing").exists():
     @app.get("/app-screenshot.png", response_class=FileResponse)
     def landing_screenshot():
         return FileResponse(LANDING_DIR / "app-screenshot.png", media_type="image/png")
+
+    @app.get("/testflight.png", response_class=FileResponse)
+    def landing_testflight():
+        return FileResponse(LANDING_DIR / "testflight.png", media_type="image/png")
+
+    @app.get("/android.png", response_class=FileResponse)
+    def landing_android():
+        return FileResponse(LANDING_DIR / "android.png", media_type="image/png")
 
 
 @app.get("/dashboard", response_class=FileResponse)

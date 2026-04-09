@@ -10,12 +10,14 @@ interface WizardStore {
   clientInfo: ClientInfo
   selections: Record<string, string | boolean | number>
   editingLmsId: number | null
+  lmsValidated: boolean
 
   setStep: (index: number) => void
   nextStep: () => void
   prevStep: () => void
   setClientInfo: (info: Partial<ClientInfo>) => void
   setSelection: (featureId: string, value: string | boolean | number) => void
+  setLmsValidated: (v: boolean) => void
   resetWizard: () => void
   loadForEdit: (id: number, lms: any) => void
 }
@@ -34,6 +36,7 @@ export const useWizardStore = create<WizardStore>()(
       currentStepIndex: 0,
       direction: 0,
       editingLmsId: null,
+      lmsValidated: false,
       clientInfo: {
         clientName: '',
         companyName: '',
@@ -78,11 +81,14 @@ export const useWizardStore = create<WizardStore>()(
           selections: { ...state.selections, [featureId]: value },
         })),
 
+      setLmsValidated: (v) => set({ lmsValidated: v }),
+
       loadForEdit: (id: number, lms: any) =>
         set({
           currentStepIndex: 0,
           direction: 0,
           editingLmsId: id,
+          lmsValidated: true,
           clientInfo: {
             clientName: '',
             companyName: '',
@@ -112,6 +118,7 @@ export const useWizardStore = create<WizardStore>()(
           currentStepIndex: 0,
           direction: 0,
           editingLmsId: null,
+          lmsValidated: false,
           clientInfo: {
             clientName: '',
             companyName: '',
