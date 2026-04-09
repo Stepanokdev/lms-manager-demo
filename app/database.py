@@ -17,3 +17,27 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def migrate():
+    """Add missing columns to existing tables (SQLite doesn't support ADD COLUMN IF NOT EXISTS)."""
+    from sqlalchemy import text, inspect
+    insp = inspect(engine)
+    if "lms_instances" not in insp.get_table_names():
+        return
+    existing = {col["name"] for col in insp.get_columns("lms_instances")}
+    new_columns = [
+        ("login_background_url", "VARCHAR DEFAULT ''"),
+        ("logo_upload_url", "VARCHAR DEFAULT ''"),
+        ("accent_color_dark", "VARCHAR DEFAULT ''"),
+        ("unknown_units_mode", "VARCHAR DEFAULT 'block'"),
+        ("dashboard_type", "VARCHAR DEFAULT 'gallery'"),
+        ("pre_login_experience", "BOOLEAN DEFAULT 1"),
+        ("course_unit_progress", "BOOLEAN DEFAULT 1"),
+        ("course_dropdown_nav", "BOOLEAN DEFAULT 1"),
+    ]
+    with engine.begin() as conn:
+        for col_name, col_def in new_columns:
+            if col_name not in existing:
+                conn.execute(text(f"ALTER TABLE lms_instances ADD COLUMN {col_name} {col_def}"))
+        # Remove deprecated columns is not supported in SQLite, so we leave them

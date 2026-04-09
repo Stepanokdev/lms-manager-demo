@@ -48,8 +48,16 @@ class LMSInstance(Base):
     sso_button_title = Column(String, default="Sign in with SSO")
 
     pre_login_discovery = Column(Boolean, default=True)
-    offline_downloads = Column(Boolean, default=False)
-    smart_push_automation = Column(Boolean, default=False)
+
+    # New fields
+    login_background_url = Column(String, default="")
+    logo_upload_url = Column(String, default="")
+    accent_color_dark = Column(String, default="")
+    unknown_units_mode = Column(String, default="block")
+    dashboard_type = Column(String, default="gallery")
+    pre_login_experience = Column(Boolean, default=True)
+    course_unit_progress = Column(Boolean, default=True)
+    course_dropdown_nav = Column(Boolean, default=True)
 
     status = Column(SAEnum(LMSStatus), default=LMSStatus.pending, nullable=False)
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)

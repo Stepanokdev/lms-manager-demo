@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from .database import SessionLocal
 from .models import User, LMSInstance, UserRole, LMSStatus
 from .auth import hash_password
+from .color_utils import adapt_accent_for_dark
 
 
 def seed():
@@ -43,9 +44,13 @@ def seed():
                 feedback_email="support@example.com",
                 logo_url="",
                 accent_color="#ED8794",
+                accent_color_dark=adapt_accent_for_dark("#ED8794"),
                 pre_login_discovery=True,
-                offline_downloads=True,
-                smart_push_automation=False,
+                pre_login_experience=True,
+                dashboard_type="gallery",
+                course_unit_progress=True,
+                course_dropdown_nav=True,
+                unknown_units_mode="block",
                 status=LMSStatus.approved,
                 submitted_by=admin.id,
             ),
@@ -59,9 +64,13 @@ def seed():
                 feedback_email="support@example.com",
                 logo_url="",
                 accent_color="#007AFF",
+                accent_color_dark=adapt_accent_for_dark("#007AFF"),
                 pre_login_discovery=True,
-                offline_downloads=True,
-                smart_push_automation=True,
+                pre_login_experience=True,
+                dashboard_type="list",
+                course_unit_progress=True,
+                course_dropdown_nav=False,
+                unknown_units_mode="webview",
                 status=LMSStatus.approved,
                 submitted_by=admin.id,
             ),
@@ -75,9 +84,13 @@ def seed():
                 feedback_email="support@example.com",
                 logo_url="",
                 accent_color="#5B8777",
+                accent_color_dark=adapt_accent_for_dark("#5B8777"),
                 pre_login_discovery=True,
-                offline_downloads=False,
-                smart_push_automation=False,
+                pre_login_experience=False,
+                dashboard_type="gallery",
+                course_unit_progress=False,
+                course_dropdown_nav=True,
+                unknown_units_mode="block",
                 status=LMSStatus.approved,
                 submitted_by=admin.id,
             ),

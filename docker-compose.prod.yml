@@ -1,0 +1,17 @@
+services:
+  api:
+    container_name: openedx-lms-manager
+    restart: unless-stopped
+    ports: !reset []
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lms-manager.rule=Host(`openedx-lms.stepanok.com`)"
+      - "traefik.http.routers.lms-manager.entrypoints=websecure"
+      - "traefik.http.routers.lms-manager.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lms-manager.loadbalancer.server.port=8000"
+
+networks:
+  web:
+    external: true

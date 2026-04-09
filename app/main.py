@@ -1,6 +1,7 @@
 import os
+import uuid
 from pathlib import Path
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -10,17 +11,19 @@ from .database import Base, engine, get_db
 from .models import User, LMSInstance, LMSStatus, UserRole
 from .schemas import (
     RegisterRequest, LoginRequest, TokenResponse, UserResponse,
-    LMSCreateRequest, LMSUpdateStatusRequest, LMSResponse,
+    LMSCreateRequest, LMSUpdateStatusRequest, LMSFullUpdateRequest, LMSResponse,
 )
 from .auth import (
     hash_password, verify_password, create_access_token,
     get_current_user, require_admin,
 )
+from .color_utils import adapt_accent_for_dark
 
 os.makedirs("data", exist_ok=True)
+os.makedirs("data/uploads", exist_ok=True)
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="LMS Registry", version="0.1.0")
+app = FastAPI(title="LMS Registry", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,6 +32,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+UPLOAD_DIR = Path("data/uploads")
+ALLOWED_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"}
+MAX_SIZE = 2 * 1024 * 1024  # 2MB
 
 
 # ── Auth ──────────────────────────────────────────────
@@ -57,6 +64,25 @@ def me(user: User = Depends(get_current_user)):
     return user
 
 
+# ── File Upload ───────────────────────────────────────
+
+@app.post("/uploads")
+async def upload_file(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+):
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail=f"File type not allowed: {file.content_type}")
+    content = await file.read()
+    if len(content) > MAX_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 2MB)")
+    ext = Path(file.filename or "file").suffix or ".png"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = UPLOAD_DIR / filename
+    filepath.write_bytes(content)
+    return {"url": f"/uploads/{filename}"}
+
+
 # ── Public LMS list ───────────────────────────────────
 
 @app.get("/lms", response_model=list[LMSResponse])
@@ -76,7 +102,9 @@ def get_lms(lms_id: int, db: Session = Depends(get_db)):
 
 @app.post("/lms", response_model=LMSResponse, status_code=201)
 def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    lms = LMSInstance(**req.model_dump(), submitted_by=user.id)
+    data = req.model_dump()
+    data["accent_color_dark"] = adapt_accent_for_dark(data.get("accent_color", "#007AFF"))
+    lms = LMSInstance(**data, submitted_by=user.id)
     db.add(lms)
     db.commit()
     db.refresh(lms)
@@ -118,6 +146,26 @@ def admin_update_lms_status(
     return lms
 
 
+@app.put("/admin/lms/{lms_id}", response_model=LMSResponse)
+def admin_full_update_lms(
+    lms_id: int,
+    req: LMSFullUpdateRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    updates = req.model_dump(exclude_none=True)
+    if "accent_color" in updates:
+        updates["accent_color_dark"] = adapt_accent_for_dark(updates["accent_color"])
+    for key, value in updates.items():
+        setattr(lms, key, value)
+    db.commit()
+    db.refresh(lms)
+    return lms
+
+
 @app.get("/admin/users", response_model=list[UserResponse])
 def admin_list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     return db.query(User).all()
@@ -125,14 +173,25 @@ def admin_list_users(admin: User = Depends(require_admin), db: Session = Depends
 
 # ── Mobile Directory API (iOS/Android compatible) ─────
 
-def _lms_to_directory_detail(lms: LMSInstance) -> dict:
+def _make_absolute(url: str | None, base: str) -> str | None:
+    """Convert relative /uploads/... paths to absolute HTTPS URLs."""
+    if not url:
+        return None
+    if url.startswith("/"):
+        full = base.rstrip("/") + url
+        # Always use HTTPS for our uploads (behind Traefik TLS termination)
+        return full.replace("http://", "https://", 1)
+    return url
+
+
+def _lms_to_directory_detail(lms: LMSInstance, base_url: str = "") -> dict:
     return {
         "id": str(lms.id),
         "title": lms.name,
         "description": lms.description or lms.platform_name,
         "short_description": lms.platform_name,
         "base_url": lms.base_url,
-        "logo_url": lms.logo_url or None,
+        "logo_url": _make_absolute(lms.logo_url, base_url) or None,
         "accent_color": lms.accent_color or None,
         "api": {
             "host_url": lms.base_url,
@@ -141,14 +200,27 @@ def _lms_to_directory_detail(lms: LMSInstance) -> dict:
         },
         "feature_flags": {
             "pre_login_discovery": lms.pre_login_discovery,
-            "offline_downloads": lms.offline_downloads,
-            "smart_push_automation": lms.smart_push_automation,
+            "unknown_units_mode": getattr(lms, "unknown_units_mode", "block"),
+        },
+        "theme": {
+            "accent_color_dark": getattr(lms, "accent_color_dark", None) or None,
+            "login_background_url": _make_absolute(getattr(lms, "login_background_url", None), base_url),
+            "logo_upload_url": _make_absolute(getattr(lms, "logo_upload_url", None), base_url),
+        },
+        "ui_components": {
+            "course_unit_progress_enabled": getattr(lms, "course_unit_progress", True),
+            "course_dropdown_navigation_enabled": getattr(lms, "course_dropdown_nav", True),
+            "pre_login_experience_enabled": getattr(lms, "pre_login_experience", True),
+        },
+        "dashboard": {
+            "type": getattr(lms, "dashboard_type", "gallery"),
         },
     }
 
 
 @app.get("/api/v1/directory")
-def directory_search(q: str = "", db: Session = Depends(get_db)):
+def directory_search(q: str = "", request: Request = None, db: Session = Depends(get_db)):
+    base = str(request.base_url).rstrip("/") if request else ""
     query = db.query(LMSInstance).filter(LMSInstance.status == LMSStatus.approved)
     if q:
         query = query.filter(
@@ -161,7 +233,7 @@ def directory_search(q: str = "", db: Session = Depends(get_db)):
             "title": lms.name,
             "short_description": lms.platform_name,
             "base_url": lms.base_url,
-            "logo_url": lms.logo_url or None,
+            "logo_url": _make_absolute(lms.logo_url, base) or None,
             "accent_color": lms.accent_color or None,
         }
         for lms in query.all()
@@ -170,33 +242,62 @@ def directory_search(q: str = "", db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/directory/{lms_id}")
-def directory_detail(lms_id: str, db: Session = Depends(get_db)):
+def directory_detail(lms_id: str, request: Request, db: Session = Depends(get_db)):
     lms = db.query(LMSInstance).filter(
         LMSInstance.id == int(lms_id),
         LMSInstance.status == LMSStatus.approved,
     ).first()
     if not lms:
         raise HTTPException(status_code=404, detail="LMS not found")
-    return _lms_to_directory_detail(lms)
+    base = str(request.base_url).rstrip("/")
+    if request.headers.get("x-forwarded-proto") == "https":
+        base = base.replace("http://", "https://", 1)
+    return _lms_to_directory_detail(lms, base_url=base)
 
 
 # ── Aliases matching iOS backend.md paths ─────────────
 
 @app.get("/api/universal-login/lms/search")
-def ul_search(query: str = "", limit: int = 20, db: Session = Depends(get_db)):
-    return directory_search(q=query, db=db)
+def ul_search(query: str = "", limit: int = 20, request: Request = None, db: Session = Depends(get_db)):
+    return directory_search(q=query, request=request, db=db)
 
 
 @app.get("/api/universal-login/lms/{lms_id}")
-def ul_detail(lms_id: str, db: Session = Depends(get_db)):
-    return directory_detail(lms_id=lms_id, db=db)
+def ul_detail(lms_id: str, request: Request, db: Session = Depends(get_db)):
+    return directory_detail(lms_id=lms_id, request=request, db=db)
 
 
 # ── Web UI ────────────────────────────────────────────
 
 STATIC_DIR = Path(__file__).parent / "static"
 
+app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
+app.mount("/wizard", StaticFiles(directory=str(STATIC_DIR / "wizard"), html=True), name="wizard")
+
+LANDING_DIR = STATIC_DIR / "landing"
+
 
 @app.get("/", response_class=FileResponse)
 def root():
+    if LANDING_DIR.exists():
+        return FileResponse(LANDING_DIR / "index.html")
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+# Serve landing static assets (_next/*, images, video, etc.)
+if (STATIC_DIR / "landing").exists():
+    app.mount("/_next", StaticFiles(directory=str(LANDING_DIR / "_next")), name="landing_next")
+
+    # Serve public assets from landing root (quick-demo.mp4, app-screenshot.png, etc.)
+    @app.get("/quick-demo.mp4", response_class=FileResponse)
+    def landing_video():
+        return FileResponse(LANDING_DIR / "quick-demo.mp4", media_type="video/mp4")
+
+    @app.get("/app-screenshot.png", response_class=FileResponse)
+    def landing_screenshot():
+        return FileResponse(LANDING_DIR / "app-screenshot.png", media_type="image/png")
+
+
+@app.get("/dashboard", response_class=FileResponse)
+def dashboard():
     return FileResponse(STATIC_DIR / "index.html")

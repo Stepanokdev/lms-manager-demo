@@ -20,8 +20,6 @@
   --shadow-lg:0 4px 24px rgba(0,0,0,.06);
 }
 body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
-
-/* --- Header --- */
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);background:rgba(255,255,255,.88)}
 .header-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.02em}
 .header-brand svg{width:28px;height:28px;color:var(--accent)}
@@ -29,11 +27,7 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
 .badge.admin{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border)}
 .badge.user{background:var(--accent-light);color:var(--accent);border:1px solid #c7d2fe}
-
-/* --- Layout --- */
 .container{max-width:860px;margin:0 auto;padding:32px 24px}
-
-/* --- Auth --- */
 #auth-section{display:flex;justify-content:center;align-items:center;min-height:90vh;padding:24px}
 .auth-card{background:var(--surface);border-radius:var(--radius-lg);padding:40px 36px;width:400px;box-shadow:var(--shadow-lg);border:1px solid var(--border)}
 .auth-card h2{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:6px;text-align:center}
@@ -41,52 +35,33 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .tabs{display:flex;margin-bottom:28px;background:var(--bg);border-radius:var(--radius);padding:3px;gap:3px}
 .tabs button{flex:1;padding:9px;border:none;background:transparent;cursor:pointer;font-size:13px;font-weight:600;border-radius:7px;color:var(--text-2);transition:all .2s}
 .tabs button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.06)}
-
-/* --- Forms --- */
 .form-group{margin-bottom:18px}
 .form-group label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text)}
-.form-group input[type=text],.form-group input[type=email],.form-group input[type=password],.form-group input[type=url]{
-  width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);color:var(--text);transition:border .15s,box-shadow .15s}
-.form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);color:var(--text);transition:border .15s,box-shadow .15s}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
 .form-group input::placeholder{color:var(--text-3)}
-
-/* --- Color picker --- */
 .color-input-wrap{display:flex;gap:8px;align-items:center}
 .color-input-wrap input[type=text]{flex:1}
 .color-input-wrap input[type=color]{width:44px;height:44px;padding:2px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--surface)}
 .color-input-wrap input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
 .color-input-wrap input[type=color]::-webkit-color-swatch{border-radius:6px;border:none}
-
-/* --- Buttons --- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 20px;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;letter-spacing:-.01em}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,70,229,.25)}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-danger:hover{opacity:.9}
-.btn-success{background:var(--success);color:#fff}
-.btn-success:hover{opacity:.9}
+.btn-primary:active{transform:translateY(0)}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-success{background:var(--success);color:#fff}.btn-success:hover{opacity:.9}
 .btn-sm{padding:7px 14px;font-size:13px}
 .btn-ghost{background:transparent;color:var(--text-2);border:1px solid var(--border)}
 .btn-ghost:hover{background:var(--bg);border-color:var(--text-3)}
 .btn-full{width:100%}
-
 .error-msg{color:var(--danger);font-size:13px;margin-top:8px;text-align:center}
 .success-msg{color:var(--success);font-size:13px;margin-top:8px;text-align:center}
-
-/* --- Chip / tag --- */
-.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all .15s;text-decoration:none}
-.chip-info{background:var(--accent-light);color:var(--accent);border:1px solid #c7d2fe}
-.chip-info:hover{background:#ddd6fe;border-color:#a5b4fc}
-
-/* --- Dashboard --- */
 #app-section{display:none}
 .section-title{font-size:17px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
 .section-title .filters{display:flex;gap:4px}
-
-/* --- Cards --- */
 .card{background:var(--surface);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .card h3{font-size:16px;font-weight:700;letter-spacing:-.02em;margin-bottom:18px}
-
 .lms-card{background:var(--surface);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;border:1px solid var(--border);display:flex;align-items:center;gap:14px;transition:box-shadow .15s}
 .lms-card:hover{box-shadow:var(--shadow)}
 .lms-badge{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
@@ -99,37 +74,19 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .status-pending{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border)}
 .status-rejected{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
 .lms-actions{display:flex;gap:5px;flex-shrink:0}
-
-.form-row{display:flex;gap:14px}
-.form-row .form-group{flex:1}
-
 .empty-state{color:var(--text-3);font-size:14px;padding:20px 0}
-
-/* --- Modal --- */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-overlay.open{opacity:1;pointer-events:auto}
-.modal{background:var(--surface);border-radius:var(--radius-lg);padding:36px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);border:1px solid var(--border);transform:translateY(8px);transition:transform .2s}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:36px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);border:1px solid var(--border);transform:translateY(8px);transition:transform .2s;position:relative}
 .modal-overlay.open .modal{transform:translateY(0)}
 .modal h2{font-size:20px;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
 .modal .subtitle{color:var(--text-2);font-size:14px;margin-bottom:24px}
 .modal-close{position:absolute;top:16px;right:20px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-3);padding:4px}
-
-.step{margin-bottom:20px;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)}
-.step-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;margin-right:8px;flex-shrink:0}
-.step-title{font-weight:700;font-size:14px;margin-bottom:8px;display:flex;align-items:center}
-.step p,.step li{font-size:13px;color:var(--text-2);line-height:1.7}
-.step ol{padding-left:20px}
-.step code{background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:12px;font-family:'DM Sans',monospace}
-
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:14px;font-weight:500}
 .hidden{display:none!important}
-
-@media(max-width:600px){
-  .form-row{flex-direction:column;gap:0}
-  .auth-card{padding:28px 20px;width:100%}
-  .container{padding:20px 16px}
-  .lms-card{flex-wrap:wrap}
-  .lms-actions{width:100%;justify-content:flex-end;margin-top:8px}
-}
+@media(max-width:600px){.auth-card{padding:28px 20px;width:100%}.container{padding:20px 16px}.lms-card{flex-wrap:wrap}.lms-actions{width:100%;justify-content:flex-end;margin-top:8px}}
 </style>
 </head>
 <body>
@@ -144,31 +101,16 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
       <button onclick="showTab('register')">Create account</button>
     </div>
     <div id="login-form">
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="login-email" placeholder="you@example.com">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="login-password" placeholder="Your password">
-      </div>
-      <button class="btn btn-primary btn-full" onclick="login()">Sign in</button>
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="Your password"></div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()">Sign in</button>
       <div id="login-error" class="error-msg"></div>
     </div>
     <div id="register-form" class="hidden">
-      <div class="form-group">
-        <label>Name</label>
-        <input type="text" id="reg-name" placeholder="Your name">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="reg-email" placeholder="you@example.com">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="reg-password" placeholder="Min 6 characters">
-      </div>
-      <button class="btn btn-primary btn-full" onclick="register()">Create account</button>
+      <div class="form-group"><label>Name</label><input type="text" id="reg-name" placeholder="Your name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 6 characters"></div>
+      <button class="btn btn-primary btn-full" onclick="doRegister()">Create account</button>
       <div id="reg-error" class="error-msg"></div>
     </div>
   </div>
@@ -187,66 +129,12 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
       <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
     </div>
   </div>
-
   <div class="container">
-    <!-- Submit LMS -->
-    <div class="card" id="submit-section">
-      <h3>Register your LMS instance</h3>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Instance name</label>
-          <input type="text" id="lms-name" placeholder="My University LMS">
-        </div>
-        <div class="form-group">
-          <label>Base URL</label>
-          <input type="url" id="lms-url" placeholder="https://lms.example.com">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Platform name</label>
-          <input type="text" id="lms-platform" placeholder="Open edX">
-        </div>
-        <div class="form-group">
-          <label>
-            OAuth Client ID
-            <a class="chip chip-info" onclick="openGuide()" title="How to get your OAuth Client ID">? Where to get</a>
-          </label>
-          <input type="text" id="lms-oauth" placeholder="e.g. K5TcezWSOG6WBzgjBcnn...">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Description</label>
-        <input type="text" id="lms-description" placeholder="Brief description of this LMS instance">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Logo URL</label>
-          <input type="url" id="lms-logo" placeholder="https://example.com/logo.png">
-        </div>
-        <div class="form-group">
-          <label>Feedback email</label>
-          <input type="email" id="lms-email" placeholder="support@example.com">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Accent color</label>
-          <div class="color-input-wrap">
-            <input type="text" id="lms-color" placeholder="#007AFF" value="#007AFF" oninput="syncColor(this.value,'to-picker')">
-            <input type="color" id="lms-color-picker" value="#007AFF" oninput="syncColor(this.value,'to-text')">
-          </div>
-        </div>
-        <div class="form-group" style="display:flex;flex-direction:column;justify-content:center;gap:6px;padding-top:20px">
-          <label style="margin-bottom:0"><input type="checkbox" id="lms-pre-login" checked> Pre-login discovery</label>
-          <label style="margin-bottom:0"><input type="checkbox" id="lms-offline"> Offline downloads</label>
-          <label style="margin-bottom:0"><input type="checkbox" id="lms-push"> Smart push automation</label>
-        </div>
-      </div>
-      <div style="margin-top:16px;display:flex;gap:12px;align-items:center">
-        <button class="btn btn-primary btn-sm" onclick="submitLms()">Submit for review</button>
-        <span id="submit-msg"></span>
-      </div>
+    <!-- Launch Wizard CTA -->
+    <div class="card" style="text-align:center;padding:40px 24px">
+      <h3 style="font-size:20px;margin-bottom:8px">Register your LMS instance</h3>
+      <p style="color:var(--text-2);font-size:14px;margin-bottom:24px">Use the visual wizard to configure how your Open edX instance appears in the universal mobile app.</p>
+      <a href="/wizard/" class="btn btn-primary" style="font-size:16px;padding:14px 32px;text-decoration:none">Launch Wizard</a>
     </div>
 
     <!-- My LMS -->
@@ -270,48 +158,18 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
   </div>
 </div>
 
-<!-- OAuth Guide Modal -->
-<div class="modal-overlay" id="guide-modal" onclick="if(event.target===this)closeGuide()">
-  <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeGuide()">&times;</button>
-    <h2>How to get OAuth Client ID</h2>
-    <p class="subtitle">Create an OAuth application in your Open edX admin panel for the Universal Open edX App</p>
-
-    <div class="step">
-      <div class="step-title"><span class="step-num">1</span> Open Django Admin</div>
-      <p>Go to <code>YOUR_LMS_URL/admin</code> and log in with your Open edX admin account.</p>
-      <p style="margin-top:4px">In the Login field, use the email prefix (e.g. for <code>admin@example.com</code> enter <code>admin</code>).</p>
+<!-- Admin Edit Modal -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEdit()">
+  <div class="modal" style="max-width:720px">
+    <button class="modal-close" onclick="closeEdit()">&times;</button>
+    <h2>Edit LMS Instance</h2>
+    <p class="subtitle" id="edit-subtitle"></p>
+    <div id="edit-form"></div>
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-ghost btn-sm" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEdit()">Save changes</button>
     </div>
-
-    <div class="step">
-      <div class="step-title"><span class="step-num">2</span> Find Django OAuth Toolkit</div>
-      <p>Scroll down and find <strong>"DJANGO OAUTH TOOLKIT"</strong> section, or use the search bar.</p>
-      <p style="margin-top:4px">Click <strong>"Applications"</strong>, then click <strong>"ADD APPLICATION"</strong> button.</p>
-    </div>
-
-    <div class="step">
-      <div class="step-title"><span class="step-num">3</span> Configure the application</div>
-      <ol>
-        <li>Don't change the <strong>Client id</strong> field (it's auto-generated)</li>
-        <li>Leave the <strong>User</strong> field empty</li>
-        <li>Leave the <strong>Redirect uris</strong> field empty</li>
-        <li>Client type: select <strong>"Public"</strong></li>
-        <li>Authorization grant type: select <strong>"Resource owner password based"</strong></li>
-        <li>Don't change the <strong>Client secret</strong> field</li>
-        <li>Name: enter <strong>"Universal Open edX App"</strong></li>
-        <li>Click <strong>"SAVE"</strong></li>
-      </ol>
-    </div>
-
-    <div class="step">
-      <div class="step-title"><span class="step-num">4</span> Copy the Client ID</div>
-      <p>After saving, copy the <strong>Client id</strong> value and paste it into the form above.</p>
-      <p style="margin-top:4px">That's it! Your LMS is now ready to connect with the Universal Open edX App.</p>
-    </div>
-
-    <div style="text-align:right;margin-top:8px">
-      <button class="btn btn-primary btn-sm" onclick="closeGuide()">Got it</button>
-    </div>
+    <div id="edit-msg" style="margin-top:8px;text-align:right"></div>
   </div>
 </div>
 
@@ -319,6 +177,7 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 const API='';
 let token=localStorage.getItem('token');
 let currentUser=null;
+let editingLmsId=null;
 
 async function api(path,opts={}){
   const headers={'Content-Type':'application/json',...opts.headers};
@@ -330,131 +189,87 @@ async function api(path,opts={}){
 
 function showTab(tab){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
-  if(tab==='login'){
-    document.querySelector('.tabs button:first-child').classList.add('active');
-    document.getElementById('login-form').classList.remove('hidden');
-    document.getElementById('register-form').classList.add('hidden');
-  }else{
-    document.querySelector('.tabs button:last-child').classList.add('active');
-    document.getElementById('login-form').classList.add('hidden');
-    document.getElementById('register-form').classList.remove('hidden');
-  }
+  if(tab==='login'){document.querySelector('.tabs button:first-child').classList.add('active');document.getElementById('login-form').classList.remove('hidden');document.getElementById('register-form').classList.add('hidden')}
+  else{document.querySelector('.tabs button:last-child').classList.add('active');document.getElementById('login-form').classList.add('hidden');document.getElementById('register-form').classList.remove('hidden')}
 }
-
-async function login(){
-  const email=document.getElementById('login-email').value;
-  const password=document.getElementById('login-password').value;
+async function doLogin(){
+  const email=document.getElementById('login-email').value,password=document.getElementById('login-password').value;
   document.getElementById('login-error').textContent='';
-  try{
-    const data=await api('/auth/login',{method:'POST',body:JSON.stringify({email,password})});
-    token=data.access_token;localStorage.setItem('token',token);await loadApp();
-  }catch(e){document.getElementById('login-error').textContent=e.message}
+  try{const d=await api('/auth/login',{method:'POST',body:JSON.stringify({email,password})});token=d.access_token;localStorage.setItem('token',token);await loadApp()}catch(e){document.getElementById('login-error').textContent=e.message}
 }
-
-async function register(){
-  const name=document.getElementById('reg-name').value;
-  const email=document.getElementById('reg-email').value;
-  const password=document.getElementById('reg-password').value;
+async function doRegister(){
+  const name=document.getElementById('reg-name').value,email=document.getElementById('reg-email').value,password=document.getElementById('reg-password').value;
   document.getElementById('reg-error').textContent='';
-  try{
-    const data=await api('/auth/register',{method:'POST',body:JSON.stringify({email,name,password})});
-    token=data.access_token;localStorage.setItem('token',token);await loadApp();
-  }catch(e){document.getElementById('reg-error').textContent=e.message}
+  try{const d=await api('/auth/register',{method:'POST',body:JSON.stringify({email,name,password})});token=d.access_token;localStorage.setItem('token',token);await loadApp()}catch(e){document.getElementById('reg-error').textContent=e.message}
 }
-
-function logout(){
-  token=null;currentUser=null;localStorage.removeItem('token');
-  document.getElementById('auth-section').style.display='flex';
-  document.getElementById('app-section').style.display='none';
-}
+function logout(){token=null;currentUser=null;localStorage.removeItem('token');document.getElementById('auth-section').style.display='flex';document.getElementById('app-section').style.display='none'}
 
 async function loadApp(){
   try{currentUser=await api('/auth/me')}catch{logout();return}
   document.getElementById('auth-section').style.display='none';
   document.getElementById('app-section').style.display='block';
   document.getElementById('user-name').textContent=currentUser.name;
-  const badge=document.getElementById('user-badge');
-  badge.textContent=currentUser.role;badge.className=`badge ${currentUser.role}`;
-  if(currentUser.role==='admin'){
-    document.getElementById('admin-section').classList.remove('hidden');loadAdminLms('');
-  }else{document.getElementById('admin-section').classList.add('hidden')}
+  const badge=document.getElementById('user-badge');badge.textContent=currentUser.role;badge.className=`badge ${currentUser.role}`;
+  if(currentUser.role==='admin'){document.getElementById('admin-section').classList.remove('hidden');loadAdminLms('')}
+  else{document.getElementById('admin-section').classList.add('hidden')}
   loadMyLms();
 }
 
-function renderLmsCard(lms,showActions=false){
-  const actions=showActions?`
-    <div class="lms-actions">
-      ${lms.status!=='approved'?`<button class="btn btn-success btn-sm" onclick="updateStatus(${lms.id},'approved')">Approve</button>`:''}
-      ${lms.status!=='rejected'?`<button class="btn btn-danger btn-sm" onclick="updateStatus(${lms.id},'rejected')">Reject</button>`:''}
-    </div>`:'';
-  return `
-    <div class="lms-card">
-      <div class="lms-badge" style="background:${lms.accent_color}">${lms.name.substring(0,2).toUpperCase()}</div>
-      <div class="lms-info">
-        <div class="name">${lms.name}</div>
-        <div class="url">${lms.base_url}</div>
-        <div class="meta">${lms.platform_name} &middot; ${lms.oauth_client_id.substring(0,16)}...</div>
-      </div>
-      <span class="lms-status status-${lms.status}">${lms.status}</span>
-      ${actions}
-    </div>`;
+function renderLmsCard(lms,isAdmin=false){
+  const actions=isAdmin?`<div class="lms-actions">
+    <a class="btn btn-ghost btn-sm" href="/wizard/?edit=${lms.id}" style="text-decoration:none">Edit</a>
+    ${lms.status!=='approved'?`<button class="btn btn-success btn-sm" onclick="updateStatus(${lms.id},'approved')">Approve</button>`:''}
+    ${lms.status!=='rejected'?`<button class="btn btn-danger btn-sm" onclick="updateStatus(${lms.id},'rejected')">Reject</button>`:''}
+  </div>`:'';
+  return `<div class="lms-card">
+    <div class="lms-badge" style="background:${lms.accent_color}">${lms.name.substring(0,2).toUpperCase()}</div>
+    <div class="lms-info"><div class="name">${lms.name}</div><div class="url">${lms.base_url}</div><div class="meta">${lms.platform_name} &middot; ${lms.dashboard_type||'gallery'} &middot; ${lms.unknown_units_mode||'block'}</div></div>
+    <span class="lms-status status-${lms.status}">${lms.status}</span>${actions}
+  </div>`;
 }
+async function loadMyLms(){try{const list=await api('/my/lms');document.getElementById('my-lms-list').innerHTML=list.length?list.map(l=>renderLmsCard(l)).join(''):'<p class="empty-state">No submissions yet. Use the wizard above to register your first LMS instance.</p>'}catch{}}
+async function loadAdminLms(status){try{const path=status?`/admin/lms?status_filter=${status}`:'/admin/lms';const list=await api(path);document.getElementById('admin-lms-list').innerHTML=list.length?list.map(l=>renderLmsCard(l,true)).join(''):'<p class="empty-state">No LMS instances found.</p>'}catch(e){document.getElementById('admin-lms-list').innerHTML=`<p class="error-msg">${e.message}</p>`}}
+async function updateStatus(id,status){try{await api(`/admin/lms/${id}`,{method:'PATCH',body:JSON.stringify({status})});loadAdminLms('')}catch(e){alert(e.message)}}
 
-async function loadMyLms(){
+/* Admin Edit */
+const EDIT_FIELDS=[
+  {key:'name',label:'Name',type:'text'},{key:'base_url',label:'Base URL',type:'url'},
+  {key:'platform_name',label:'Platform',type:'text'},{key:'oauth_client_id',label:'OAuth Client ID',type:'text'},
+  {key:'description',label:'Description',type:'text'},{key:'feedback_email',label:'Feedback email',type:'email'},
+  {key:'accent_color',label:'Accent color',type:'color'},{key:'logo_url',label:'Logo URL',type:'url'},
+  {key:'logo_upload_url',label:'Logo upload URL',type:'url'},{key:'login_background_url',label:'Login BG URL',type:'url'},
+  {key:'sso_url',label:'SSO URL',type:'url'},{key:'sso_finished_url',label:'SSO Finished URL',type:'url'},
+  {key:'sso_button_title',label:'SSO Button Title',type:'text'},
+  {key:'dashboard_type',label:'Dashboard type',type:'select',options:['gallery','list']},
+  {key:'unknown_units_mode',label:'Unknown units',type:'select',options:['block','webview']},
+  {key:'pre_login_discovery',label:'Pre-login discovery',type:'bool'},
+  {key:'pre_login_experience',label:'Pre-login experience',type:'bool'},
+  {key:'course_unit_progress',label:'Course unit progress',type:'bool'},
+  {key:'course_dropdown_nav',label:'Dropdown navigation',type:'bool'},
+  {key:'status',label:'Status',type:'select',options:['pending','approved','rejected']},
+];
+
+async function openEdit(id){
+  editingLmsId=id;
   try{
-    const list=await api('/my/lms');
-    const c=document.getElementById('my-lms-list');
-    c.innerHTML=list.length?list.map(l=>renderLmsCard(l)).join(''):'<p class="empty-state">No submissions yet. Register your first LMS instance above.</p>';
-  }catch{}
+    const lms=await api(`/lms/${id}`);
+    document.getElementById('edit-subtitle').textContent=`${lms.name} — ${lms.base_url}`;
+    document.getElementById('edit-form').innerHTML=EDIT_FIELDS.map(f=>{
+      const val=lms[f.key]??'';
+      if(f.type==='bool')return `<div class="toggle-row"><div class="toggle-label">${f.label}</div><label style="cursor:pointer"><input type="checkbox" data-key="${f.key}" ${val?'checked':''}> ${val?'On':'Off'}</label></div>`;
+      if(f.type==='select')return `<div class="form-group"><label>${f.label}</label><select data-key="${f.key}">${f.options.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select></div>`;
+      if(f.type==='color')return `<div class="form-group"><label>${f.label}</label><div class="color-input-wrap"><input type="text" data-key="${f.key}" value="${val}"><input type="color" value="${val}" oninput="this.previousElementSibling.value=this.value"></div></div>`;
+      return `<div class="form-group"><label>${f.label}</label><input type="${f.type}" data-key="${f.key}" value="${val}"></div>`;
+    }).join('');
+    document.getElementById('edit-modal').classList.add('open');
+  }catch(e){alert(e.message)}
 }
-
-async function loadAdminLms(status){
-  try{
-    const path=status?`/admin/lms?status_filter=${status}`:'/admin/lms';
-    const list=await api(path);
-    document.getElementById('admin-lms-list').innerHTML=list.length
-      ?list.map(l=>renderLmsCard(l,true)).join('')
-      :'<p class="empty-state">No LMS instances found.</p>';
-  }catch(e){document.getElementById('admin-lms-list').innerHTML=`<p class="error-msg">${e.message}</p>`}
+async function saveEdit(){
+  const updates={};document.querySelectorAll('#edit-form [data-key]').forEach(el=>{const k=el.dataset.key;updates[k]=el.type==='checkbox'?el.checked:el.value});
+  const msg=document.getElementById('edit-msg');msg.textContent='';
+  try{await api(`/admin/lms/${editingLmsId}`,{method:'PUT',body:JSON.stringify(updates)});msg.textContent='Saved!';msg.className='success-msg';loadAdminLms('');setTimeout(closeEdit,800)}catch(e){msg.textContent=e.message;msg.className='error-msg'}
 }
-
-async function updateStatus(id,status){
-  try{await api(`/admin/lms/${id}`,{method:'PATCH',body:JSON.stringify({status})});loadAdminLms('')}
-  catch(e){alert(e.message)}
-}
-
-async function submitLms(){
-  const msg=document.getElementById('submit-msg');msg.textContent='';msg.className='';
-  try{
-    await api('/lms',{method:'POST',body:JSON.stringify({
-      name:document.getElementById('lms-name').value,
-      base_url:document.getElementById('lms-url').value,
-      platform_name:document.getElementById('lms-platform').value,
-      oauth_client_id:document.getElementById('lms-oauth').value,
-      description:document.getElementById('lms-description').value,
-      logo_url:document.getElementById('lms-logo').value,
-      accent_color:document.getElementById('lms-color').value||'#007AFF',
-      feedback_email:document.getElementById('lms-email').value,
-      pre_login_discovery:document.getElementById('lms-pre-login').checked,
-      offline_downloads:document.getElementById('lms-offline').checked,
-      smart_push_automation:document.getElementById('lms-push').checked,
-    })});
-    msg.textContent='Submitted! Waiting for admin approval.';msg.className='success-msg';
-    document.querySelectorAll('#submit-section input[type=text],#submit-section input[type=url],#submit-section input[type=email]').forEach(i=>{if(i.id!=='lms-color')i.value=''});
-    loadMyLms();if(currentUser.role==='admin')loadAdminLms('');
-  }catch(e){msg.textContent=e.message;msg.className='error-msg'}
-}
-
-function syncColor(val,dir){
-  if(dir==='to-picker'){
-    try{document.getElementById('lms-color-picker').value=val}catch{}
-  }else{
-    document.getElementById('lms-color').value=val;
-  }
-}
-
-function openGuide(){document.getElementById('guide-modal').classList.add('open')}
-function closeGuide(){document.getElementById('guide-modal').classList.remove('open')}
+function closeEdit(){document.getElementById('edit-modal').classList.remove('open');document.getElementById('edit-msg').textContent=''}
 
 if(token)loadApp();
 </script>
