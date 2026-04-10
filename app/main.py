@@ -369,6 +369,10 @@ if (STATIC_DIR / "landing").exists():
     def landing_android():
         return FileResponse(LANDING_DIR / "android.png", media_type="image/png")
 
+    @app.get("/openedx-universal.apk", response_class=FileResponse)
+    def landing_apk():
+        return FileResponse(LANDING_DIR / "openedx-universal.apk", media_type="application/vnd.android.package-archive")
+
 
 @app.get("/dashboard", response_class=FileResponse)
 def dashboard():
