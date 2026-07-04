@@ -168,7 +168,8 @@ def get_lms(lms_id: int, db: Session = Depends(get_db)):
 def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     data = req.model_dump()
     data["accent_color_dark"] = adapt_accent_for_dark(data.get("accent_color", "#007AFF"))
-    lms = LMSInstance(**data, submitted_by=user.id)
+    # Auto-approve during demo period
+    lms = LMSInstance(**data, submitted_by=user.id, status=LMSStatus.approved)
     db.add(lms)
     db.commit()
     db.refresh(lms)
