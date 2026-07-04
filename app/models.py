@@ -128,6 +128,8 @@ class LMSInstance(Base):
 
     # Set when an admin has emailed the owner about a moderation action
     owner_notified_at = Column(DateTime, nullable=True)
+    # Human-readable reason shown to the owner when their LMS is blocked
+    block_reason = Column(String, default="")
 
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -160,6 +162,7 @@ class Report(Base):
     severity = Column(SAEnum(ReportSeverity), default=ReportSeverity.low, nullable=False)
     message = Column(Text, default="")
     reporter_email = Column(String, default="")
+    screenshot_url = Column(String, default="")   # optional evidence from the reporter
 
     platform = Column(String, default="")     # "ios" | "android" | "web"
     app_version = Column(String, default="")

@@ -150,6 +150,7 @@ class LMSResponse(BaseModel):
     last_health_note: str
     owner_notified_at: datetime | None
     owner_email: str
+    block_reason: str
     submitted_by: int
     created_at: datetime
     updated_at: datetime
@@ -175,6 +176,9 @@ class ReportCreateRequest(BaseModel):
     reporter_email: EmailStr | None = None
     platform: str = ""
     app_version: str = ""
+    # Optional evidence: a base64-encoded image (with or without a data: prefix),
+    # captured and compressed by the app before sending.
+    screenshot_base64: str | None = None
 
 
 class ReportCreateResponse(BaseModel):
@@ -211,6 +215,7 @@ class ReportResponse(BaseModel):
     severity: ReportSeverity
     message: str
     reporter_email: str
+    screenshot_url: str
     platform: str
     app_version: str
     status: ReportStatus

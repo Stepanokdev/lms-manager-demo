@@ -50,6 +50,7 @@ export interface LMS {
   last_health_note: string
   owner_notified_at: string | null
   owner_email: string
+  block_reason: string
   submitted_by: number
   created_at: string
   updated_at: string
@@ -83,6 +84,7 @@ export interface Report {
   severity: Severity
   message: string
   reporter_email: string
+  screenshot_url: string
   platform: string
   app_version: string
   status: ReportStatus

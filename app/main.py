@@ -1,5 +1,7 @@
 import os
 import uuid
+import base64
+import binascii
 import datetime
 from pathlib import Path
 
@@ -55,8 +57,41 @@ app.add_middleware(
 )
 
 UPLOAD_DIR = Path("data/uploads")
+REPORT_SHOT_DIR = UPLOAD_DIR / "reports"
 ALLOWED_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"}
 MAX_SIZE = 2 * 1024 * 1024  # 2MB
+MAX_SCREENSHOT_SIZE = 4 * 1024 * 1024  # 4MB decoded
+
+
+def _sniff_image_ext(data: bytes) -> str | None:
+    """Return a file extension for a supported image, or None if unrecognized."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return ".png"
+    if data[:3] == b"\xff\xd8\xff":
+        return ".jpg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return ".webp"
+    return None
+
+
+def _save_report_screenshot(b64: str | None) -> str:
+    """Decode a base64 image from a mobile report and store it. Returns a URL or ''."""
+    if not b64:
+        return ""
+    raw = b64.split(",", 1)[1] if b64.startswith("data:") else b64
+    try:
+        data = base64.b64decode(raw, validate=False)
+    except (binascii.Error, ValueError):
+        return ""
+    if not data or len(data) > MAX_SCREENSHOT_SIZE:
+        return ""
+    ext = _sniff_image_ext(data)
+    if not ext:
+        return ""
+    REPORT_SHOT_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    (REPORT_SHOT_DIR / filename).write_bytes(data)
+    return f"/uploads/reports/{filename}"
 
 
 # ── Auth ──────────────────────────────────────────────
@@ -422,6 +457,7 @@ def create_report(
         severity=severity,
         message=(req.message or "").strip(),
         reporter_email=(req.reporter_email or ""),
+        screenshot_url=_save_report_screenshot(req.screenshot_base64),
         platform=(req.platform or "").strip().lower(),
         app_version=(req.app_version or "").strip(),
         status=ReportStatus.new,
@@ -545,6 +581,12 @@ def admin_block_lms(
         .filter(Report.lms_id == lms_id, Report.status.in_(_OPEN_STATUSES))
         .all()
     )
+    # Record a reason the owner will see, from the complaints that led here.
+    recent_categories = [
+        r.category.value
+        for r in db.query(Report).filter(Report.lms_id == lms_id).order_by(Report.id.desc()).limit(10).all()
+    ]
+    lms.block_reason = email_notify.summarize_reason(recent_categories)
     for report in open_reports:
         report.status = ReportStatus.blocked
         report.resolved_by = admin.id
@@ -607,6 +649,7 @@ def admin_unblock_lms(
     if not lms:
         raise HTTPException(status_code=404, detail="LMS not found")
     lms.status = LMSStatus.approved
+    lms.block_reason = ""
     db.commit()
     db.refresh(lms)
     return lms

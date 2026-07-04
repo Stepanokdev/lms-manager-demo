@@ -224,6 +224,18 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
               {report.message || <span className="text-surface-500">No details provided.</span>}
             </p>
 
+            {report.screenshot_url && (
+              <a
+                href={report.screenshot_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open full screenshot"
+                className="mt-3 inline-flex overflow-hidden rounded-xl border border-white/12 transition-colors hover:border-accent-500/50"
+              >
+                <img src={report.screenshot_url} alt="Reporter screenshot" className="max-h-44 w-auto object-contain" />
+              </a>
+            )}
+
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-surface-500">
               <span className="flex items-center gap-1.5">
                 <IconClock /> {timeAgo(report.created_at)}

@@ -24,14 +24,21 @@ CATEGORY_PHRASE = {
 }
 
 
+def summarize_reason(categories: list[str]) -> str:
+    """Turn complaint categories into a human phrase, e.g. 'a scam, and adult content'."""
+    phrases = [CATEGORY_PHRASE.get(c, CATEGORY_PHRASE["other"]) for c in dict.fromkeys(categories)]
+    if not phrases:
+        return CATEGORY_PHRASE["other"]
+    if len(phrases) == 1:
+        return phrases[0]
+    return ", ".join(phrases[:-1]) + f", and {phrases[-1]}"
+
+
 def compose_block_notice(lms: LMSInstance, categories: list[str], details: str = "") -> tuple[str, str]:
     """Return (subject, body) for a temporary-block notice to the owner."""
     cfg = get_config()
     provider = cfg.provider_name
-    phrases = [CATEGORY_PHRASE.get(c, CATEGORY_PHRASE["other"]) for c in dict.fromkeys(categories)]
-    reason = phrases[0] if phrases else CATEGORY_PHRASE["other"]
-    if len(phrases) > 1:
-        reason = ", ".join(phrases[:-1]) + f", and {phrases[-1]}"
+    reason = summarize_reason(categories)
 
     subject = f"[{provider}] {lms.name} was temporarily removed from the app"
 

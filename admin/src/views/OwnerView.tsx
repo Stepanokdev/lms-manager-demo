@@ -5,7 +5,7 @@ import { useApiData } from '@/lib/useApiData'
 import { hostOf, timeAgo } from '@/lib/format'
 import type { LMS, PublicConfig } from '@/lib/types'
 import { Card, Button, Pill, Skeleton, EmptyState, LogoBadge } from '@/components/ui'
-import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer } from '@/components/icons'
+import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer, IconAlert } from '@/components/icons'
 
 export function OwnerView({ config }: { config: PublicConfig | null }) {
   const user = useStore((s) => s.user)
@@ -65,26 +65,41 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
           ) : (
             data.map((lms, i) => (
               <motion.div key={lms.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                <Card className="flex flex-wrap items-center gap-4 p-4">
-                  <LogoBadge name={lms.name} accent={lms.accent_color} logoUrl={lms.logo_upload_url || lms.logo_url || undefined} />
-                  <div className="min-w-[180px] flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[15px] font-semibold text-white">{lms.name}</span>
-                      <StatusPill lms={lms} />
+                <Card className="p-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <LogoBadge name={lms.name} accent={lms.accent_color} logoUrl={lms.logo_upload_url || lms.logo_url || undefined} />
+                    <div className="min-w-[180px] flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[15px] font-semibold text-white">{lms.name}</span>
+                        <StatusPill lms={lms} />
+                      </div>
+                      <a
+                        href={lms.base_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-surface-500 hover:text-accent-300"
+                      >
+                        {hostOf(lms.base_url)} <IconExternal />
+                      </a>
+                      <div className="mt-1 text-[12px] text-surface-500">Updated {timeAgo(lms.updated_at)}</div>
                     </div>
-                    <a
-                      href={lms.base_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-surface-500 hover:text-accent-300"
-                    >
-                      {hostOf(lms.base_url)} <IconExternal />
-                    </a>
-                    <div className="mt-1 text-[12px] text-surface-500">Updated {timeAgo(lms.updated_at)}</div>
+                    <Button variant="ghost" size="sm" onClick={() => launchWizard(lms.id)}>
+                      <IconEdit /> Edit
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => launchWizard(lms.id)}>
-                    <IconEdit /> Edit
-                  </Button>
+
+                  {lms.status === 'rejected' && (
+                    <div className="mt-3 rounded-xl border border-rose-500/25 bg-rose-500/[0.07] px-4 py-3">
+                      <div className="flex items-center gap-2 text-[13px] font-semibold text-rose-200">
+                        <IconAlert /> Temporarily removed from the app
+                      </div>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-rose-100/80">
+                        Learners reported this platform for {lms.block_reason || 'a policy issue'}. Please
+                        fix the issue — once it's resolved, reply to our email and we'll restore it in the
+                        catalog.
+                      </p>
+                    </div>
+                  )}
                 </Card>
               </motion.div>
             ))

@@ -48,9 +48,21 @@ def migrate():
         ("last_health_ok", "BOOLEAN"),
         ("last_health_note", "VARCHAR DEFAULT ''"),
         ("owner_notified_at", "DATETIME"),
+        ("block_reason", "VARCHAR DEFAULT ''"),
     ]
     with engine.begin() as conn:
         for col_name, col_def in new_columns:
             if col_name not in existing:
                 conn.execute(text(f"ALTER TABLE lms_instances ADD COLUMN {col_name} {col_def}"))
         # Removing deprecated columns is not supported in SQLite, so we leave them.
+
+    # reports table (added in v0.3) — new columns since
+    if "reports" in insp.get_table_names():
+        report_cols = {col["name"] for col in insp.get_columns("reports")}
+        report_new = [
+            ("screenshot_url", "VARCHAR DEFAULT ''"),
+        ]
+        with engine.begin() as conn:
+            for col_name, col_def in report_new:
+                if col_name not in report_cols:
+                    conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col_name} {col_def}"))
