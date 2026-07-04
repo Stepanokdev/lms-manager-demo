@@ -1,6 +1,9 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
-from .models import UserRole, LMSStatus
+from pydantic import BaseModel, EmailStr, Field
+from .models import (
+    UserRole, LMSStatus, Visibility,
+    ReportCategory, ReportStatus, ReportSeverity,
+)
 
 
 # --- Auth ---
@@ -31,6 +34,16 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AdminCreateRequest(BaseModel):
+    email: EmailStr
+    name: str
+    password: str = Field(min_length=6)
+
+
+class UserRoleUpdateRequest(BaseModel):
+    role: UserRole
+
+
 # --- LMS ---
 
 class LMSCreateRequest(BaseModel):
@@ -55,10 +68,21 @@ class LMSCreateRequest(BaseModel):
     pre_login_experience: bool = True
     course_unit_progress: bool = True
     course_dropdown_nav: bool = True
+    # Extended feature flags
+    offline_downloads: bool = True
+    smart_push_automation: bool = False
+    # Catalog placement
+    visibility: Visibility = Visibility.public
+    featured: bool = False
+    sort_order: int = 0
 
 
 class LMSUpdateStatusRequest(BaseModel):
     status: LMSStatus
+
+
+class LMSReviewRequest(BaseModel):
+    admin_reviewed: bool = True
 
 
 class LMSFullUpdateRequest(BaseModel):
@@ -82,6 +106,11 @@ class LMSFullUpdateRequest(BaseModel):
     pre_login_experience: bool | None = None
     course_unit_progress: bool | None = None
     course_dropdown_nav: bool | None = None
+    offline_downloads: bool | None = None
+    smart_push_automation: bool | None = None
+    visibility: Visibility | None = None
+    featured: bool | None = None
+    sort_order: int | None = None
     status: LMSStatus | None = None
 
 
@@ -108,9 +137,95 @@ class LMSResponse(BaseModel):
     pre_login_experience: bool
     course_unit_progress: bool
     course_dropdown_nav: bool
+    offline_downloads: bool
+    smart_push_automation: bool
+    visibility: Visibility
+    featured: bool
+    sort_order: int
     status: LMSStatus
+    admin_reviewed: bool
+    reviewed_at: datetime | None
+    last_checked_at: datetime | None
+    last_health_ok: bool | None
+    last_health_note: str
     submitted_by: int
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# --- Reports / complaints ---
+
+class ReportCreateRequest(BaseModel):
+    lms_id: int | None = None
+    base_url: str = ""
+    category: ReportCategory = ReportCategory.other
+    message: str = Field(default="", max_length=4000)
+    reporter_email: EmailStr | None = None
+    platform: str = ""
+    app_version: str = ""
+
+
+class ReportCreateResponse(BaseModel):
+    id: int
+    status: ReportStatus
+
+    model_config = {"from_attributes": True}
+
+
+class ReportUpdateRequest(BaseModel):
+    status: ReportStatus | None = None
+    resolution_note: str | None = None
+
+
+class ReportLMSBrief(BaseModel):
+    id: int
+    name: str
+    base_url: str
+    accent_color: str
+    logo_url: str
+    admin_reviewed: bool
+    last_health_ok: bool | None
+
+    model_config = {"from_attributes": True}
+
+
+class ReportResponse(BaseModel):
+    id: int
+    lms_id: int | None
+    reported_base_url: str
+    category: ReportCategory
+    severity: ReportSeverity
+    message: str
+    reporter_email: str
+    platform: str
+    app_version: str
+    status: ReportStatus
+    resolution_note: str
+    resolved_by: int | None
+    resolved_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    lms: ReportLMSBrief | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ReportStats(BaseModel):
+    new: int
+    investigating: int
+    resolved: int
+    dismissed: int
+    total: int
+    high_open: int          # open (new/investigating) reports at high severity
+    affected_lms: int       # distinct LMS with at least one open report
+
+
+# --- Public app config ---
+
+class PublicConfigResponse(BaseModel):
+    directory_mode: str
+    provider_name: str
+    provider_tagline: str
+    provider_logo_url: str | None = None

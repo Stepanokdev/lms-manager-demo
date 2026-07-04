@@ -1,7 +1,13 @@
 """Seed the database with demo data on first run."""
+import datetime
+
 from sqlalchemy.orm import Session
+
 from .database import SessionLocal
-from .models import User, LMSInstance, UserRole, LMSStatus
+from .models import (
+    User, LMSInstance, UserRole, LMSStatus, Visibility,
+    Report, ReportCategory, ReportStatus, ReportSeverity, CATEGORY_SEVERITY,
+)
 from .auth import hash_password
 from .color_utils import adapt_accent_for_dark
 
@@ -12,7 +18,6 @@ def seed():
         if db.query(User).first():
             return  # already seeded
 
-        # Admin user
         admin = User(
             email="admin@demo.com",
             name="Admin",
@@ -22,7 +27,6 @@ def seed():
         db.add(admin)
         db.flush()
 
-        # Regular user
         user = User(
             email="user@demo.com",
             name="Demo User",
@@ -32,7 +36,6 @@ def seed():
         db.add(user)
         db.flush()
 
-        # LMS instances from iOS config.yaml
         lms_instances = [
             LMSInstance(
                 name="axim-ccpv-dev",
@@ -51,7 +54,15 @@ def seed():
                 course_unit_progress=True,
                 course_dropdown_nav=True,
                 unknown_units_mode="block",
+                offline_downloads=True,
+                smart_push_automation=True,
+                visibility=Visibility.public,
+                featured=True,
+                sort_order=0,
                 status=LMSStatus.approved,
+                admin_reviewed=True,
+                reviewed_at=datetime.datetime.utcnow(),
+                reviewed_by=admin.id,
                 submitted_by=admin.id,
             ),
             LMSInstance(
@@ -71,7 +82,13 @@ def seed():
                 course_unit_progress=True,
                 course_dropdown_nav=False,
                 unknown_units_mode="webview",
+                offline_downloads=True,
+                smart_push_automation=False,
+                visibility=Visibility.public,
+                featured=True,
+                sort_order=1,
                 status=LMSStatus.approved,
+                admin_reviewed=False,  # newly submitted, awaiting an admin check
                 submitted_by=admin.id,
             ),
             LMSInstance(
@@ -91,11 +108,62 @@ def seed():
                 course_unit_progress=False,
                 course_dropdown_nav=True,
                 unknown_units_mode="block",
+                offline_downloads=False,
+                smart_push_automation=False,
+                visibility=Visibility.public,
+                featured=False,
+                sort_order=2,
                 status=LMSStatus.approved,
+                admin_reviewed=False,
                 submitted_by=admin.id,
             ),
         ]
         db.add_all(lms_instances)
+        db.flush()
+
+        # A couple of demo complaints so the triage inbox is not empty on a
+        # fresh install. Timestamps are staggered so ordering is visible.
+        now = datetime.datetime.utcnow()
+        target = lms_instances[1]
+        demo_reports = [
+            Report(
+                lms_id=target.id,
+                reported_base_url=target.base_url,
+                category=ReportCategory.login,
+                severity=CATEGORY_SEVERITY[ReportCategory.login],
+                message="Cannot sign in on iOS — the OAuth screen shows 'invalid client'.",
+                reporter_email="learner@example.com",
+                platform="ios",
+                app_version="2.4.0",
+                status=ReportStatus.new,
+                created_at=now - datetime.timedelta(minutes=6),
+            ),
+            Report(
+                lms_id=target.id,
+                reported_base_url=target.base_url,
+                category=ReportCategory.content,
+                severity=CATEGORY_SEVERITY[ReportCategory.content],
+                message="Two course videos won't play, they just spin forever.",
+                platform="android",
+                app_version="2.4.0",
+                status=ReportStatus.new,
+                created_at=now - datetime.timedelta(hours=2),
+            ),
+            Report(
+                lms_id=lms_instances[0].id,
+                reported_base_url=lms_instances[0].base_url,
+                category=ReportCategory.branding,
+                severity=CATEGORY_SEVERITY[ReportCategory.branding],
+                message="The logo looks stretched on small screens.",
+                platform="ios",
+                status=ReportStatus.resolved,
+                resolution_note="Owner uploaded a square logo; verified on device.",
+                resolved_by=admin.id,
+                resolved_at=now - datetime.timedelta(days=1),
+                created_at=now - datetime.timedelta(days=2),
+            ),
+        ]
+        db.add_all(demo_reports)
         db.commit()
         print("Database seeded with demo data.")
     finally:

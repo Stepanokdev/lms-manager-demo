@@ -8,3 +8,5 @@ data/
 wizard/node_modules/
 wizard/dist/
 app/static/landing/openedx-universal.apk
+.venv/
+provider_config.json

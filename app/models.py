@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SAEnum, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SAEnum, Boolean, Text
 from sqlalchemy.orm import relationship
 import enum
 
@@ -17,6 +17,44 @@ class LMSStatus(str, enum.Enum):
     rejected = "rejected"
 
 
+class Visibility(str, enum.Enum):
+    public = "public"    # discoverable through search
+    hidden = "hidden"    # only returned on an exact base_url match
+
+
+class ReportCategory(str, enum.Enum):
+    login = "login"                  # cannot sign in / OAuth broken
+    content = "content"              # courses missing or broken content
+    branding = "branding"            # wrong logo / name / colors
+    unreachable = "unreachable"      # server down / not responding
+    inappropriate = "inappropriate"  # abusive / illegal / spam
+    other = "other"
+
+
+class ReportStatus(str, enum.Enum):
+    new = "new"
+    investigating = "investigating"
+    resolved = "resolved"
+    dismissed = "dismissed"
+
+
+class ReportSeverity(str, enum.Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+# Which report categories are urgent enough to surface first.
+CATEGORY_SEVERITY = {
+    ReportCategory.inappropriate: ReportSeverity.high,
+    ReportCategory.unreachable: ReportSeverity.high,
+    ReportCategory.login: ReportSeverity.high,
+    ReportCategory.content: ReportSeverity.medium,
+    ReportCategory.branding: ReportSeverity.low,
+    ReportCategory.other: ReportSeverity.low,
+}
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -27,7 +65,11 @@ class User(Base):
     role = Column(SAEnum(UserRole), default=UserRole.user, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-    lms_instances = relationship("LMSInstance", back_populates="submitter")
+    lms_instances = relationship(
+        "LMSInstance",
+        foreign_keys="LMSInstance.submitted_by",
+        back_populates="submitter",
+    )
 
 
 class LMSInstance(Base):
@@ -49,7 +91,7 @@ class LMSInstance(Base):
 
     pre_login_discovery = Column(Boolean, default=True)
 
-    # New fields
+    # Theming / wizard fields
     login_background_url = Column(String, default="")
     logo_upload_url = Column(String, default="")
     accent_color_dark = Column(String, default="")
@@ -59,9 +101,59 @@ class LMSInstance(Base):
     course_unit_progress = Column(Boolean, default=True)
     course_dropdown_nav = Column(Boolean, default=True)
 
+    # Extended feature flags (see backend.md contract)
+    offline_downloads = Column(Boolean, default=True)
+    smart_push_automation = Column(Boolean, default=False)
+
+    # Catalog placement
+    visibility = Column(SAEnum(Visibility), default=Visibility.public, nullable=False)
+    featured = Column(Boolean, default=False)      # shown directly in curated / provider mode
+    sort_order = Column(Integer, default=0)        # ordering within a curated list
+
+    # Moderation: submissions auto-approve, admins confirm they checked them
     status = Column(SAEnum(LMSStatus), default=LMSStatus.pending, nullable=False)
+    admin_reviewed = Column(Boolean, default=False)
+    reviewed_at = Column(DateTime, nullable=True)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Health, populated by admin "recheck" action
+    last_checked_at = Column(DateTime, nullable=True)
+    last_health_ok = Column(Boolean, nullable=True)
+    last_health_note = Column(String, default="")
+
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
-    submitter = relationship("User", back_populates="lms_instances")
+    submitter = relationship("User", foreign_keys=[submitted_by], back_populates="lms_instances")
+    reports = relationship("Report", back_populates="lms", cascade="all, delete-orphan")
+
+
+class Report(Base):
+    """A complaint filed by a mobile user about an LMS."""
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # An LMS may be referenced by registry id (iOS catalog) or only by URL
+    # (apps that let users type a URL). We resolve to lms_id when possible.
+    lms_id = Column(Integer, ForeignKey("lms_instances.id", ondelete="CASCADE"), nullable=True)
+    reported_base_url = Column(String, default="")
+
+    category = Column(SAEnum(ReportCategory), default=ReportCategory.other, nullable=False)
+    severity = Column(SAEnum(ReportSeverity), default=ReportSeverity.low, nullable=False)
+    message = Column(Text, default="")
+    reporter_email = Column(String, default="")
+
+    platform = Column(String, default="")     # "ios" | "android" | "web"
+    app_version = Column(String, default="")
+
+    status = Column(SAEnum(ReportStatus), default=ReportStatus.new, nullable=False)
+    resolution_note = Column(Text, default="")
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    lms = relationship("LMSInstance", back_populates="reports")

@@ -35,9 +35,21 @@ def migrate():
         ("pre_login_experience", "BOOLEAN DEFAULT 1"),
         ("course_unit_progress", "BOOLEAN DEFAULT 1"),
         ("course_dropdown_nav", "BOOLEAN DEFAULT 1"),
+        # v0.3 — catalog, moderation, health, extended flags
+        ("offline_downloads", "BOOLEAN DEFAULT 1"),
+        ("smart_push_automation", "BOOLEAN DEFAULT 0"),
+        ("visibility", "VARCHAR DEFAULT 'public'"),
+        ("featured", "BOOLEAN DEFAULT 0"),
+        ("sort_order", "INTEGER DEFAULT 0"),
+        ("admin_reviewed", "BOOLEAN DEFAULT 0"),
+        ("reviewed_at", "DATETIME"),
+        ("reviewed_by", "INTEGER"),
+        ("last_checked_at", "DATETIME"),
+        ("last_health_ok", "BOOLEAN"),
+        ("last_health_note", "VARCHAR DEFAULT ''"),
     ]
     with engine.begin() as conn:
         for col_name, col_def in new_columns:
             if col_name not in existing:
                 conn.execute(text(f"ALTER TABLE lms_instances ADD COLUMN {col_name} {col_def}"))
-        # Remove deprecated columns is not supported in SQLite, so we leave them
+        # Removing deprecated columns is not supported in SQLite, so we leave them.

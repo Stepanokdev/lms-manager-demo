@@ -1,29 +1,43 @@
 import os
 import uuid
+import datetime
 from pathlib import Path
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request
+
+import httpx
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from pydantic import BaseModel as _BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .database import Base, engine, get_db
-from .models import User, LMSInstance, LMSStatus, UserRole
+from .models import (
+    User, LMSInstance, LMSStatus, UserRole, Visibility,
+    Report, ReportCategory, ReportStatus, ReportSeverity, CATEGORY_SEVERITY,
+)
 from .schemas import (
     RegisterRequest, LoginRequest, TokenResponse, UserResponse,
-    LMSCreateRequest, LMSUpdateStatusRequest, LMSFullUpdateRequest, LMSResponse,
+    AdminCreateRequest, UserRoleUpdateRequest,
+    LMSCreateRequest, LMSUpdateStatusRequest, LMSFullUpdateRequest,
+    LMSReviewRequest, LMSResponse,
+    ReportCreateRequest, ReportCreateResponse, ReportUpdateRequest,
+    ReportResponse, ReportStats, PublicConfigResponse,
 )
 from .auth import (
     hash_password, verify_password, create_access_token,
     get_current_user, require_admin,
 )
 from .color_utils import adapt_accent_for_dark
+from .config import get_config
+from . import webhook
 
 os.makedirs("data", exist_ok=True)
 os.makedirs("data/uploads", exist_ok=True)
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="LMS Registry", version="0.2.0")
+app = FastAPI(title="LMS Registry", version="0.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -83,30 +97,24 @@ async def upload_file(
     return {"url": f"/uploads/{filename}"}
 
 
-# ── LMS Validation ────────────────────────────────────
-
-import httpx
-from pydantic import BaseModel as _BaseModel
+# ── LMS Validation / health probe ─────────────────────
 
 class LMSValidateRequest(_BaseModel):
     base_url: str
     oauth_client_id: str = ""
 
 
-@app.post("/validate-lms")
-async def validate_lms(req: LMSValidateRequest):
-    """Validate LMS reachability and OAuth Client ID without user credentials."""
-    base = req.base_url.rstrip("/")
+async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
+    """Check LMS reachability and (optionally) OAuth Client ID without credentials."""
+    base = base_url.rstrip("/")
     result = {"url_valid": False, "oauth_valid": False, "url_error": None, "oauth_error": None}
 
-    # Step 1: Check LMS reachability
     async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
         try:
             r = await client.get(f"{base}/user_api/v1/account/registration/")
             if 200 <= r.status_code < 300:
                 result["url_valid"] = True
             else:
-                # Fallback check
                 r2 = await client.get(f"{base}/oauth2/login/")
                 if 200 <= r2.status_code < 400:
                     result["url_valid"] = True
@@ -116,17 +124,16 @@ async def validate_lms(req: LMSValidateRequest):
             result["url_error"] = "Cannot connect to this URL. Check that the address is correct."
         except httpx.TimeoutException:
             result["url_error"] = "Connection timed out. The server may be down or unreachable."
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             result["url_error"] = f"Connection failed: {str(e)[:100]}"
 
-    # Step 2: Validate OAuth Client ID (only if URL is valid and client_id provided)
-    if result["url_valid"] and req.oauth_client_id:
+    if result["url_valid"] and oauth_client_id:
         async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
             try:
                 r = await client.post(
                     f"{base}/oauth2/access_token",
                     data={
-                        "client_id": req.oauth_client_id,
+                        "client_id": oauth_client_id,
                         "grant_type": "password",
                         "username": "_validate_",
                         "password": "_validate_",
@@ -136,15 +143,19 @@ async def validate_lms(req: LMSValidateRequest):
                 if "invalid_client" in body:
                     result["oauth_error"] = "OAuth Client ID not found on this LMS. Check the ID."
                 elif "invalid_grant" in body or "unauthorized" in body:
-                    # invalid_grant = client_id recognized, just bad credentials — that's what we want
                     result["oauth_valid"] = True
                 else:
-                    # Any other non-error response also means the client_id exists
                     result["oauth_valid"] = True
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 result["oauth_error"] = f"Could not verify OAuth ID: {str(e)[:100]}"
 
     return result
+
+
+@app.post("/validate-lms")
+async def validate_lms(req: LMSValidateRequest):
+    """Validate LMS reachability and OAuth Client ID without user credentials."""
+    return await _probe_lms(req.base_url, req.oauth_client_id)
 
 
 # ── Public LMS list ───────────────────────────────────
@@ -168,8 +179,10 @@ def get_lms(lms_id: int, db: Session = Depends(get_db)):
 def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     data = req.model_dump()
     data["accent_color_dark"] = adapt_accent_for_dark(data.get("accent_color", "#007AFF"))
-    # Auto-approve during demo period
-    lms = LMSInstance(**data, submitted_by=user.id, status=LMSStatus.approved)
+    # Submissions go live immediately when auto-approve is on; admins then
+    # confirm they checked the instance (admin_reviewed).
+    initial_status = LMSStatus.approved if get_config().auto_approve else LMSStatus.pending
+    lms = LMSInstance(**data, submitted_by=user.id, status=initial_status, admin_reviewed=False)
     db.add(lms)
     db.commit()
     db.refresh(lms)
@@ -181,18 +194,61 @@ def my_lms(user: User = Depends(get_current_user), db: Session = Depends(get_db)
     return db.query(LMSInstance).filter(LMSInstance.submitted_by == user.id).all()
 
 
-# ── Admin ─────────────────────────────────────────────
+# ── Admin: LMS ────────────────────────────────────────
 
 @app.get("/admin/lms", response_model=list[LMSResponse])
 def admin_list_lms(
     status_filter: LMSStatus | None = None,
+    q: str = "",
+    reviewed: bool | None = None,
+    visibility: Visibility | None = None,
+    featured: bool | None = None,
+    limit: int = 100,
+    offset: int = 0,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    q = db.query(LMSInstance)
+    query = db.query(LMSInstance)
     if status_filter:
-        q = q.filter(LMSInstance.status == status_filter)
-    return q.all()
+        query = query.filter(LMSInstance.status == status_filter)
+    if reviewed is not None:
+        query = query.filter(LMSInstance.admin_reviewed == reviewed)
+    if visibility is not None:
+        query = query.filter(LMSInstance.visibility == visibility)
+    if featured is not None:
+        query = query.filter(LMSInstance.featured == featured)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            LMSInstance.name.ilike(like)
+            | LMSInstance.base_url.ilike(like)
+            | LMSInstance.platform_name.ilike(like)
+        )
+    query = query.order_by(LMSInstance.created_at.desc())
+    return query.offset(max(0, offset)).limit(min(max(1, limit), 500)).all()
+
+
+@app.get("/admin/overview")
+def admin_overview(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    def lms_count(**kw):
+        query = db.query(func.count(LMSInstance.id))
+        for k, v in kw.items():
+            query = query.filter(getattr(LMSInstance, k) == v)
+        return query.scalar() or 0
+
+    return {
+        "lms": {
+            "total": lms_count(),
+            "approved": lms_count(status=LMSStatus.approved),
+            "pending": lms_count(status=LMSStatus.pending),
+            "rejected": lms_count(status=LMSStatus.rejected),
+            "public": lms_count(visibility=Visibility.public),
+            "hidden": lms_count(visibility=Visibility.hidden),
+            "featured": lms_count(featured=True),
+            "unreviewed": lms_count(admin_reviewed=False, status=LMSStatus.approved),
+        },
+        "reports": _report_stats(db).model_dump(),
+    }
 
 
 @app.patch("/admin/lms/{lms_id}", response_model=LMSResponse)
@@ -231,9 +287,240 @@ def admin_full_update_lms(
     return lms
 
 
+@app.patch("/admin/lms/{lms_id}/review", response_model=LMSResponse)
+def admin_review_lms(
+    lms_id: int,
+    req: LMSReviewRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    lms.admin_reviewed = req.admin_reviewed
+    lms.reviewed_at = datetime.datetime.utcnow() if req.admin_reviewed else None
+    lms.reviewed_by = admin.id if req.admin_reviewed else None
+    db.commit()
+    db.refresh(lms)
+    return lms
+
+
+@app.post("/admin/lms/{lms_id}/recheck", response_model=LMSResponse)
+async def admin_recheck_lms(
+    lms_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Re-probe an LMS on demand so an admin can quickly confirm a complaint."""
+    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    result = await _probe_lms(lms.base_url, lms.oauth_client_id)
+    lms.last_checked_at = datetime.datetime.utcnow()
+    lms.last_health_ok = bool(result["url_valid"])
+    if result["url_valid"] and result["oauth_valid"]:
+        lms.last_health_note = "Reachable, OAuth client verified"
+    elif result["url_valid"]:
+        lms.last_health_note = result.get("oauth_error") or "Reachable, OAuth not verified"
+    else:
+        lms.last_health_note = result.get("url_error") or "Unreachable"
+    db.commit()
+    db.refresh(lms)
+    return lms
+
+
+# ── Admin: users ──────────────────────────────────────
+
 @app.get("/admin/users", response_model=list[UserResponse])
 def admin_list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return db.query(User).all()
+    return db.query(User).order_by(User.created_at.asc()).all()
+
+
+@app.post("/admin/users", response_model=UserResponse, status_code=201)
+def admin_create_admin(
+    req: AdminCreateRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if db.query(User).filter(User.email == req.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user = User(
+        email=req.email,
+        name=req.name,
+        password_hash=hash_password(req.password),
+        role=UserRole.admin,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@app.patch("/admin/users/{user_id}/role", response_model=UserResponse)
+def admin_update_user_role(
+    user_id: int,
+    req: UserRoleUpdateRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.id == admin.id and req.role != UserRole.admin:
+        raise HTTPException(status_code=400, detail="You cannot revoke your own admin role")
+    target.role = req.role
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+# ── Reports / complaints ──────────────────────────────
+
+def _normalize_host(value: str) -> str:
+    v = (value or "").strip().lower()
+    for prefix in ("https://", "http://"):
+        if v.startswith(prefix):
+            v = v[len(prefix):]
+    if v.startswith("www."):
+        v = v[4:]
+    return v.strip("/")
+
+
+def _match_lms_by_url(db: Session, base_url: str) -> LMSInstance | None:
+    target = _normalize_host(base_url)
+    if not target:
+        return None
+    for lms in db.query(LMSInstance).all():
+        if _normalize_host(lms.base_url) == target:
+            return lms
+    return None
+
+
+@app.post("/api/v1/reports", response_model=ReportCreateResponse, status_code=201)
+def create_report(
+    req: ReportCreateRequest,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Public endpoint: a mobile user files a complaint about an LMS."""
+    lms: LMSInstance | None = None
+    if req.lms_id is not None:
+        lms = db.query(LMSInstance).filter(LMSInstance.id == req.lms_id).first()
+    if lms is None and req.base_url:
+        lms = _match_lms_by_url(db, req.base_url)
+
+    if lms is None and not req.base_url:
+        raise HTTPException(status_code=400, detail="Provide lms_id or base_url")
+
+    severity = CATEGORY_SEVERITY.get(req.category, ReportSeverity.low)
+    report = Report(
+        lms_id=lms.id if lms else None,
+        reported_base_url=(lms.base_url if lms else req.base_url) or "",
+        category=req.category,
+        severity=severity,
+        message=(req.message or "").strip(),
+        reporter_email=(req.reporter_email or ""),
+        platform=(req.platform or "").strip().lower(),
+        app_version=(req.app_version or "").strip(),
+        status=ReportStatus.new,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+
+    background.add_task(webhook.deliver, webhook.build_payload(report, lms))
+    return report
+
+
+def _report_query(db: Session, status: ReportStatus | None):
+    query = db.query(Report)
+    if status is not None:
+        query = query.filter(Report.status == status)
+    return query
+
+
+# Order: high severity first, then newest.
+_SEVERITY_RANK = {ReportSeverity.high: 0, ReportSeverity.medium: 1, ReportSeverity.low: 2}
+
+
+@app.get("/admin/reports", response_model=list[ReportResponse])
+def admin_list_reports(
+    status: ReportStatus | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    reports = _report_query(db, status).all()
+    reports.sort(key=lambda r: (_SEVERITY_RANK.get(r.severity, 3), -(r.id or 0)))
+    return reports[max(0, offset): max(0, offset) + min(max(1, limit), 500)]
+
+
+def _report_stats(db: Session) -> ReportStats:
+    def count(status):
+        return db.query(func.count(Report.id)).filter(Report.status == status).scalar() or 0
+
+    new = count(ReportStatus.new)
+    investigating = count(ReportStatus.investigating)
+    resolved = count(ReportStatus.resolved)
+    dismissed = count(ReportStatus.dismissed)
+    high_open = (
+        db.query(func.count(Report.id))
+        .filter(
+            Report.severity == ReportSeverity.high,
+            Report.status.in_([ReportStatus.new, ReportStatus.investigating]),
+        )
+        .scalar()
+        or 0
+    )
+    affected = (
+        db.query(func.count(func.distinct(Report.lms_id)))
+        .filter(
+            Report.lms_id.isnot(None),
+            Report.status.in_([ReportStatus.new, ReportStatus.investigating]),
+        )
+        .scalar()
+        or 0
+    )
+    return ReportStats(
+        new=new,
+        investigating=investigating,
+        resolved=resolved,
+        dismissed=dismissed,
+        total=new + investigating + resolved + dismissed,
+        high_open=high_open,
+        affected_lms=affected,
+    )
+
+
+@app.get("/admin/reports/stats", response_model=ReportStats)
+def admin_report_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    return _report_stats(db)
+
+
+@app.patch("/admin/reports/{report_id}", response_model=ReportResponse)
+def admin_update_report(
+    report_id: int,
+    req: ReportUpdateRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if req.status is not None:
+        report.status = req.status
+        if req.status in (ReportStatus.resolved, ReportStatus.dismissed):
+            report.resolved_by = admin.id
+            report.resolved_at = datetime.datetime.utcnow()
+        else:
+            report.resolved_by = None
+            report.resolved_at = None
+    if req.resolution_note is not None:
+        report.resolution_note = req.resolution_note
+    db.commit()
+    db.refresh(report)
+    return report
 
 
 # ── Mobile Directory API (iOS/Android compatible) ─────
@@ -244,7 +531,6 @@ def _make_absolute(url: str | None, base: str) -> str | None:
         return None
     if url.startswith("/"):
         full = base.rstrip("/") + url
-        # Always use HTTPS for our uploads (behind Traefik TLS termination)
         return full.replace("http://", "https://", 1)
     return url
 
@@ -258,6 +544,8 @@ def _lms_to_directory_detail(lms: LMSInstance, base_url: str = "") -> dict:
         "base_url": lms.base_url,
         "logo_url": _make_absolute(lms.logo_url, base_url) or None,
         "accent_color": lms.accent_color or None,
+        "visibility": lms.visibility.value,
+        "featured": lms.featured,
         "api": {
             "host_url": lms.base_url,
             "feedback_email": lms.feedback_email or "",
@@ -266,6 +554,8 @@ def _lms_to_directory_detail(lms: LMSInstance, base_url: str = "") -> dict:
         "feature_flags": {
             "pre_login_discovery": lms.pre_login_discovery,
             "unknown_units_mode": getattr(lms, "unknown_units_mode", "block"),
+            "offline_downloads": getattr(lms, "offline_downloads", True),
+            "smart_push_automation": getattr(lms, "smart_push_automation", False),
         },
         "theme": {
             "accent_color_dark": getattr(lms, "accent_color_dark", None) or None,
@@ -283,27 +573,71 @@ def _lms_to_directory_detail(lms: LMSInstance, base_url: str = "") -> dict:
     }
 
 
+def _lms_to_summary(lms: LMSInstance, base: str) -> dict:
+    return {
+        "id": str(lms.id),
+        "title": lms.name,
+        "short_description": lms.platform_name,
+        "base_url": lms.base_url,
+        "logo_url": _make_absolute(lms.logo_url, base) or None,
+        "accent_color": lms.accent_color or None,
+        "visibility": lms.visibility.value,
+        "featured": lms.featured,
+    }
+
+
+@app.get("/api/v1/config", response_model=PublicConfigResponse)
+def public_config():
+    return get_config().public_dict()
+
+
 @app.get("/api/v1/directory")
-def directory_search(q: str = "", request: Request = None, db: Session = Depends(get_db)):
+def directory_search(
+    q: str = "",
+    featured: bool = False,
+    limit: int = 50,
+    request: Request = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Catalog search for the mobile app.
+
+    * curated mode (or ?featured=true): returns featured instances ordered by
+      sort_order — the provider's own list, shown without searching.
+    * search mode with a query: public instances matching the query, plus any
+      hidden instance whose base_url exactly matches the query.
+    * search mode without a query: the public catalog.
+    """
     base = str(request.base_url).rstrip("/") if request else ""
-    query = db.query(LMSInstance).filter(LMSInstance.status == LMSStatus.approved)
-    if q:
-        query = query.filter(
-            LMSInstance.name.ilike(f"%{q}%")
-            | LMSInstance.base_url.ilike(f"%{q}%")
+    cfg = get_config()
+    approved = db.query(LMSInstance).filter(LMSInstance.status == LMSStatus.approved)
+
+    curated = cfg.is_curated or featured
+    if curated:
+        rows = (
+            approved.filter(LMSInstance.featured == True)  # noqa: E712
+            .order_by(LMSInstance.sort_order.asc(), LMSInstance.name.asc())
+            .all()
         )
-    items = [
-        {
-            "id": str(lms.id),
-            "title": lms.name,
-            "short_description": lms.platform_name,
-            "base_url": lms.base_url,
-            "logo_url": _make_absolute(lms.logo_url, base) or None,
-            "accent_color": lms.accent_color or None,
-        }
-        for lms in query.all()
-    ]
-    return {"items": items}
+    elif q:
+        like = f"%{q}%"
+        public_matches = approved.filter(
+            LMSInstance.visibility == Visibility.public,
+            (LMSInstance.name.ilike(like) | LMSInstance.base_url.ilike(like)),
+        ).all()
+        target = _normalize_host(q)
+        hidden_exact = [
+            lms for lms in approved.filter(LMSInstance.visibility == Visibility.hidden).all()
+            if _normalize_host(lms.base_url) == target
+        ]
+        rows = public_matches + hidden_exact
+    else:
+        rows = approved.filter(LMSInstance.visibility == Visibility.public).order_by(
+            LMSInstance.featured.desc(), LMSInstance.sort_order.asc(), LMSInstance.name.asc()
+        ).all()
+
+    rows = rows[: min(max(1, limit), 200)]
+    return {"items": [_lms_to_summary(lms, base) for lms in rows]}
 
 
 @app.get("/api/v1/directory/{lms_id}")
@@ -323,8 +657,8 @@ def directory_detail(lms_id: str, request: Request, db: Session = Depends(get_db
 # ── Aliases matching iOS backend.md paths ─────────────
 
 @app.get("/api/universal-login/lms/search")
-def ul_search(query: str = "", limit: int = 20, request: Request = None, db: Session = Depends(get_db)):
-    return directory_search(q=query, request=request, db=db)
+def ul_search(query: str = "", limit: int = 20, featured: bool = False, request: Request = None, db: Session = Depends(get_db)):
+    return directory_search(q=query, featured=featured, limit=limit, request=request, db=db)
 
 
 @app.get("/api/universal-login/lms/{lms_id}")
@@ -332,28 +666,45 @@ def ul_detail(lms_id: str, request: Request, db: Session = Depends(get_db)):
     return directory_detail(lms_id=lms_id, request=request, db=db)
 
 
+@app.post("/api/universal-login/reports", response_model=ReportCreateResponse, status_code=201)
+def ul_report(req: ReportCreateRequest, background: BackgroundTasks, db: Session = Depends(get_db)):
+    return create_report(req=req, background=background, db=db)
+
+
 # ── Web UI ────────────────────────────────────────────
 
 STATIC_DIR = Path(__file__).parent / "static"
+ADMIN_DIR = STATIC_DIR / "admin"
+LANDING_DIR = STATIC_DIR / "landing"
 
 app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
 app.mount("/wizard", StaticFiles(directory=str(STATIC_DIR / "wizard"), html=True), name="wizard")
 
-LANDING_DIR = STATIC_DIR / "landing"
+# The admin console is a built React app (base: /admin/). It is mounted only
+# once built; before that, endpoints fall back to the legacy static page.
+if ADMIN_DIR.exists():
+    app.mount("/admin", StaticFiles(directory=str(ADMIN_DIR), html=True), name="admin")
+
+
+def _admin_index() -> FileResponse:
+    """Serve the admin console entry point, falling back to the legacy page."""
+    admin_index = ADMIN_DIR / "index.html"
+    if admin_index.exists():
+        return FileResponse(admin_index)
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/", response_class=FileResponse)
 def root():
     if LANDING_DIR.exists():
         return FileResponse(LANDING_DIR / "index.html")
-    return FileResponse(STATIC_DIR / "index.html")
+    return _admin_index()
 
 
 # Serve landing static assets (_next/*, images, video, etc.)
 if (STATIC_DIR / "landing").exists():
     app.mount("/_next", StaticFiles(directory=str(LANDING_DIR / "_next")), name="landing_next")
 
-    # Serve public assets from landing root (quick-demo.mp4, app-screenshot.png, etc.)
     @app.get("/quick-demo.mp4", response_class=FileResponse)
     def landing_video():
         return FileResponse(LANDING_DIR / "quick-demo.mp4", media_type="video/mp4")
@@ -377,4 +728,4 @@ if (STATIC_DIR / "landing").exists():
 
 @app.get("/dashboard", response_class=FileResponse)
 def dashboard():
-    return FileResponse(STATIC_DIR / "index.html")
+    return _admin_index()
