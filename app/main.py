@@ -31,11 +31,18 @@ from .auth import (
 )
 from .color_utils import adapt_accent_for_dark
 from .config import get_config
+from .database import migrate
+from .seed import seed
 from . import webhook
 
 os.makedirs("data", exist_ok=True)
 os.makedirs("data/uploads", exist_ok=True)
+# Self-initialize regardless of entry point (uvicorn, gunicorn, run.py).
+# create_all adds any new tables; migrate adds new columns; seed is a no-op
+# once data exists. All three are idempotent.
 Base.metadata.create_all(bind=engine)
+migrate()
+seed()
 
 app = FastAPI(title="LMS Registry", version="0.3.0")
 

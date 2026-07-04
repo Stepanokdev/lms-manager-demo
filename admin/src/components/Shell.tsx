@@ -1,0 +1,208 @@
+import type { ReactNode } from 'react'
+import { motion } from 'motion/react'
+import { useStore, type View } from '@/store'
+import { cn } from '@/lib/cn'
+import type { PublicConfig } from '@/lib/types'
+import {
+  IconLayers,
+  IconGrid,
+  IconServer,
+  IconAlert,
+  IconUsers,
+  IconLogout,
+  IconSignal,
+} from './icons'
+
+interface NavItem {
+  id: View
+  label: string
+  icon: ReactNode
+}
+
+const NAV: NavItem[] = [
+  { id: 'overview', label: 'Overview', icon: <IconGrid /> },
+  { id: 'lms', label: 'LMS instances', icon: <IconServer /> },
+  { id: 'reports', label: 'Complaints', icon: <IconAlert /> },
+  { id: 'admins', label: 'Team', icon: <IconUsers /> },
+]
+
+export function Shell({ config, children }: { config: PublicConfig | null; children: ReactNode }) {
+  const view = useStore((s) => s.view)
+  const setView = useStore((s) => s.setView)
+  const user = useStore((s) => s.user)
+  const logout = useStore((s) => s.logout)
+  const stats = useStore((s) => s.stats)
+
+  const openReports = stats ? stats.new + stats.investigating : 0
+  const hasHigh = (stats?.high_open ?? 0) > 0
+
+  const brandName = config?.provider_name || 'LMS Registry'
+
+  return (
+    <div className="flex min-h-[100dvh] w-full bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
+      {/* Sidebar (lg+) */}
+      <aside className="sticky top-0 hidden h-[100dvh] w-64 shrink-0 flex-col border-r border-white/8 bg-white/[0.015] px-4 py-6 lg:flex">
+        <Brand name={brandName} />
+        <nav className="mt-8 flex flex-1 flex-col gap-1">
+          {NAV.map((item) => (
+            <NavButton
+              key={item.id}
+              item={item}
+              active={view === item.id}
+              badge={item.id === 'reports' ? openReports : 0}
+              badgeAlert={item.id === 'reports' && hasHigh}
+              onClick={() => setView(item.id)}
+            />
+          ))}
+        </nav>
+        <ModeChip config={config} />
+        <UserChip name={user?.name ?? ''} email={user?.email ?? ''} onLogout={logout} />
+      </aside>
+
+      {/* Mobile top bar */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/8 bg-surface-950/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+          <Brand name={brandName} compact />
+          <div className="ml-auto flex items-center gap-1 overflow-x-auto">
+            {NAV.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setView(item.id)}
+                className={cn(
+                  'relative flex h-9 w-9 items-center justify-center rounded-lg text-lg transition-colors',
+                  view === item.id ? 'bg-white/10 text-white' : 'text-surface-400 hover:text-white',
+                )}
+                aria-label={item.label}
+              >
+                {item.icon}
+                {item.id === 'reports' && openReports > 0 && (
+                  <span
+                    className={cn(
+                      'absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full',
+                      hasHigh ? 'bg-rose-500' : 'bg-accent-500',
+                    )}
+                  />
+                )}
+              </button>
+            ))}
+            <button
+              onClick={logout}
+              className="ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-lg text-surface-400 hover:text-white"
+              aria-label="Sign out"
+            >
+              <IconLogout />
+            </button>
+          </div>
+        </header>
+
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function Brand({ name, compact }: { name: string; compact?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500/25 to-primary-500/25 text-accent-300">
+        <IconLayers />
+      </div>
+      {!compact && (
+        <div className="min-w-0">
+          <div className="truncate text-sm font-bold tracking-tight text-white">{name}</div>
+          <div className="text-[11px] text-surface-500">Admin console</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NavButton({
+  item,
+  active,
+  badge,
+  badgeAlert,
+  onClick,
+}: {
+  item: NavItem
+  active: boolean
+  badge: number
+  badgeAlert: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+        active ? 'text-white' : 'text-surface-400 hover:text-surface-200',
+      )}
+    >
+      {active && (
+        <motion.span
+          layoutId="nav-active"
+          className="absolute inset-0 -z-10 rounded-xl border border-white/10 bg-white/[0.06]"
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        />
+      )}
+      <span className={cn('text-lg', active ? 'text-accent-300' : 'text-surface-500 group-hover:text-surface-300')}>
+        {item.icon}
+      </span>
+      <span className="flex-1 text-left">{item.label}</span>
+      {badge > 0 && (
+        <span
+          className={cn(
+            'tnum rounded-full px-1.5 py-0.5 text-[11px] font-bold',
+            badgeAlert ? 'bg-rose-500/20 text-rose-300' : 'bg-accent-500/20 text-accent-300',
+          )}
+        >
+          {badge}
+          {badgeAlert && (
+            <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-rose-400 align-middle" />
+          )}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function ModeChip({ config }: { config: PublicConfig | null }) {
+  if (!config) return null
+  const curated = config.directory_mode === 'curated'
+  return (
+    <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2">
+      <span className={cn('text-base', curated ? 'text-premium-400' : 'text-accent-300')}>
+        <IconSignal />
+      </span>
+      <div className="min-w-0">
+        <div className="text-[11px] uppercase tracking-wider text-surface-500">Directory mode</div>
+        <div className="truncate text-[13px] font-semibold capitalize text-surface-200">
+          {config.directory_mode}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function UserChip({ name, email, onLogout }: { name: string; email: string; onLogout: () => void }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-white/8 bg-white/[0.02] p-2.5">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500/20 text-xs font-bold text-primary-200">
+        {name.slice(0, 1).toUpperCase() || 'A'}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-semibold text-surface-100">{name || 'Admin'}</div>
+        <div className="truncate text-[11px] text-surface-500">{email}</div>
+      </div>
+      <button
+        onClick={onLogout}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-surface-400 transition-colors hover:bg-white/5 hover:text-white"
+        aria-label="Sign out"
+      >
+        <IconLogout />
+      </button>
+    </div>
+  )
+}
