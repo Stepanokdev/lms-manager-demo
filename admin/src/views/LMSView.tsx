@@ -24,6 +24,7 @@ import {
   IconCheck,
   IconExternal,
   IconSignal,
+  IconShield,
 } from '@/components/icons'
 
 type FilterKey = 'all' | 'public' | 'hidden' | 'featured' | 'unreviewed' | 'pending'
@@ -253,7 +254,7 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
               {hostOf(lms.base_url)} <IconExternal />
             </a>
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px]">
-              <Pill tone={statusTone}>{lms.status}</Pill>
+              <Pill tone={statusTone}>{lms.status === 'rejected' ? 'blocked' : lms.status}</Pill>
               <Pill tone={lms.visibility === 'public' ? 'sky' : 'slate'}>
                 {lms.visibility === 'public' ? <IconEye /> : <IconEyeOff />} {lms.visibility}
               </Pill>
@@ -296,6 +297,20 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
               onClick={() => wrap('rev', () => api.reviewLMS(lms.id, !lms.admin_reviewed), lms.admin_reviewed ? 'Marked unreviewed' : 'Marked reviewed')}
             >
               <IconCheck />
+            </IconBtn>
+            <IconBtn
+              label={lms.status === 'rejected' ? 'Restore to catalog' : 'Block (remove from catalog)'}
+              active={lms.status === 'rejected'}
+              loading={busy === 'block'}
+              onClick={() =>
+                wrap(
+                  'block',
+                  () => (lms.status === 'rejected' ? api.unblockLMS(lms.id) : api.blockLMS(lms.id)),
+                  lms.status === 'rejected' ? 'Restored to catalog' : 'Blocked',
+                )
+              }
+            >
+              <IconShield />
             </IconBtn>
             <a
               href={`/wizard/?edit=${lms.id}`}

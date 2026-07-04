@@ -322,15 +322,10 @@ async def admin_recheck_lms(
     lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
     if not lms:
         raise HTTPException(status_code=404, detail="LMS not found")
-    result = await _probe_lms(lms.base_url, lms.oauth_client_id)
+    result = await _probe_lms(lms.base_url)
     lms.last_checked_at = datetime.datetime.utcnow()
     lms.last_health_ok = bool(result["url_valid"])
-    if result["url_valid"] and result["oauth_valid"]:
-        lms.last_health_note = "Reachable, OAuth client verified"
-    elif result["url_valid"]:
-        lms.last_health_note = result.get("oauth_error") or "Reachable, OAuth not verified"
-    else:
-        lms.last_health_note = result.get("url_error") or "Unreachable"
+    lms.last_health_note = "Online" if result["url_valid"] else (result.get("url_error") or "Not responding")
     db.commit()
     db.refresh(lms)
     return lms
@@ -463,19 +458,22 @@ def admin_list_reports(
     return reports[max(0, offset): max(0, offset) + min(max(1, limit), 500)]
 
 
+_OPEN_STATUSES = [ReportStatus.new, ReportStatus.reviewing]
+
+
 def _report_stats(db: Session) -> ReportStats:
     def count(status):
         return db.query(func.count(Report.id)).filter(Report.status == status).scalar() or 0
 
     new = count(ReportStatus.new)
-    investigating = count(ReportStatus.investigating)
-    resolved = count(ReportStatus.resolved)
+    reviewing = count(ReportStatus.reviewing)
+    blocked = count(ReportStatus.blocked)
     dismissed = count(ReportStatus.dismissed)
     high_open = (
         db.query(func.count(Report.id))
         .filter(
             Report.severity == ReportSeverity.high,
-            Report.status.in_([ReportStatus.new, ReportStatus.investigating]),
+            Report.status.in_(_OPEN_STATUSES),
         )
         .scalar()
         or 0
@@ -484,17 +482,17 @@ def _report_stats(db: Session) -> ReportStats:
         db.query(func.count(func.distinct(Report.lms_id)))
         .filter(
             Report.lms_id.isnot(None),
-            Report.status.in_([ReportStatus.new, ReportStatus.investigating]),
+            Report.status.in_(_OPEN_STATUSES),
         )
         .scalar()
         or 0
     )
     return ReportStats(
         new=new,
-        investigating=investigating,
-        resolved=resolved,
+        reviewing=reviewing,
+        blocked=blocked,
         dismissed=dismissed,
-        total=new + investigating + resolved + dismissed,
+        total=new + reviewing + blocked + dismissed,
         high_open=high_open,
         affected_lms=affected,
     )
@@ -517,7 +515,7 @@ def admin_update_report(
         raise HTTPException(status_code=404, detail="Report not found")
     if req.status is not None:
         report.status = req.status
-        if req.status in (ReportStatus.resolved, ReportStatus.dismissed):
+        if req.status in (ReportStatus.blocked, ReportStatus.dismissed):
             report.resolved_by = admin.id
             report.resolved_at = datetime.datetime.utcnow()
         else:
@@ -528,6 +526,48 @@ def admin_update_report(
     db.commit()
     db.refresh(report)
     return report
+
+
+@app.post("/admin/lms/{lms_id}/block", response_model=LMSResponse)
+def admin_block_lms(
+    lms_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Remove an LMS from the catalog and mark its open complaints as blocked."""
+    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    lms.status = LMSStatus.rejected
+    now = datetime.datetime.utcnow()
+    open_reports = (
+        db.query(Report)
+        .filter(Report.lms_id == lms_id, Report.status.in_(_OPEN_STATUSES))
+        .all()
+    )
+    for report in open_reports:
+        report.status = ReportStatus.blocked
+        report.resolved_by = admin.id
+        report.resolved_at = now
+    db.commit()
+    db.refresh(lms)
+    return lms
+
+
+@app.post("/admin/lms/{lms_id}/unblock", response_model=LMSResponse)
+def admin_unblock_lms(
+    lms_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Restore a previously blocked LMS to the catalog."""
+    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    lms.status = LMSStatus.approved
+    db.commit()
+    db.refresh(lms)
+    return lms
 
 
 # ── Mobile Directory API (iOS/Android compatible) ─────

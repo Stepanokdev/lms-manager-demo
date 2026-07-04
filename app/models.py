@@ -22,20 +22,25 @@ class Visibility(str, enum.Enum):
     hidden = "hidden"    # only returned on an exact base_url match
 
 
+# Why a learner flags an LMS in the public catalog. These are moderation
+# reasons (trust & safety), not tech support: the admin's decision is whether
+# to block the instance, not to debug someone else's platform.
 class ReportCategory(str, enum.Enum):
-    login = "login"                  # cannot sign in / OAuth broken
-    content = "content"              # courses missing or broken content
-    branding = "branding"            # wrong logo / name / colors
-    unreachable = "unreachable"      # server down / not responding
-    inappropriate = "inappropriate"  # abusive / illegal / spam
+    inappropriate = "inappropriate"    # adult / illegal / harmful content
+    scam = "scam"                      # phishing / fraud / steals credentials
+    impersonation = "impersonation"    # pretends to be a real institution
+    spam = "spam"                      # spam / not a real learning platform
+    broken = "broken"                  # fake or dead: can't access it at all
     other = "other"
 
 
+# A complaint's lifecycle. Terminal states are the two moderation outcomes:
+# the LMS was blocked, or the complaint was dismissed.
 class ReportStatus(str, enum.Enum):
     new = "new"
-    investigating = "investigating"
-    resolved = "resolved"
-    dismissed = "dismissed"
+    reviewing = "reviewing"
+    blocked = "blocked"       # we removed the LMS from the catalog
+    dismissed = "dismissed"   # reviewed, no action needed
 
 
 class ReportSeverity(str, enum.Enum):
@@ -44,13 +49,13 @@ class ReportSeverity(str, enum.Enum):
     high = "high"
 
 
-# Which report categories are urgent enough to surface first.
+# How urgently a category should surface in the triage inbox.
 CATEGORY_SEVERITY = {
     ReportCategory.inappropriate: ReportSeverity.high,
-    ReportCategory.unreachable: ReportSeverity.high,
-    ReportCategory.login: ReportSeverity.high,
-    ReportCategory.content: ReportSeverity.medium,
-    ReportCategory.branding: ReportSeverity.low,
+    ReportCategory.scam: ReportSeverity.high,
+    ReportCategory.impersonation: ReportSeverity.high,
+    ReportCategory.spam: ReportSeverity.medium,
+    ReportCategory.broken: ReportSeverity.medium,
     ReportCategory.other: ReportSeverity.low,
 }
 

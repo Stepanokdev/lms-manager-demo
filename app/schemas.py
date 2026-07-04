@@ -214,11 +214,11 @@ class ReportResponse(BaseModel):
 
 class ReportStats(BaseModel):
     new: int
-    investigating: int
-    resolved: int
+    reviewing: int
+    blocked: int
     dismissed: int
     total: int
-    high_open: int          # open (new/investigating) reports at high severity
+    high_open: int          # open (new/reviewing) reports at high severity
     affected_lms: int       # distinct LMS with at least one open report
 
 

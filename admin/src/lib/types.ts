@@ -2,13 +2,13 @@ export type Role = 'admin' | 'user'
 export type LMSStatus = 'pending' | 'approved' | 'rejected'
 export type Visibility = 'public' | 'hidden'
 export type ReportCategory =
-  | 'login'
-  | 'content'
-  | 'branding'
-  | 'unreachable'
   | 'inappropriate'
+  | 'scam'
+  | 'impersonation'
+  | 'spam'
+  | 'broken'
   | 'other'
-export type ReportStatus = 'new' | 'investigating' | 'resolved' | 'dismissed'
+export type ReportStatus = 'new' | 'reviewing' | 'blocked' | 'dismissed'
 export type Severity = 'low' | 'medium' | 'high'
 
 export interface User {
@@ -84,8 +84,8 @@ export interface Report {
 
 export interface ReportStats {
   new: number
-  investigating: number
-  resolved: number
+  reviewing: number
+  blocked: number
   dismissed: number
   total: number
   high_open: number

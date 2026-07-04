@@ -33,7 +33,7 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
   const logout = useStore((s) => s.logout)
   const stats = useStore((s) => s.stats)
 
-  const openReports = stats ? stats.new + stats.investigating : 0
+  const openReports = stats ? stats.new + stats.reviewing : 0
   const hasHigh = (stats?.high_open ?? 0) > 0
 
   const brandName = config?.provider_name || 'LMS Registry'
@@ -55,7 +55,6 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
             />
           ))}
         </nav>
-        <ModeChip config={config} />
         <UserChip name={user?.name ?? ''} email={user?.email ?? ''} onLogout={logout} />
       </aside>
 
@@ -106,7 +105,7 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
 function Brand({ name, compact }: { name: string; compact?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500/25 to-primary-500/25 text-accent-300">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-accent-300">
         <IconLayers />
       </div>
       {!compact && (
@@ -165,24 +164,6 @@ function NavButton({
         </span>
       )}
     </button>
-  )
-}
-
-function ModeChip({ config }: { config: PublicConfig | null }) {
-  if (!config) return null
-  const curated = config.directory_mode === 'curated'
-  return (
-    <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2">
-      <span className={cn('text-base', curated ? 'text-premium-400' : 'text-accent-300')}>
-        <IconSignal />
-      </span>
-      <div className="min-w-0">
-        <div className="text-[11px] uppercase tracking-wider text-surface-500">Directory mode</div>
-        <div className="truncate text-[13px] font-semibold capitalize text-surface-200">
-          {config.directory_mode}
-        </div>
-      </div>
-    </div>
   )
 }
 

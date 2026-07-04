@@ -10,6 +10,7 @@ import { OverviewView } from '@/views/OverviewView'
 import { LMSView } from '@/views/LMSView'
 import { ReportsView } from '@/views/ReportsView'
 import { AdminsView } from '@/views/AdminsView'
+import { OwnerView } from '@/views/OwnerView'
 import { IconLayers } from '@/components/icons'
 
 const POLL_MS = 20000
@@ -17,18 +18,21 @@ const POLL_MS = 20000
 export default function App() {
   const authState = useStore((s) => s.authState)
   const view = useStore((s) => s.view)
+  const user = useStore((s) => s.user)
   const bootstrap = useStore((s) => s.bootstrap)
   const refreshStats = useStore((s) => s.refreshStats)
   const [config, setConfig] = useState<PublicConfig | null>(null)
+
+  const isAdmin = user?.role === 'admin'
 
   useEffect(() => {
     bootstrap()
     api.config().then(setConfig).catch(() => setConfig(null))
   }, [bootstrap])
 
-  // Live polling for the complaints badge while signed in.
+  // Live polling for the complaints badge (admins only).
   useEffect(() => {
-    if (authState !== 'authed') return
+    if (authState !== 'authed' || !isAdmin) return
     const tick = () => {
       if (document.visibilityState === 'visible') refreshStats()
     }
@@ -38,7 +42,7 @@ export default function App() {
       clearInterval(interval)
       window.removeEventListener('focus', tick)
     }
-  }, [authState, refreshStats])
+  }, [authState, isAdmin, refreshStats])
 
   if (authState === 'loading') {
     return (
@@ -57,6 +61,16 @@ export default function App() {
     return (
       <>
         <AuthView config={config} />
+        <Toasts />
+      </>
+    )
+  }
+
+  // LMS owners get a focused view of their own instances; admins get the console.
+  if (!isAdmin) {
+    return (
+      <>
+        <OwnerView config={config} />
         <Toasts />
       </>
     )

@@ -1,25 +1,26 @@
 import type { ReportCategory, ReportStatus } from '@/lib/types'
 
+// Trust & safety reasons an LMS gets flagged in the catalog.
 export const CATEGORY_LABEL: Record<ReportCategory, string> = {
-  login: 'Sign-in / OAuth',
-  content: 'Course content',
-  branding: 'Branding',
-  unreachable: 'Server down',
-  inappropriate: 'Inappropriate',
+  inappropriate: 'Inappropriate content',
+  scam: 'Scam or fraud',
+  impersonation: 'Impersonation',
+  spam: 'Spam / fake platform',
+  broken: "Doesn't work",
   other: 'Other',
 }
 
 export const STATUS_LABEL: Record<ReportStatus, string> = {
   new: 'New',
-  investigating: 'Investigating',
-  resolved: 'Resolved',
+  reviewing: 'Reviewing',
+  blocked: 'LMS blocked',
   dismissed: 'Dismissed',
 }
 
-export const STATUS_TONE: Record<ReportStatus, 'cyan' | 'amber' | 'emerald' | 'slate'> = {
+export const STATUS_TONE: Record<ReportStatus, 'cyan' | 'amber' | 'rose' | 'slate'> = {
   new: 'cyan',
-  investigating: 'amber',
-  resolved: 'emerald',
+  reviewing: 'amber',
+  blocked: 'rose',
   dismissed: 'slate',
 }
 

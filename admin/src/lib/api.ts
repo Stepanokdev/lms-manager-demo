@@ -11,15 +11,20 @@ import type {
 } from './types'
 
 const TOKEN_KEY = 'lms-admin-token'
+// The wizard app (same origin) reads the token under 'token'; keep them in sync
+// so owners can jump straight into the wizard from here.
+const WIZARD_TOKEN_KEY = 'token'
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(WIZARD_TOKEN_KEY)
 }
 export function setToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(WIZARD_TOKEN_KEY, token)
 }
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(WIZARD_TOKEN_KEY)
 }
 
 export class ApiError extends Error {
@@ -86,6 +91,7 @@ export const api = {
   overview: () => request<Overview>('/admin/overview'),
 
   // LMS
+  myLMS: () => request<LMS[]>('/my/lms'),
   listLMS: (query: LMSQuery = {}) =>
     request<LMS[]>(`/admin/lms${qs(query as Record<string, unknown>)}`),
   getLMS: (id: number) => request<LMS>(`/lms/${id}`),
@@ -97,6 +103,8 @@ export const api = {
       body: JSON.stringify({ admin_reviewed: reviewed }),
     }),
   recheckLMS: (id: number) => request<LMS>(`/admin/lms/${id}/recheck`, { method: 'POST' }),
+  blockLMS: (id: number) => request<LMS>(`/admin/lms/${id}/block`, { method: 'POST' }),
+  unblockLMS: (id: number) => request<LMS>(`/admin/lms/${id}/unblock`, { method: 'POST' }),
 
   // Reports
   listReports: (status?: ReportStatus) =>

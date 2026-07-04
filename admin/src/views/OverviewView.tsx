@@ -35,7 +35,7 @@ export function OverviewView() {
   const latestReports = (data?.[1] ?? []).slice(0, 5)
   const needsReview = data?.[2] ?? []
 
-  const openComplaints = overview ? overview.reports.new + overview.reports.investigating : 0
+  const openComplaints = overview ? overview.reports.new + overview.reports.reviewing : 0
   const highOpen = overview?.reports.high_open ?? 0
 
   return (
@@ -62,12 +62,6 @@ export function OverviewView() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
             <motion.div {...fade} transition={{ duration: 0.4 }}>
               <Card className="relative overflow-hidden p-6">
-                {highOpen > 0 && (
-                  <div
-                    className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full opacity-30 blur-3xl"
-                    style={{ background: 'radial-gradient(circle,#f43f5e,transparent 60%)' }}
-                  />
-                )}
                 <div className="relative flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium text-surface-400">
@@ -91,9 +85,9 @@ export function OverviewView() {
                 </div>
                 <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <MiniStat label="New" value={overview.reports.new} tone="cyan" />
-                  <MiniStat label="Investigating" value={overview.reports.investigating} tone="amber" />
+                  <MiniStat label="Reviewing" value={overview.reports.reviewing} tone="amber" />
                   <MiniStat label="Affected LMS" value={overview.reports.affected_lms} tone="rose" />
-                  <MiniStat label="Resolved" value={overview.reports.resolved} tone="emerald" />
+                  <MiniStat label="Blocked" value={overview.reports.blocked} tone="emerald" />
                 </div>
               </Card>
             </motion.div>

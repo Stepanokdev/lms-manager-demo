@@ -13,7 +13,6 @@ import {
   LogoBadge,
   Skeleton,
   EmptyState,
-  Textarea,
 } from '@/components/ui'
 import { CATEGORY_LABEL, STATUS_LABEL, STATUS_TONE, PLATFORM_LABEL } from './reportMeta'
 import {
@@ -25,37 +24,30 @@ import {
   IconMail,
   IconMobile,
   IconClock,
-  IconSignal,
+  IconShield,
 } from '@/components/icons'
 
 type Filter = ReportStatus | 'all'
-const FILTERS: Filter[] = ['new', 'investigating', 'resolved', 'dismissed', 'all']
+const FILTERS: Filter[] = ['new', 'reviewing', 'blocked', 'dismissed', 'all']
 
 export function ReportsView() {
   const [filter, setFilter] = useState<Filter>('new')
   const stats = useStore((s) => s.stats)
   const refreshStats = useStore((s) => s.refreshStats)
-  const { data, loading, error, setData, reload } = useApiData<Report[]>(
+  const { data, loading, error, reload } = useApiData<Report[]>(
     () => api.listReports(filter === 'all' ? undefined : filter),
     [filter],
   )
 
-  const onLocalUpdate = (updated: Report) => {
-    setData((prev) => {
-      if (!prev) return prev
-      // Drop from the current list if it no longer matches the active filter.
-      if (filter !== 'all' && updated.status !== filter) {
-        return prev.filter((r) => r.id !== updated.id)
-      }
-      return prev.map((r) => (r.id === updated.id ? updated : r))
-    })
+  const afterChange = () => {
+    reload()
     refreshStats()
   }
 
   const counts: Record<Filter, number | null> = {
     new: stats?.new ?? null,
-    investigating: stats?.investigating ?? null,
-    resolved: stats?.resolved ?? null,
+    reviewing: stats?.reviewing ?? null,
+    blocked: stats?.blocked ?? null,
     dismissed: stats?.dismissed ?? null,
     all: stats?.total ?? null,
   }
@@ -66,7 +58,8 @@ export function ReportsView() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Complaints</h1>
           <p className="mt-1 text-sm text-surface-400">
-            Filed from the mobile apps. High-severity reports rise to the top.
+            Learners flag platforms that shouldn't be in the catalog. Open the LMS to check, then
+            block it or dismiss the report.
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={reload}>
@@ -87,9 +80,7 @@ export function ReportsView() {
             }
           >
             {f === 'all' ? 'All' : STATUS_LABEL[f]}
-            {counts[f] !== null && (
-              <span className="tnum text-[11px] text-surface-500">{counts[f]}</span>
-            )}
+            {counts[f] !== null && <span className="tnum text-[11px] text-surface-500">{counts[f]}</span>}
           </button>
         ))}
       </div>
@@ -105,18 +96,18 @@ export function ReportsView() {
       ) : !data || data.length === 0 ? (
         <EmptyState
           icon={<IconCheck />}
-          title={filter === 'new' ? 'Inbox zero' : 'Nothing here'}
+          title={filter === 'new' ? 'Nothing waiting' : 'Nothing here'}
           detail={
             filter === 'new'
-              ? 'No new complaints waiting. New reports from the apps will appear here instantly.'
-              : `No ${filter === 'all' ? '' : STATUS_LABEL[filter].toLowerCase() + ' '}complaints to show.`
+              ? 'No new complaints. Reports from the apps land here the moment they arrive.'
+              : `No ${filter === 'all' ? '' : STATUS_LABEL[filter].toLowerCase() + ' '}complaints.`
           }
         />
       ) : (
         <div className="flex flex-col gap-3">
           <AnimatePresence initial={false} mode="popLayout">
             {data.map((r) => (
-              <ReportCard key={r.id} report={r} onUpdate={onLocalUpdate} />
+              <ReportCard key={r.id} report={r} onChange={afterChange} />
             ))}
           </AnimatePresence>
         </div>
@@ -131,48 +122,43 @@ const SEV_BORDER: Record<string, string> = {
   low: 'before:bg-surface-600',
 }
 
-function ReportCard({ report, onUpdate }: { report: Report; onUpdate: (r: Report) => void }) {
+function ReportCard({ report, onChange }: { report: Report; onChange: () => void }) {
   const pushToast = useStore((s) => s.pushToast)
-  const [note, setNote] = useState(report.resolution_note || '')
-  const [showResolve, setShowResolve] = useState(false)
-  const [busy, setBusy] = useState<ReportStatus | null>(null)
-  const [rechecking, setRechecking] = useState(false)
-  const [health, setHealth] = useState<{ ok: boolean; note: string } | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [confirmingBlock, setConfirmingBlock] = useState(false)
 
-  const setStatus = async (status: ReportStatus, resolutionNote?: string) => {
+  const setStatus = async (status: ReportStatus, label: string) => {
     setBusy(status)
     try {
-      const updated = await api.updateReport(report.id, {
-        status,
-        resolution_note: resolutionNote ?? note ?? '',
-      })
-      onUpdate(updated)
-      pushToast({ kind: 'success', title: `Marked ${STATUS_LABEL[status].toLowerCase()}` })
+      await api.updateReport(report.id, { status })
+      pushToast({ kind: 'success', title: label })
+      onChange()
     } catch (e) {
       pushToast({ kind: 'error', title: 'Update failed', detail: (e as Error).message })
-    } finally {
       setBusy(null)
-      setShowResolve(false)
     }
   }
 
-  const recheck = async () => {
+  const blockLMS = async () => {
     if (!report.lms_id) return
-    setRechecking(true)
-    setHealth(null)
+    setBusy('block')
     try {
-      const lms = await api.recheckLMS(report.lms_id)
-      setHealth({ ok: !!lms.last_health_ok, note: lms.last_health_note })
+      await api.blockLMS(report.lms_id)
+      pushToast({
+        kind: 'success',
+        title: `${targetName} blocked`,
+        detail: 'Removed from the catalog. You can undo this under LMS instances.',
+      })
+      onChange()
     } catch (e) {
-      setHealth({ ok: false, note: (e as Error).message })
-    } finally {
-      setRechecking(false)
+      pushToast({ kind: 'error', title: 'Block failed', detail: (e as Error).message })
+      setBusy(null)
     }
   }
 
   const targetName = report.lms?.name ?? hostOf(report.reported_base_url)
   const targetUrl = report.lms?.base_url ?? report.reported_base_url
-  const isOpen = report.status === 'new' || report.status === 'investigating'
+  const isOpen = report.status === 'new' || report.status === 'reviewing'
 
   return (
     <motion.div
@@ -189,20 +175,13 @@ function ReportCard({ report, onUpdate }: { report: Report; onUpdate: (r: Report
         }
       >
         <div className="flex flex-wrap items-start gap-4">
-          <LogoBadge
-            name={targetName}
-            accent={report.lms?.accent_color}
-            logoUrl={report.lms?.logo_url || undefined}
-            size={44}
-          />
+          <LogoBadge name={targetName} accent={report.lms?.accent_color} logoUrl={report.lms?.logo_url || undefined} size={44} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="truncate text-[15px] font-semibold text-white">{targetName}</span>
               <SeverityMark severity={report.severity} />
               <Pill tone="slate">{CATEGORY_LABEL[report.category]}</Pill>
-              {report.status !== 'new' && (
-                <Pill tone={STATUS_TONE[report.status]}>{STATUS_LABEL[report.status]}</Pill>
-              )}
+              {report.status !== 'new' && <Pill tone={STATUS_TONE[report.status]}>{STATUS_LABEL[report.status]}</Pill>}
             </div>
             <a
               href={targetUrl}
@@ -233,92 +212,59 @@ function ReportCard({ report, onUpdate }: { report: Report; onUpdate: (r: Report
               )}
             </div>
 
-            {report.status === 'resolved' && report.resolution_note && (
-              <div className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 text-[13px] text-emerald-200/90">
-                <span className="font-semibold">Resolution:</span> {report.resolution_note}
+            {report.status === 'dismissed' && report.resolution_note && (
+              <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[13px] text-surface-300">
+                <span className="font-semibold">Note:</span> {report.resolution_note}
+              </div>
+            )}
+            {report.status === 'blocked' && (
+              <div className="mt-3 rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2 text-[13px] text-rose-200">
+                This LMS was removed from the catalog. Restore it under LMS instances if needed.
               </div>
             )}
           </div>
         </div>
 
-        {/* Inline health recheck result */}
-        <AnimatePresence>
-          {health && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 overflow-hidden"
-            >
-              <div
-                className={
-                  'flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] ' +
-                  (health.ok
-                    ? 'border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-200'
-                    : 'border-rose-500/25 bg-rose-500/[0.07] text-rose-200')
-                }
-              >
-                <IconSignal />
-                <span className="font-semibold">{health.ok ? 'Reachable' : 'Problem detected'}:</span>
-                {health.note}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Actions */}
-        {showResolve ? (
-          <div className="mt-4 flex flex-col gap-2.5 border-t border-white/8 pt-4">
-            <Textarea
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="What did you do about it? (visible in the log)"
-            />
-            <div className="flex justify-end gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setShowResolve(false)}>
-                Cancel
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
+          <Button size="sm" variant="ghost" onClick={() => window.open(targetUrl, '_blank', 'noopener')}>
+            <IconExternal /> Open LMS
+          </Button>
+          <div className="flex-1" />
+          {isOpen && (
+            <>
+              {report.status === 'new' && (
+                <Button size="sm" variant="subtle" loading={busy === 'reviewing'} onClick={() => setStatus('reviewing', 'Marked reviewing')}>
+                  Reviewing
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" loading={busy === 'dismissed'} onClick={() => setStatus('dismissed', 'Complaint dismissed')}>
+                <IconX /> Dismiss
               </Button>
-              <Button size="sm" variant="success" loading={busy === 'resolved'} onClick={() => setStatus('resolved')}>
-                <IconCheck /> Confirm resolved
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
-            <Button
-              size="sm"
-              variant="ghost"
-              loading={rechecking}
-              disabled={!report.lms_id}
-              onClick={recheck}
-              title={report.lms_id ? 'Re-probe the LMS now' : 'Not linked to a registered LMS'}
-            >
-              <IconSignal /> Check LMS now
+              {report.lms_id &&
+                (confirmingBlock ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] text-surface-400">Block and remove from catalog?</span>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmingBlock(false)}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" variant="danger" loading={busy === 'block'} onClick={blockLMS}>
+                      <IconShield /> Confirm block
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="danger" onClick={() => setConfirmingBlock(true)}>
+                    <IconShield /> Block LMS
+                  </Button>
+                ))}
+            </>
+          )}
+          {report.status === 'dismissed' && (
+            <Button size="sm" variant="ghost" loading={busy === 'new'} onClick={() => setStatus('new', 'Reopened')}>
+              Reopen
             </Button>
-            <div className="flex-1" />
-            {isOpen && report.status !== 'investigating' && (
-              <Button size="sm" variant="subtle" loading={busy === 'investigating'} onClick={() => setStatus('investigating')}>
-                Investigating
-              </Button>
-            )}
-            {isOpen && (
-              <>
-                <Button size="sm" variant="ghost" loading={busy === 'dismissed'} onClick={() => setStatus('dismissed')}>
-                  <IconX /> Dismiss
-                </Button>
-                <Button size="sm" variant="success" onClick={() => setShowResolve(true)}>
-                  <IconCheck /> Resolve
-                </Button>
-              </>
-            )}
-            {!isOpen && (
-              <Button size="sm" variant="ghost" loading={busy === 'new'} onClick={() => setStatus('new')}>
-                Reopen
-              </Button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </Card>
     </motion.div>
   )

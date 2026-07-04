@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, setToken, clearToken, getToken, ApiError } from './lib/api'
+import { api, setToken, clearToken, getToken } from './lib/api'
 import type { User, ReportStats } from './lib/types'
 
 export type View = 'overview' | 'lms' | 'reports' | 'admins'
@@ -45,7 +45,7 @@ export const useStore = create<State>((set, get) => ({
     try {
       const user = await api.me()
       set({ user, authState: 'authed' })
-      get().refreshStats()
+      if (user.role === 'admin') get().refreshStats()
     } catch {
       clearToken()
       set({ authState: 'anon', user: null })
@@ -56,12 +56,8 @@ export const useStore = create<State>((set, get) => ({
     const { access_token } = await api.login(email, password)
     setToken(access_token)
     const user = await api.me()
-    if (user.role !== 'admin') {
-      clearToken()
-      throw new ApiError('This console is for administrators only.', 403)
-    }
     set({ user, authState: 'authed', view: 'overview' })
-    get().refreshStats()
+    if (user.role === 'admin') get().refreshStats()
   },
 
   register: async (name, email, password) => {
@@ -85,8 +81,8 @@ export const useStore = create<State>((set, get) => ({
       const prev = get().stats
       // Surface an alert when the count of open complaints grows.
       if (prev) {
-        const prevOpen = prev.new + prev.investigating
-        const nextOpen = next.new + next.investigating
+        const prevOpen = prev.new + prev.reviewing
+        const nextOpen = next.new + next.reviewing
         if (nextOpen > prevOpen) {
           const delta = nextOpen - prevOpen
           get().pushToast({
