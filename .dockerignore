@@ -3,4 +3,10 @@ __pycache__/
 data/
 .env
 .git
+.venv/
+venv/
 wizard/
+admin/
+docs/
+.claude/
+*.log
