@@ -30,9 +30,17 @@ _DEFAULTS = {
     "webhook_url": "",                    # outgoing POST on each new complaint
     "webhook_secret": "",                 # optional shared secret header
     "registry_public_url": "",            # canonical https origin for absolute asset URLs
+    # SMTP — used to email an LMS owner when their instance is moderated.
+    # When unset, the console falls back to opening the admin's mail client.
+    "smtp_host": "",
+    "smtp_port": "587",
+    "smtp_user": "",
+    "smtp_password": "",
+    "smtp_from": "",
+    "smtp_use_tls": True,
 }
 
-_BOOL_KEYS = {"auto_approve"}
+_BOOL_KEYS = {"auto_approve", "smtp_use_tls"}
 
 
 def _coerce_bool(value) -> bool:
@@ -79,10 +87,23 @@ class AppConfig:
         self.webhook_url: str = resolved["webhook_url"]
         self.webhook_secret: str = resolved["webhook_secret"]
         self.registry_public_url: str = resolved["registry_public_url"]
+        self.smtp_host: str = resolved["smtp_host"]
+        try:
+            self.smtp_port: int = int(resolved["smtp_port"])
+        except (TypeError, ValueError):
+            self.smtp_port = 587
+        self.smtp_user: str = resolved["smtp_user"]
+        self.smtp_password: str = resolved["smtp_password"]
+        self.smtp_from: str = resolved["smtp_from"] or resolved["smtp_user"]
+        self.smtp_use_tls: bool = resolved["smtp_use_tls"]
 
     @property
     def is_curated(self) -> bool:
         return self.directory_mode == "curated"
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_host and self.smtp_from)
 
     def public_dict(self) -> dict:
         """Fields safe to expose to the mobile app via /api/v1/config."""

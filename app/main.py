@@ -23,7 +23,7 @@ from .schemas import (
     LMSCreateRequest, LMSUpdateStatusRequest, LMSFullUpdateRequest,
     LMSReviewRequest, LMSResponse,
     ReportCreateRequest, ReportCreateResponse, ReportUpdateRequest,
-    ReportResponse, ReportStats, PublicConfigResponse,
+    ReportResponse, ReportStats, PublicConfigResponse, NotifyOwnerResponse,
 )
 from .auth import (
     hash_password, verify_password, create_access_token,
@@ -33,7 +33,7 @@ from .color_utils import adapt_accent_for_dark
 from .config import get_config
 from .database import migrate
 from .seed import seed
-from . import webhook
+from . import webhook, email_notify
 
 os.makedirs("data", exist_ok=True)
 os.makedirs("data/uploads", exist_ok=True)
@@ -552,6 +552,48 @@ def admin_block_lms(
     db.commit()
     db.refresh(lms)
     return lms
+
+
+@app.post("/admin/lms/{lms_id}/notify-owner", response_model=NotifyOwnerResponse)
+def admin_notify_owner(
+    lms_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Compose (and, if SMTP is configured, send) a moderation notice to the LMS
+    owner: what was reported, that access is temporarily removed, and that we
+    restore it once fixed. Always returns the composed message so the console
+    can fall back to the admin's own mail client.
+    """
+    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+
+    recent = (
+        db.query(Report)
+        .filter(Report.lms_id == lms_id)
+        .order_by(Report.id.desc())
+        .limit(10)
+        .all()
+    )
+    categories = [r.category.value for r in recent]
+    latest_detail = next((r.message for r in recent if r.message), "")
+
+    subject, body = email_notify.compose_block_notice(lms, categories, latest_detail)
+    sent = email_notify.send_email(lms.owner_email, subject, body)
+
+    lms.owner_notified_at = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(lms)
+
+    return NotifyOwnerResponse(
+        sent=sent,
+        owner_email=lms.owner_email,
+        subject=subject,
+        body=body,
+        owner_notified_at=lms.owner_notified_at,
+    )
 
 
 @app.post("/admin/lms/{lms_id}/unblock", response_model=LMSResponse)

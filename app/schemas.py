@@ -148,11 +148,21 @@ class LMSResponse(BaseModel):
     last_checked_at: datetime | None
     last_health_ok: bool | None
     last_health_note: str
+    owner_notified_at: datetime | None
+    owner_email: str
     submitted_by: int
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class NotifyOwnerResponse(BaseModel):
+    sent: bool                 # true only if the server actually sent via SMTP
+    owner_email: str
+    subject: str
+    body: str
+    owner_notified_at: datetime | None
 
 
 # --- Reports / complaints ---
@@ -187,6 +197,8 @@ class ReportLMSBrief(BaseModel):
     logo_url: str
     admin_reviewed: bool
     last_health_ok: bool | None
+    owner_email: str
+    owner_notified_at: datetime | None
 
     model_config = {"from_attributes": True}
 

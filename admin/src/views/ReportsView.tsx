@@ -122,6 +122,16 @@ const SEV_BORDER: Record<string, string> = {
   low: 'before:bg-surface-600',
 }
 
+/** Open the admin's own mail client with the notice pre-filled. */
+function openMailto(to: string, subject: string, body: string) {
+  const href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  const a = document.createElement('a')
+  a.href = href
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
 function ReportCard({ report, onChange }: { report: Report; onChange: () => void }) {
   const pushToast = useStore((s) => s.pushToast)
   const [busy, setBusy] = useState<string | null>(null)
@@ -156,9 +166,28 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
     }
   }
 
+  const emailOwner = async () => {
+    if (!report.lms_id) return
+    setBusy('notify')
+    try {
+      const res = await api.notifyOwner(report.lms_id)
+      if (res.sent) {
+        pushToast({ kind: 'success', title: 'Owner emailed', detail: res.owner_email })
+      } else {
+        openMailto(res.owner_email, res.subject, res.body)
+        pushToast({ kind: 'info', title: 'Opened your email to the owner', detail: res.owner_email })
+      }
+      onChange()
+    } catch (e) {
+      pushToast({ kind: 'error', title: 'Could not contact owner', detail: (e as Error).message })
+      setBusy(null)
+    }
+  }
+
   const targetName = report.lms?.name ?? hostOf(report.reported_base_url)
   const targetUrl = report.lms?.base_url ?? report.reported_base_url
   const isOpen = report.status === 'new' || report.status === 'reviewing'
+  const contacted = !!report.lms?.owner_notified_at
 
   return (
     <motion.div
@@ -230,6 +259,11 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
           <Button size="sm" variant="ghost" onClick={() => window.open(targetUrl, '_blank', 'noopener')}>
             <IconExternal /> Open LMS
           </Button>
+          {report.lms_id && (
+            <Button size="sm" variant={contacted ? 'ghost' : 'subtle'} loading={busy === 'notify'} onClick={emailOwner}>
+              <IconMail /> {contacted ? 'Owner contacted' : 'Email owner'}
+            </Button>
+          )}
           <div className="flex-1" />
           {isOpen && (
             <>

@@ -47,6 +47,7 @@ def migrate():
         ("last_checked_at", "DATETIME"),
         ("last_health_ok", "BOOLEAN"),
         ("last_health_note", "VARCHAR DEFAULT ''"),
+        ("owner_notified_at", "DATETIME"),
     ]
     with engine.begin() as conn:
         for col_name, col_def in new_columns:

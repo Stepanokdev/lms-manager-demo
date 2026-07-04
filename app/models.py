@@ -126,12 +126,23 @@ class LMSInstance(Base):
     last_health_ok = Column(Boolean, nullable=True)
     last_health_note = Column(String, default="")
 
+    # Set when an admin has emailed the owner about a moderation action
+    owner_notified_at = Column(DateTime, nullable=True)
+
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     submitter = relationship("User", foreign_keys=[submitted_by], back_populates="lms_instances")
     reports = relationship("Report", back_populates="lms", cascade="all, delete-orphan")
+
+    @property
+    def owner_email(self) -> str:
+        """Where we reach the owner about moderation: their account email,
+        falling back to the support email they entered in the wizard."""
+        if self.submitter and self.submitter.email:
+            return self.submitter.email
+        return self.feedback_email or ""
 
 
 class Report(Base):

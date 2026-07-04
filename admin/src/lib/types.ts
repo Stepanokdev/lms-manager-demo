@@ -48,9 +48,19 @@ export interface LMS {
   last_checked_at: string | null
   last_health_ok: boolean | null
   last_health_note: string
+  owner_notified_at: string | null
+  owner_email: string
   submitted_by: number
   created_at: string
   updated_at: string
+}
+
+export interface NotifyOwnerResult {
+  sent: boolean
+  owner_email: string
+  subject: string
+  body: string
+  owner_notified_at: string | null
 }
 
 export interface ReportLMSBrief {
@@ -61,6 +71,8 @@ export interface ReportLMSBrief {
   logo_url: string
   admin_reviewed: boolean
   last_health_ok: boolean | null
+  owner_email: string
+  owner_notified_at: string | null
 }
 
 export interface Report {

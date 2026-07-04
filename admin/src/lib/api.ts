@@ -8,6 +8,7 @@ import type {
   LMSStatus,
   Visibility,
   ReportStatus,
+  NotifyOwnerResult,
 } from './types'
 
 const TOKEN_KEY = 'lms-admin-token'
@@ -105,6 +106,8 @@ export const api = {
   recheckLMS: (id: number) => request<LMS>(`/admin/lms/${id}/recheck`, { method: 'POST' }),
   blockLMS: (id: number) => request<LMS>(`/admin/lms/${id}/block`, { method: 'POST' }),
   unblockLMS: (id: number) => request<LMS>(`/admin/lms/${id}/unblock`, { method: 'POST' }),
+  notifyOwner: (id: number) =>
+    request<NotifyOwnerResult>(`/admin/lms/${id}/notify-owner`, { method: 'POST' }),
 
   // Reports
   listReports: (status?: ReportStatus) =>
