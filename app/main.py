@@ -525,38 +525,11 @@ def create_report(
     db.commit()
     db.refresh(report)
 
-    if lms is not None:
-        _maybe_auto_hide(db, lms, report)
-
+    # Hiding/blocking is always a human decision — no automatic action here, so
+    # a coordinated spam campaign can't knock a legitimate LMS out of the app.
+    # The grouped inbox surfaces volume + distinct reporters for fast triage.
     background.add_task(webhook.deliver, webhook.build_payload(report, lms))
     return report
-
-
-def _maybe_auto_hide(db: Session, lms: LMSInstance, report: Report) -> None:
-    """
-    Safety net for auto-approve: if an LMS collects enough high-severity
-    complaints from DISTINCT sources, soft-hide it from search pending review.
-    Counting distinct sources (IP or email) stops one attacker from hiding a
-    rival by spamming. The LMS stays approved; it just leaves public search.
-    """
-    if report.severity != ReportSeverity.high or lms.visibility != Visibility.public:
-        return
-    cfg = get_config()
-    highs = (
-        db.query(Report)
-        .filter(
-            Report.lms_id == lms.id,
-            Report.severity == ReportSeverity.high,
-            Report.status.in_(_OPEN_STATUSES),
-        )
-        .all()
-    )
-    sources = {(r.reporter_ip or r.reporter_email or f"r{r.id}") for r in highs}
-    if len(sources) >= cfg.auto_hide_threshold:
-        lms.visibility = Visibility.hidden
-        _log_event(db, actor_id=None, lms_id=lms.id, action="auto_hidden",
-                   detail=f"{len(sources)} distinct high-severity reports")
-        db.commit()
 
 
 def _log_event(db: Session, *, actor_id, action, lms_id=None, report_id=None,

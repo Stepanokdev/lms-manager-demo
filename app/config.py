@@ -38,9 +38,6 @@ _DEFAULTS = {
     "smtp_password": "",
     "smtp_from": "",
     "smtp_use_tls": True,
-    # Soft-hide an LMS from search once this many DISTINCT high-severity
-    # complaints accumulate (safety net for auto-approve).
-    "auto_hide_threshold": "3",
 }
 
 _BOOL_KEYS = {"auto_approve", "smtp_use_tls"}
@@ -99,10 +96,6 @@ class AppConfig:
         self.smtp_password: str = resolved["smtp_password"]
         self.smtp_from: str = resolved["smtp_from"] or resolved["smtp_user"]
         self.smtp_use_tls: bool = resolved["smtp_use_tls"]
-        try:
-            self.auto_hide_threshold: int = max(1, int(resolved["auto_hide_threshold"]))
-        except (TypeError, ValueError):
-            self.auto_hide_threshold = 3
 
     @property
     def is_curated(self) -> bool:

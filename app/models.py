@@ -190,6 +190,6 @@ class ModerationEvent(Base):
     actor_name = Column(String, default="")
     lms_id = Column(Integer, index=True, nullable=True)
     report_id = Column(Integer, nullable=True)
-    action = Column(String, nullable=False)   # blocked | unblocked | dismissed | reviewed | notified | auto_hidden | review_requested
+    action = Column(String, nullable=False)   # blocked | unblocked | dismissed | reviewed | notified | review_requested
     detail = Column(String, default="")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
