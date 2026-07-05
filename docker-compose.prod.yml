@@ -3,6 +3,10 @@ services:
     container_name: openedx-lms-manager
     restart: unless-stopped
     ports: !reset []
+    # Production secrets/config (SECRET_KEY, SMTP_*, WEBHOOK_URL, DATABASE_URL, …).
+    # Kept out of git; create /opt/openedx-lms-manager/.env on the server.
+    env_file:
+      - .env
     networks:
       - web
     labels:

@@ -151,6 +151,12 @@ export const IconClock = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 7v5l3 2" />
   </Base>
 )
+export const IconBook = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+  </Base>
+)
 export const IconMail = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}>
     <rect x="3" y="5" width="18" height="14" rx="2" />

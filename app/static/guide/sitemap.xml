@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/admin-console/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/api/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/deploying/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/how-it-works/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/learners/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/provider-mode/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+         <loc>https://openedx-lms.stepanok.com/guide/registering-an-lms/</loc>
+         <lastmod>2026-07-05</lastmod>
+    </url>
+</urlset>

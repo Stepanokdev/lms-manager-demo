@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useStore } from '@/store'
 import { Button, Field, Input } from '@/components/ui'
-import { IconLayers, IconServer, IconAlert, IconShield, IconEye, IconEyeOff } from '@/components/icons'
+import { IconLayers, IconServer, IconAlert, IconShield, IconEye, IconEyeOff, IconBook } from '@/components/icons'
 import { ApiError } from '@/lib/api'
 import type { PublicConfig } from '@/lib/types'
 
@@ -145,6 +145,15 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
             >
               {mode === 'login' ? 'Create one' : 'Sign in'}
             </button>
+          </div>
+
+          <div className="mt-8 border-t border-line pt-5 text-center">
+            <a
+              href="/guide/"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-link transition-colors hover:text-link-hover"
+            >
+              <IconBook /> How it works — read the documentation
+            </a>
           </div>
         </motion.div>
       </div>

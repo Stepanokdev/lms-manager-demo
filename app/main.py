@@ -972,6 +972,11 @@ app.mount("/wizard", StaticFiles(directory=str(STATIC_DIR / "wizard"), html=True
 if ADMIN_DIR.exists():
     app.mount("/admin", StaticFiles(directory=str(ADMIN_DIR), html=True), name="admin")
 
+# User documentation (built MkDocs site) served at /guide/.
+GUIDE_DIR = STATIC_DIR / "guide"
+if GUIDE_DIR.exists():
+    app.mount("/guide", StaticFiles(directory=str(GUIDE_DIR), html=True), name="guide")
+
 
 def _admin_index() -> FileResponse:
     """Serve the admin console entry point, falling back to the legacy page."""

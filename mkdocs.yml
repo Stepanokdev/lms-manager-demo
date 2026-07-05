@@ -1,7 +1,9 @@
 site_name: Universal Open edX — Documentation
 site_description: How the Universal Open edX app, the LMS registry, and the admin console work — for learners, LMS owners, and administrators.
+site_url: https://openedx-lms.stepanok.com/guide/
 docs_dir: docs
-site_dir: site
+# Built into the app's static dir so the same container serves the docs at /guide/.
+site_dir: app/static/guide
 
 theme:
   name: material
