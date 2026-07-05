@@ -1,0 +1,18 @@
+/* Open edX navy to match the console/Studio */
+:root {
+  --md-primary-fg-color: #0a3055;
+  --md-primary-fg-color--light: #0d3a66;
+  --md-primary-fg-color--dark: #082741;
+  --md-accent-fg-color: #006daa;
+  --md-typeset-a-color: #006daa;
+}
+
+/* Screenshots read better with a soft frame */
+.md-typeset img {
+  border-radius: 6px;
+  border: 1px solid #e2ded7;
+}
+.md-typeset h1,
+.md-typeset h2 {
+  letter-spacing: -0.01em;
+}
