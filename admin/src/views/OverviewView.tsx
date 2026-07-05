@@ -42,10 +42,10 @@ export function OverviewView() {
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">
             {greeting()}, {user?.name?.split(' ')[0] || 'Admin'}
           </h1>
-          <p className="mt-1 text-sm text-surface-400">
+          <p className="mt-1 text-sm text-muted">
             Here is what needs your attention across the registry.
           </p>
         </div>
@@ -64,16 +64,16 @@ export function OverviewView() {
               <Card className="relative overflow-hidden p-6">
                 <div className="relative flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-2 text-sm font-medium text-surface-400">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted">
                       <IconAlert /> Open complaints
                     </div>
                     <div className="mt-2 flex items-end gap-3">
-                      <span className="tnum text-5xl font-bold leading-none text-white">
+                      <span className="tnum text-5xl font-bold leading-none text-ink">
                         {openComplaints}
                       </span>
                       {highOpen > 0 && (
-                        <span className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-rose-300">
-                          <span className="h-2 w-2 animate-pulse rounded-full bg-rose-400" />
+                        <span className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-danger">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-danger" />
                           {highOpen} high-severity
                         </span>
                       )}
@@ -94,16 +94,16 @@ export function OverviewView() {
 
             <motion.div {...fade} transition={{ duration: 0.4, delay: 0.05 }}>
               <Card className="flex h-full flex-col p-6">
-                <div className="flex items-center gap-2 text-sm font-medium text-surface-400">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted">
                   <IconEye /> Awaiting your review
                 </div>
                 <div className="mt-2 flex items-end gap-3">
-                  <span className="tnum text-5xl font-bold leading-none text-white">
+                  <span className="tnum text-5xl font-bold leading-none text-ink">
                     {overview.lms.unreviewed}
                   </span>
-                  <span className="mb-1 text-sm text-surface-500">auto-approved, unverified</span>
+                  <span className="mb-1 text-sm text-muted">auto-approved, unverified</span>
                 </div>
-                <p className="mt-3 flex-1 text-[13px] leading-relaxed text-surface-500">
+                <p className="mt-3 flex-1 text-[13px] leading-relaxed text-muted">
                   New submissions go live immediately. Confirm each one is configured correctly so
                   learners never hit a broken instance.
                 </p>
@@ -117,7 +117,7 @@ export function OverviewView() {
           {/* LMS metric strip — divided, not boxed */}
           <motion.div {...fade} transition={{ duration: 0.4, delay: 0.1 }}>
             <Card className="p-0">
-              <div className="grid grid-cols-2 divide-white/8 md:grid-cols-4 md:divide-x">
+              <div className="grid grid-cols-2 divide-line md:grid-cols-4 md:divide-x">
                 <StatCell icon={<IconServer />} label="Total LMS" value={overview.lms.total} />
                 <StatCell icon={<IconEye />} label="Public" value={overview.lms.public} />
                 <StatCell icon={<IconStar />} label="Featured" value={overview.lms.featured} />
@@ -136,7 +136,7 @@ export function OverviewView() {
                   <button
                     key={r.id}
                     onClick={() => setView('reports')}
-                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                    className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-canvas-2"
                   >
                     <LogoBadge
                       name={r.lms?.name ?? r.reported_base_url}
@@ -146,16 +146,16 @@ export function OverviewView() {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-surface-100">
+                        <span className="truncate text-sm font-semibold text-ink">
                           {r.lms?.name ?? r.reported_base_url}
                         </span>
-                        <span className="shrink-0 text-[11px] text-surface-500">{CATEGORY_LABEL[r.category]}</span>
+                        <span className="shrink-0 text-[11px] text-muted">{CATEGORY_LABEL[r.category]}</span>
                       </div>
-                      <div className="truncate text-[13px] text-surface-500">{r.message || 'No details provided'}</div>
+                      <div className="truncate text-[13px] text-muted">{r.message || 'No details provided'}</div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <SeverityMark severity={r.severity} />
-                      <span className="flex items-center gap-1 text-[11px] text-surface-600">
+                      <span className="flex items-center gap-1 text-[11px] text-faint">
                         <IconMobile /> {timeAgo(r.created_at)}
                       </span>
                     </div>
@@ -172,12 +172,12 @@ export function OverviewView() {
                   <button
                     key={l.id}
                     onClick={() => setView('lms')}
-                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                    className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-canvas-2"
                   >
                     <LogoBadge name={l.name} accent={l.accent_color} logoUrl={l.logo_upload_url || l.logo_url || undefined} size={36} />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold text-surface-100">{l.name}</div>
-                      <div className="truncate text-[13px] text-surface-500">{l.base_url}</div>
+                      <div className="truncate text-sm font-semibold text-ink">{l.name}</div>
+                      <div className="truncate text-[13px] text-muted">{l.base_url}</div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <HealthDot ok={l.last_health_ok} label={false} />
@@ -203,15 +203,15 @@ function greeting(): string {
 
 function MiniStat({ label, value, tone }: { label: string; value: number; tone: 'cyan' | 'amber' | 'rose' | 'emerald' }) {
   const colors: Record<string, string> = {
-    cyan: 'text-accent-300',
-    amber: 'text-premium-400',
-    rose: 'text-rose-300',
-    emerald: 'text-emerald-300',
+    cyan: 'text-link',
+    amber: 'text-warning',
+    rose: 'text-danger',
+    emerald: 'text-success',
   }
   return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.02] px-3.5 py-3">
+    <div className="rounded-md border border-line bg-canvas-2 px-3.5 py-3">
       <div className={`tnum text-2xl font-bold ${colors[tone]}`}>{value}</div>
-      <div className="mt-0.5 text-[11px] uppercase tracking-wide text-surface-500">{label}</div>
+      <div className="mt-0.5 text-[11px] uppercase tracking-wide text-muted">{label}</div>
     </div>
   )
 }
@@ -219,12 +219,12 @@ function MiniStat({ label, value, tone }: { label: string; value: number; tone: 
 function StatCell({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <div className="flex items-center gap-3 px-5 py-5">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/8 bg-white/[0.03] text-lg text-surface-400">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-line bg-canvas-2 text-lg text-muted">
         {icon}
       </span>
       <div>
-        <div className="tnum text-2xl font-bold text-white">{value}</div>
-        <div className="text-[12px] text-surface-500">{label}</div>
+        <div className="tnum text-2xl font-bold text-ink">{value}</div>
+        <div className="text-[12px] text-muted">{label}</div>
       </div>
     </div>
   )
@@ -234,8 +234,8 @@ function Panel({ title, onSeeAll, children }: { title: string; onSeeAll: () => v
   return (
     <Card className="p-4">
       <div className="mb-1 flex items-center justify-between px-2">
-        <h2 className="text-sm font-bold text-surface-200">{title}</h2>
-        <button onClick={onSeeAll} className="flex items-center gap-0.5 text-[13px] text-accent-300 hover:text-accent-200">
+        <h2 className="text-sm font-bold text-ink-soft">{title}</h2>
+        <button onClick={onSeeAll} className="flex items-center gap-0.5 text-[13px] text-link hover:text-link-hover">
           See all <IconChevronRight />
         </button>
       </div>
@@ -246,8 +246,8 @@ function Panel({ title, onSeeAll, children }: { title: string; onSeeAll: () => v
 
 function QuietRow({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-2 px-2 py-6 text-sm text-surface-500">
-      <span className="text-emerald-400">{icon}</span>
+    <div className="flex items-center gap-2 px-2 py-6 text-sm text-muted">
+      <span className="text-success">{icon}</span>
       {text}
     </div>
   )

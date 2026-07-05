@@ -109,8 +109,8 @@ export function LMSView() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">LMS instances</h1>
-          <p className="mt-1 text-sm text-surface-400">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">LMS instances</h1>
+          <p className="mt-1 text-sm text-muted">
             Every registered Open edX platform. Search, verify, and control catalog placement.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function LMSView() {
 
       <div className="flex flex-col gap-3">
         <div className="relative">
-          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-lg text-surface-500">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-lg text-muted">
             <IconSearch />
           </span>
           <Input
@@ -139,8 +139,8 @@ export function LMSView() {
               className={
                 'rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ' +
                 (filter === f.key
-                  ? 'border-accent-500/40 bg-accent-500/12 text-accent-200'
-                  : 'border-white/10 text-surface-400 hover:text-surface-200')
+                  ? 'border-brand-500/40 bg-brand-50 text-brand-700'
+                  : 'border-line text-muted hover:text-ink-soft')
               }
             >
               {f.label}
@@ -222,7 +222,7 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
 
   const statusTone = lms.status === 'approved' ? 'emerald' : lms.status === 'pending' ? 'amber' : 'rose'
   const healthColor =
-    lms.last_health_ok === null ? 'bg-surface-500' : lms.last_health_ok ? 'bg-emerald-400' : 'bg-rose-400'
+    lms.last_health_ok === null ? 'bg-faint' : lms.last_health_ok ? 'bg-success' : 'bg-danger'
 
   return (
     <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -232,9 +232,9 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
 
           <div className="min-w-[200px] flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[15px] font-semibold text-white">{lms.name}</span>
+              <span className="text-[15px] font-semibold text-ink">{lms.name}</span>
               {lms.featured && (
-                <span className="text-premium-400" title="Featured in curated mode">
+                <span className="text-warning" title="Featured in curated mode">
                   <IconStar />
                 </span>
               )}
@@ -253,7 +253,7 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
               href={lms.base_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-surface-500 hover:text-accent-300"
+              className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-muted hover:text-link-hover"
             >
               {hostOf(lms.base_url)} <IconExternal />
             </a>
@@ -262,7 +262,7 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
               <Pill tone={lms.visibility === 'public' ? 'sky' : 'slate'}>
                 {lms.visibility === 'public' ? <IconEye /> : <IconEyeOff />} {lms.visibility}
               </Pill>
-              <span className="flex items-center gap-1.5 text-surface-500">
+              <span className="flex items-center gap-1.5 text-muted">
                 <span className={`h-2 w-2 rounded-full ${healthColor}`} />
                 {lms.last_checked_at ? `checked ${timeAgo(lms.last_checked_at)}` : 'not checked'}
               </span>
@@ -321,7 +321,7 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
               target="_blank"
               rel="noopener noreferrer"
               title="Edit in the wizard"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-surface-300 transition-colors hover:bg-white/5 hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-ink-soft transition-colors hover:bg-canvas-2 hover:text-ink"
             >
               <IconEdit />
             </a>
@@ -354,8 +354,8 @@ function IconBtn({
       className={
         'flex h-9 w-9 items-center justify-center rounded-lg border text-base transition-colors active:scale-95 disabled:opacity-50 ' +
         (active
-          ? 'border-accent-500/40 bg-accent-500/12 text-accent-300'
-          : 'border-white/10 text-surface-400 hover:bg-white/5 hover:text-white')
+          ? 'border-brand-500/40 bg-brand-50 text-link'
+          : 'border-line text-muted hover:bg-canvas-2 hover:text-ink')
       }
     >
       {loading ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : children}

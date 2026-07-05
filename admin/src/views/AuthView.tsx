@@ -33,32 +33,32 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
   const provider = config?.provider_name || 'Universal Open edX'
 
   return (
-    <div className="grid min-h-[100dvh] w-full grid-cols-1 bg-surface-950 lg:grid-cols-[1.05fr_1fr]">
+    <div className="grid min-h-[100dvh] w-full grid-cols-1 bg-canvas lg:grid-cols-[1.05fr_1fr]">
       {/* Brand panel — flat, editorial, no gradients or glows */}
-      <div className="relative hidden flex-col justify-between border-r border-white/8 bg-surface-900/30 p-12 lg:flex">
+      <div className="relative hidden flex-col justify-between border-r border-line bg-card p-12 lg:flex">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] text-xl text-accent-300">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-canvas-2 text-xl text-link">
             <IconLayers />
           </div>
-          <div className="text-[15px] font-bold tracking-tight text-white">{provider}</div>
+          <div className="text-[15px] font-bold tracking-tight text-ink">{provider}</div>
         </div>
 
         <div className="max-w-md">
-          <h1 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
+          <h1 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-ink">
             The registry behind one app for every platform
           </h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-surface-400">
+          <p className="mt-4 text-[15px] leading-relaxed text-muted">
             Owners register their Open edX instance here. Admins keep the catalog safe and act on
             what learners report from the apps.
           </p>
-          <ul className="mt-8 flex flex-col gap-3.5 text-sm text-surface-300">
+          <ul className="mt-8 flex flex-col gap-3.5 text-sm text-ink-soft">
             <Feature icon={<IconServer />} text="Every registered LMS in one searchable catalog" />
             <Feature icon={<IconAlert />} text="Learner complaints routed to a triage inbox" />
             <Feature icon={<IconShield />} text="Block a harmful instance in one click" />
           </ul>
         </div>
 
-        <div className="text-xs text-surface-600">Open edX–approved pilot · operated independently</div>
+        <div className="text-xs text-faint">Open edX–approved pilot · operated independently</div>
       </div>
 
       {/* Form */}
@@ -70,16 +70,16 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
           className="w-full max-w-sm"
         >
           <div className="mb-6 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-accent-300">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-line bg-canvas-2 text-link">
               <IconLayers />
             </div>
-            <span className="text-sm font-bold text-white">{provider}</span>
+            <span className="text-sm font-bold text-ink">{provider}</span>
           </div>
 
-          <h2 className="text-2xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-ink">
             {mode === 'login' ? 'Sign in' : 'Create your account'}
           </h2>
-          <p className="mt-1.5 text-sm text-surface-400">
+          <p className="mt-1.5 text-sm text-muted">
             {mode === 'login'
               ? 'Use your registry account. Owners land on their instances, admins on the console.'
               : 'Register an owner account to submit and manage your LMS.'}
@@ -122,7 +122,7 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-surface-500 transition-colors hover:text-surface-200"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-muted transition-colors hover:text-ink-soft"
                 >
                   {showPassword ? <IconEyeOff /> : <IconEye />}
                 </button>
@@ -134,14 +134,14 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-surface-500">
+          <div className="mt-6 text-center text-sm text-muted">
             {mode === 'login' ? 'Own an LMS and need an account?' : 'Already have an account?'}{' '}
             <button
               onClick={() => {
                 setMode(mode === 'login' ? 'register' : 'login')
                 setError('')
               }}
-              className="font-semibold text-accent-300 transition-colors hover:text-accent-200"
+              className="font-semibold text-link transition-colors hover:text-link-hover"
             >
               {mode === 'login' ? 'Create one' : 'Sign in'}
             </button>
@@ -155,7 +155,7 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
 function Feature({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <li className="flex items-center gap-3">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-base text-accent-300">
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-canvas-2 text-base text-link">
         {icon}
       </span>
       {text}

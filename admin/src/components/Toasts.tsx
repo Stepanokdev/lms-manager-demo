@@ -4,10 +4,10 @@ import { cn } from '@/lib/cn'
 import { IconBell, IconCheck, IconX, IconAlert } from './icons'
 
 const KIND = {
-  info: { ring: 'border-white/12', icon: <IconBell />, iconColor: 'text-primary-300' },
-  success: { ring: 'border-emerald-500/30', icon: <IconCheck />, iconColor: 'text-emerald-300' },
-  error: { ring: 'border-rose-500/30', icon: <IconAlert />, iconColor: 'text-rose-300' },
-  alert: { ring: 'border-rose-500/40', icon: <IconAlert />, iconColor: 'text-rose-300' },
+  info: { ring: 'border-line', icon: <IconBell />, iconColor: 'text-link' },
+  success: { ring: 'border-emerald-500/30', icon: <IconCheck />, iconColor: 'text-success' },
+  error: { ring: 'border-danger/30', icon: <IconAlert />, iconColor: 'text-danger' },
+  alert: { ring: 'border-danger/40', icon: <IconAlert />, iconColor: 'text-danger' },
 } as const
 
 export function Toasts() {
@@ -28,7 +28,7 @@ export function Toasts() {
               exit={{ opacity: 0, x: 24, scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 320, damping: 26 }}
               className={cn(
-                'pointer-events-auto flex items-start gap-3 rounded-2xl border bg-surface-900/90 p-3.5 backdrop-blur-xl',
+                'pointer-events-auto flex items-start gap-3 rounded-lg border bg-card/95 p-3.5 backdrop-blur-xl',
                 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_20px_40px_-16px_rgba(0,0,0,0.7)]',
                 k.ring,
               )}
@@ -41,12 +41,12 @@ export function Toasts() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-white">{t.title}</div>
-                {t.detail && <div className="mt-0.5 text-[13px] text-surface-400">{t.detail}</div>}
+                <div className="text-sm font-semibold text-ink">{t.title}</div>
+                {t.detail && <div className="mt-0.5 text-[13px] text-muted">{t.detail}</div>}
               </div>
               <button
                 onClick={() => dismiss(t.id)}
-                className="text-surface-500 transition-colors hover:text-white"
+                className="text-muted transition-colors hover:text-ink"
                 aria-label="Dismiss"
               >
                 <IconX />

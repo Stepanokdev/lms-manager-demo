@@ -9,8 +9,7 @@ export function Card({ className, children }: { className?: string; children: Re
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/10 bg-white/[0.03]',
-        'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_40px_-24px_rgba(0,0,0,0.6)]',
+        'rounded-md border border-line bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]',
         className,
       )}
     >
@@ -27,11 +26,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
 }
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-accent-500 text-surface-950 hover:bg-accent-400 font-semibold',
-  ghost: 'bg-transparent text-surface-300 border border-white/10 hover:bg-white/5 hover:text-white',
-  subtle: 'bg-white/[0.06] text-surface-200 hover:bg-white/10',
-  danger: 'bg-rose-500/15 text-rose-300 border border-rose-500/25 hover:bg-rose-500/25',
-  success: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/25',
+  primary: 'bg-brand-500 text-white hover:bg-brand-600 font-semibold',
+  ghost: 'bg-transparent text-brand-500 border border-brand-500/70 hover:bg-brand-50 font-semibold',
+  subtle: 'bg-canvas-2 text-ink-soft border border-line hover:bg-line/60',
+  danger: 'bg-danger text-white hover:brightness-95 font-semibold',
+  success: 'bg-success text-white hover:brightness-95 font-semibold',
 }
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'subtle', size = 'md', loading, className, children, disabled, ...rest },
@@ -42,11 +41,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 rounded-xl font-medium',
-        'transition-[background,color,transform] duration-150 active:scale-[0.97]',
+        'inline-flex items-center justify-center gap-1.5 rounded font-medium',
+        'transition-[background,color,transform] duration-150 active:scale-[0.98]',
         'disabled:opacity-45 disabled:pointer-events-none outline-none',
-        'focus-visible:ring-2 focus-visible:ring-accent-400/50',
-        size === 'sm' ? 'px-3 py-1.5 text-[13px]' : 'px-4 py-2.5 text-sm',
+        'focus-visible:ring-2 focus-visible:ring-brand-500/40',
+        size === 'sm' ? 'px-3 py-1.5 text-[13px]' : 'px-4 py-2 text-sm',
         variantClasses[variant],
         className,
       )}
@@ -71,12 +70,12 @@ export function Pill({
   className?: string
 }) {
   const tones: Record<string, string> = {
-    emerald: 'text-emerald-300 bg-emerald-500/12 border-emerald-500/25',
-    amber: 'text-premium-400 bg-premium-500/12 border-premium-500/25',
-    rose: 'text-rose-300 bg-rose-500/12 border-rose-500/25',
-    cyan: 'text-accent-300 bg-accent-500/12 border-accent-500/25',
-    sky: 'text-primary-300 bg-primary-500/12 border-primary-500/25',
-    slate: 'text-surface-300 bg-white/5 border-white/10',
+    emerald: 'text-success bg-success-bg border-success/20',
+    amber: 'text-warning bg-warning-bg border-warning/20',
+    rose: 'text-danger bg-danger-bg border-danger/20',
+    cyan: 'text-link bg-info-bg border-link/20',
+    sky: 'text-brand-500 bg-brand-50 border-brand-500/20',
+    slate: 'text-muted bg-canvas-2 border-line',
   }
   return (
     <span
@@ -98,7 +97,7 @@ export function SeverityMark({ severity }: { severity: Severity }) {
     low: { tone: 'slate', label: 'Low' },
   }
   const { tone, label } = map[severity]
-  const dot = tone === 'rose' ? 'bg-rose-400' : tone === 'amber' ? 'bg-premium-400' : 'bg-surface-500'
+  const dot = tone === 'rose' ? 'bg-danger' : tone === 'amber' ? 'bg-warning' : 'bg-faint'
   return (
     <Pill tone={tone}>
       <span className={cn('h-1.5 w-1.5 rounded-full', dot, severity === 'high' && 'animate-pulse')} />
@@ -119,20 +118,20 @@ export function LogoBadge({
   logoUrl?: string | null
   size?: number
 }) {
-  const color = accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : '#3b82f6'
+  const color = accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : '#0a3055'
   if (logoUrl) {
     return (
       <img
         src={logoUrl}
         alt=""
-        className="shrink-0 rounded-xl bg-white/5 object-contain"
+        className="shrink-0 rounded-md border border-line bg-white object-contain"
         style={{ width: size, height: size }}
       />
     )
   }
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-xl font-bold"
+      className="flex shrink-0 items-center justify-center rounded-md font-bold"
       style={{
         width: size,
         height: size,
@@ -150,12 +149,12 @@ export function LogoBadge({
 export function HealthDot({ ok, label = true }: { ok: boolean | null; label?: boolean }) {
   const cfg =
     ok === null
-      ? { c: 'bg-surface-500', t: 'Not checked' }
+      ? { c: 'bg-faint', t: 'Not checked' }
       : ok
-        ? { c: 'bg-emerald-400', t: 'Reachable' }
-        : { c: 'bg-rose-400', t: 'Unreachable' }
+        ? { c: 'bg-success', t: 'Online' }
+        : { c: 'bg-danger', t: 'Not responding' }
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-surface-400">
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted">
       <span className={cn('h-2 w-2 rounded-full', cfg.c)} />
       {label && cfg.t}
     </span>
@@ -164,7 +163,7 @@ export function HealthDot({ ok, label = true }: { ok: boolean | null; label?: bo
 
 /* ── Form fields ──────────────────────────────────────── */
 const fieldBase =
-  'w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-surface-500 outline-none transition-colors focus:border-accent-500/50 focus:bg-white/[0.07]'
+  'w-full rounded border border-line-strong bg-white px-3 py-2 text-sm text-ink placeholder-faint outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className, ...rest }, ref) {
@@ -190,12 +189,12 @@ export function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-medium text-surface-300">{label}</span>
+      <span className="text-[13px] font-semibold text-ink-soft">{label}</span>
       {children}
       {error ? (
-        <span className="text-xs text-rose-400">{error}</span>
+        <span className="text-xs text-danger">{error}</span>
       ) : hint ? (
-        <span className="text-xs text-surface-500">{hint}</span>
+        <span className="text-xs text-muted">{hint}</span>
       ) : null}
     </label>
   )
@@ -203,7 +202,7 @@ export function Field({
 
 /* ── Skeleton / empty ─────────────────────────────────── */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-lg bg-white/[0.06]', className)} />
+  return <div className={cn('animate-pulse rounded-md bg-canvas-2', className)} />
 }
 
 export function EmptyState({
@@ -218,10 +217,10 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 px-6 py-14 text-center">
-      {icon && <div className="mb-3 text-3xl text-surface-500">{icon}</div>}
-      <div className="text-base font-semibold text-surface-200">{title}</div>
-      {detail && <p className="mt-1 max-w-sm text-sm text-surface-500">{detail}</p>}
+    <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-line-strong bg-card px-6 py-14 text-center">
+      {icon && <div className="mb-3 text-3xl text-faint">{icon}</div>}
+      <div className="text-base font-semibold text-ink">{title}</div>
+      {detail && <p className="mt-1 max-w-sm text-sm text-muted">{detail}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   )

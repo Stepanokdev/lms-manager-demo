@@ -31,8 +31,8 @@ export function AdminsView() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Team</h1>
-          <p className="mt-1 text-sm text-surface-400">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Team</h1>
+          <p className="mt-1 text-sm text-muted">
             Administrators can moderate every LMS and act on complaints. Owners manage only their own.
           </p>
         </div>
@@ -97,10 +97,10 @@ export function AdminsView() {
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-surface-500">
-        {title} <span className="tnum text-surface-600">{count}</span>
+      <div className="mb-2 flex items-center gap-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-muted">
+        {title} <span className="tnum text-faint">{count}</span>
       </div>
-      <Card className="divide-y divide-white/8 p-0">{children}</Card>
+      <Card className="divide-y divide-line p-0">{children}</Card>
     </div>
   )
 }
@@ -110,17 +110,17 @@ function UserRow({ user, me, onSetRole }: { user: User; me?: number; onSetRole: 
   const isAdmin = user.role === 'admin'
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500/25 to-accent-500/25 text-sm font-bold text-primary-100">
+      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-50 text-sm font-bold text-brand-600">
         {user.name.slice(0, 1).toUpperCase()}
       </div>
       <div className="min-w-[160px] flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-surface-100">{user.name}</span>
-          {isMe && <span className="text-[11px] text-surface-500">(you)</span>}
+          <span className="text-sm font-semibold text-ink">{user.name}</span>
+          {isMe && <span className="text-[11px] text-muted">(you)</span>}
         </div>
-        <div className="text-[13px] text-surface-500">{user.email}</div>
+        <div className="text-[13px] text-muted">{user.email}</div>
       </div>
-      <span className="text-[12px] text-surface-600">joined {timeAgo(user.created_at)}</span>
+      <span className="text-[12px] text-faint">joined {timeAgo(user.created_at)}</span>
       {isAdmin ? (
         <Pill tone="sky">
           <IconShield /> Admin

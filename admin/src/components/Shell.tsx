@@ -10,7 +10,6 @@ import {
   IconAlert,
   IconUsers,
   IconLogout,
-  IconSignal,
 } from './icons'
 
 interface NavItem {
@@ -39,9 +38,9 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
   const brandName = config?.provider_name || 'LMS Registry'
 
   return (
-    <div className="flex min-h-[100dvh] w-full bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
+    <div className="flex min-h-[100dvh] w-full bg-canvas">
       {/* Sidebar (lg+) */}
-      <aside className="sticky top-0 hidden h-[100dvh] w-64 shrink-0 flex-col border-r border-white/8 bg-white/[0.015] px-4 py-6 lg:flex">
+      <aside className="sticky top-0 hidden h-[100dvh] w-64 shrink-0 flex-col border-r border-line bg-card px-4 py-6 lg:flex">
         <Brand name={brandName} />
         <nav className="mt-8 flex flex-1 flex-col gap-1">
           {NAV.map((item) => (
@@ -60,7 +59,7 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
 
       {/* Mobile top bar */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/8 bg-surface-950/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-card/90 px-4 py-3 backdrop-blur-xl lg:hidden">
           <Brand name={brandName} compact />
           <div className="ml-auto flex items-center gap-1 overflow-x-auto">
             {NAV.map((item) => (
@@ -68,8 +67,8 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
                 key={item.id}
                 onClick={() => setView(item.id)}
                 className={cn(
-                  'relative flex h-9 w-9 items-center justify-center rounded-lg text-lg transition-colors',
-                  view === item.id ? 'bg-white/10 text-white' : 'text-surface-400 hover:text-white',
+                  'relative flex h-9 w-9 items-center justify-center rounded-md text-lg transition-colors',
+                  view === item.id ? 'bg-brand-50 text-brand-600' : 'text-muted hover:text-ink',
                 )}
                 aria-label={item.label}
               >
@@ -78,7 +77,7 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
                   <span
                     className={cn(
                       'absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full',
-                      hasHigh ? 'bg-rose-500' : 'bg-accent-500',
+                      hasHigh ? 'bg-danger' : 'bg-link',
                     )}
                   />
                 )}
@@ -86,7 +85,7 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
             ))}
             <button
               onClick={logout}
-              className="ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-lg text-surface-400 hover:text-white"
+              className="ml-1 flex h-9 w-9 items-center justify-center rounded-md text-lg text-muted hover:text-ink"
               aria-label="Sign out"
             >
               <IconLogout />
@@ -105,13 +104,13 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
 function Brand({ name, compact }: { name: string; compact?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-accent-300">
+      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-500 text-white">
         <IconLayers />
       </div>
       {!compact && (
         <div className="min-w-0">
-          <div className="truncate text-sm font-bold tracking-tight text-white">{name}</div>
-          <div className="text-[11px] text-surface-500">Admin console</div>
+          <div className="truncate text-sm font-bold tracking-tight text-ink">{name}</div>
+          <div className="text-[11px] text-muted">Admin console</div>
         </div>
       )}
     </div>
@@ -135,18 +134,18 @@ function NavButton({
     <button
       onClick={onClick}
       className={cn(
-        'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-        active ? 'text-white' : 'text-surface-400 hover:text-surface-200',
+        'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+        active ? 'text-brand-700' : 'text-muted hover:text-ink',
       )}
     >
       {active && (
         <motion.span
           layoutId="nav-active"
-          className="absolute inset-0 -z-10 rounded-xl border border-white/10 bg-white/[0.06]"
+          className="absolute inset-0 -z-10 rounded-md border border-brand-100 bg-brand-50"
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         />
       )}
-      <span className={cn('text-lg', active ? 'text-accent-300' : 'text-surface-500 group-hover:text-surface-300')}>
+      <span className={cn('text-lg', active ? 'text-brand-500' : 'text-faint group-hover:text-muted')}>
         {item.icon}
       </span>
       <span className="flex-1 text-left">{item.label}</span>
@@ -154,12 +153,12 @@ function NavButton({
         <span
           className={cn(
             'tnum rounded-full px-1.5 py-0.5 text-[11px] font-bold',
-            badgeAlert ? 'bg-rose-500/20 text-rose-300' : 'bg-accent-500/20 text-accent-300',
+            badgeAlert ? 'bg-danger-bg text-danger' : 'bg-info-bg text-link',
           )}
         >
           {badge}
           {badgeAlert && (
-            <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-rose-400 align-middle" />
+            <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-danger align-middle" />
           )}
         </span>
       )}
@@ -169,17 +168,17 @@ function NavButton({
 
 function UserChip({ name, email, onLogout }: { name: string; email: string; onLogout: () => void }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-white/8 bg-white/[0.02] p-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500/20 text-xs font-bold text-primary-200">
+    <div className="flex items-center gap-2.5 rounded-md border border-line bg-canvas-2 p-2.5">
+      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-50 text-xs font-bold text-brand-600">
         {name.slice(0, 1).toUpperCase() || 'A'}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold text-surface-100">{name || 'Admin'}</div>
-        <div className="truncate text-[11px] text-surface-500">{email}</div>
+        <div className="truncate text-[13px] font-semibold text-ink">{name || 'Admin'}</div>
+        <div className="truncate text-[11px] text-muted">{email}</div>
       </div>
       <button
         onClick={onLogout}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-surface-400 transition-colors hover:bg-white/5 hover:text-white"
+        className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-line/60 hover:text-ink"
         aria-label="Sign out"
       >
         <IconLogout />

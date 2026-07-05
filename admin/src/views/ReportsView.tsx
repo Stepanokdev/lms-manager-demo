@@ -83,8 +83,8 @@ export function ReportsView() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Complaints</h1>
-          <p className="mt-1 text-sm text-surface-400">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Complaints</h1>
+          <p className="mt-1 text-sm text-muted">
             Learners flag platforms that shouldn't be in the catalog. Open the LMS to check, then
             block it or dismiss the report.
           </p>
@@ -104,9 +104,9 @@ export function ReportsView() {
       ) : (
         <>
           {lmsFilter && (
-            <div className="flex items-center gap-2 rounded-xl border border-accent-500/25 bg-accent-500/[0.06] px-3.5 py-2 text-[13px] text-accent-200">
+            <div className="flex items-center gap-2 rounded-md border border-brand-500/30 bg-brand-50 px-3.5 py-2 text-[13px] text-brand-700">
               Showing complaints for <span className="font-semibold">{lmsFilter.name}</span>
-              <button className="ml-auto text-surface-400 hover:text-white" onClick={() => setLmsFilter(null)}>
+              <button className="ml-auto text-muted hover:text-ink" onClick={() => setLmsFilter(null)}>
                 Clear
               </button>
             </div>
@@ -122,12 +122,12 @@ export function ReportsView() {
                 className={
                   'flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ' +
                   (filter === f
-                    ? 'border-accent-500/40 bg-accent-500/12 text-accent-200'
-                    : 'border-white/10 text-surface-400 hover:text-surface-200')
+                    ? 'border-brand-500/40 bg-brand-50 text-brand-700'
+                    : 'border-line text-muted hover:text-ink-soft')
                 }
               >
                 {f === 'all' ? 'All' : STATUS_LABEL[f]}
-                {counts[f] !== null && <span className="tnum text-[11px] text-surface-500">{counts[f]}</span>}
+                {counts[f] !== null && <span className="tnum text-[11px] text-muted">{counts[f]}</span>}
               </button>
             ))}
           </div>
@@ -143,8 +143,8 @@ export function ReportsView() {
                 className={
                   'rounded-full border px-3 py-1 text-[12px] font-medium capitalize transition-colors ' +
                   (severity === s
-                    ? 'border-rose-500/40 bg-rose-500/12 text-rose-200'
-                    : 'border-white/10 text-surface-500 hover:text-surface-300')
+                    ? 'border-danger/40 bg-danger-bg text-danger'
+                    : 'border-line text-muted hover:text-ink-soft')
                 }
               >
                 {s === 'all' ? 'Any severity' : s}
@@ -156,7 +156,7 @@ export function ReportsView() {
                 resetPage()
                 setCategory(e.target.value as ReportCategory | 'all')
               }}
-              className="rounded-full border border-white/10 bg-surface-900 px-3 py-1 text-[12px] text-surface-300 outline-none"
+              className="rounded-full border border-line bg-white px-3 py-1 text-[12px] text-ink-soft outline-none"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
@@ -247,12 +247,12 @@ function GroupedInbox({
               <LogoBadge name={name} accent={g.lms?.accent_color} logoUrl={g.lms?.logo_url || undefined} size={44} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[15px] font-semibold text-white">{name}</span>
+                  <span className="truncate text-[15px] font-semibold text-ink">{name}</span>
                   <SeverityMark severity={g.worst_severity} />
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-surface-400">
-                  <span><span className="tnum font-semibold text-surface-200">{g.open_count}</span> open complaint{g.open_count === 1 ? '' : 's'}</span>
-                  <span><span className="tnum font-semibold text-surface-200">{g.distinct_reporters}</span> distinct reporter{g.distinct_reporters === 1 ? '' : 's'}</span>
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted">
+                  <span><span className="tnum font-semibold text-ink-soft">{g.open_count}</span> open complaint{g.open_count === 1 ? '' : 's'}</span>
+                  <span><span className="tnum font-semibold text-ink-soft">{g.distinct_reporters}</span> distinct reporter{g.distinct_reporters === 1 ? '' : 's'}</span>
                   <span className="flex items-center gap-1"><IconClock /> {timeAgo(g.latest_at)}</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -282,9 +282,9 @@ function GroupedInbox({
 }
 
 const SEV_BORDER: Record<string, string> = {
-  high: 'before:bg-rose-500',
-  medium: 'before:bg-premium-500',
-  low: 'before:bg-surface-600',
+  high: 'before:bg-danger',
+  medium: 'before:bg-warning',
+  low: 'before:bg-faint',
 }
 
 /** Open the admin's own mail client with the notice pre-filled. */
@@ -372,7 +372,7 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
           <LogoBadge name={targetName} accent={report.lms?.accent_color} logoUrl={report.lms?.logo_url || undefined} size={44} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-[15px] font-semibold text-white">{targetName}</span>
+              <span className="truncate text-[15px] font-semibold text-ink">{targetName}</span>
               <SeverityMark severity={report.severity} />
               <Pill tone="slate">{CATEGORY_LABEL[report.category]}</Pill>
               {report.status !== 'new' && <Pill tone={STATUS_TONE[report.status]}>{STATUS_LABEL[report.status]}</Pill>}
@@ -381,12 +381,12 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
               href={targetUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-surface-500 hover:text-accent-300"
+              className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-muted hover:text-link-hover"
             >
               {hostOf(targetUrl)} <IconExternal />
             </a>
-            <p className="mt-2.5 text-sm leading-relaxed text-surface-200">
-              {report.message || <span className="text-surface-500">No details provided.</span>}
+            <p className="mt-2.5 text-sm leading-relaxed text-ink-soft">
+              {report.message || <span className="text-muted">No details provided.</span>}
             </p>
 
             {report.screenshot_url && (
@@ -395,13 +395,13 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Open full screenshot"
-                className="mt-3 inline-flex overflow-hidden rounded-xl border border-white/12 transition-colors hover:border-accent-500/50"
+                className="mt-3 inline-flex overflow-hidden rounded-md border border-line transition-colors hover:border-brand-500/50"
               >
                 <img src={report.screenshot_url} alt="Reporter screenshot" className="max-h-44 w-auto object-contain" />
               </a>
             )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-surface-500">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted">
               <span className="flex items-center gap-1.5">
                 <IconClock /> {timeAgo(report.created_at)}
               </span>
@@ -412,19 +412,19 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
                 </span>
               )}
               {report.reporter_email && (
-                <a href={`mailto:${report.reporter_email}`} className="flex items-center gap-1.5 hover:text-accent-300">
+                <a href={`mailto:${report.reporter_email}`} className="flex items-center gap-1.5 hover:text-link-hover">
                   <IconMail /> {report.reporter_email}
                 </a>
               )}
             </div>
 
             {report.status === 'dismissed' && report.resolution_note && (
-              <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[13px] text-surface-300">
+              <div className="mt-3 rounded-lg border border-line bg-canvas-2 px-3 py-2 text-[13px] text-ink-soft">
                 <span className="font-semibold">Note:</span> {report.resolution_note}
               </div>
             )}
             {report.status === 'blocked' && (
-              <div className="mt-3 rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2 text-[13px] text-rose-200">
+              <div className="mt-3 rounded-lg border border-danger/20 bg-danger-bg px-3 py-2 text-[13px] text-danger">
                 This LMS was removed from the catalog. Restore it under LMS instances if needed.
               </div>
             )}
@@ -432,7 +432,7 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
         </div>
 
         {/* Actions */}
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
           <Button size="sm" variant="ghost" onClick={() => window.open(targetUrl, '_blank', 'noopener')}>
             <IconExternal /> Open LMS
           </Button>
@@ -455,7 +455,7 @@ function ReportCard({ report, onChange }: { report: Report; onChange: () => void
               {report.lms_id &&
                 (confirmingBlock ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] text-surface-400">Block and remove from catalog?</span>
+                    <span className="text-[13px] text-muted">Block and remove from catalog?</span>
                     <Button size="sm" variant="ghost" onClick={() => setConfirmingBlock(false)}>
                       Cancel
                     </Button>

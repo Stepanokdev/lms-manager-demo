@@ -25,22 +25,22 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full bg-surface-950">
-      <header className="sticky top-0 z-20 flex items-center border-b border-white/8 bg-surface-950/80 px-5 py-3.5 backdrop-blur-xl">
+    <div className="min-h-[100dvh] w-full bg-canvas">
+      <header className="sticky top-0 z-20 flex items-center border-b border-line bg-card/95 px-5 py-3.5 backdrop-blur-xl">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-accent-300">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md border border-line bg-canvas-2 text-link">
             <IconLayers />
           </div>
           <div>
-            <div className="text-sm font-bold tracking-tight text-white">{provider}</div>
-            <div className="text-[11px] text-surface-500">Owner workspace</div>
+            <div className="text-sm font-bold tracking-tight text-ink">{provider}</div>
+            <div className="text-[11px] text-muted">Owner workspace</div>
           </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden text-[13px] text-surface-400 sm:inline">{user?.email}</span>
+          <span className="hidden text-[13px] text-muted sm:inline">{user?.email}</span>
           <button
             onClick={logout}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-surface-400 transition-colors hover:bg-white/5 hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-canvas-2 hover:text-ink"
             aria-label="Sign out"
           >
             <IconLogout />
@@ -51,8 +51,8 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
       <main className="mx-auto w-full max-w-3xl px-5 py-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Your platforms</h1>
-            <p className="mt-1 text-sm text-surface-400">
+            <h1 className="text-2xl font-bold tracking-tight text-ink">Your platforms</h1>
+            <p className="mt-1 text-sm text-muted">
               The Open edX instances you've registered for the mobile app.
             </p>
           </div>
@@ -81,18 +81,18 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
                     <LogoBadge name={lms.name} accent={lms.accent_color} logoUrl={lms.logo_upload_url || lms.logo_url || undefined} />
                     <div className="min-w-[180px] flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[15px] font-semibold text-white">{lms.name}</span>
+                        <span className="text-[15px] font-semibold text-ink">{lms.name}</span>
                         <StatusPill lms={lms} />
                       </div>
                       <a
                         href={lms.base_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-surface-500 hover:text-accent-300"
+                        className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-muted hover:text-link-hover"
                       >
                         {hostOf(lms.base_url)} <IconExternal />
                       </a>
-                      <div className="mt-1 text-[12px] text-surface-500">Updated {timeAgo(lms.updated_at)}</div>
+                      <div className="mt-1 text-[12px] text-muted">Updated {timeAgo(lms.updated_at)}</div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => launchWizard(lms.id)}>
                       <IconEdit /> Edit
@@ -100,17 +100,17 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
                   </div>
 
                   {lms.status === 'rejected' && (
-                    <div className="mt-3 rounded-xl border border-rose-500/25 bg-rose-500/[0.07] px-4 py-3">
-                      <div className="flex items-center gap-2 text-[13px] font-semibold text-rose-200">
+                    <div className="mt-3 rounded-md border border-danger/25 bg-danger-bg px-4 py-3">
+                      <div className="flex items-center gap-2 text-[13px] font-semibold text-danger">
                         <IconAlert /> Temporarily removed from the app
                       </div>
-                      <p className="mt-1.5 text-[13px] leading-relaxed text-rose-100/80">
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-danger/80">
                         Learners reported this platform for {lms.block_reason || 'a policy issue'}. Please
                         fix the issue, then let us know and we'll take another look.
                       </p>
                       <div className="mt-3">
                         {lms.review_requested_at ? (
-                          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-300">
+                          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-success">
                             <IconCheck /> Re-review requested — we'll get back to you
                           </span>
                         ) : (
