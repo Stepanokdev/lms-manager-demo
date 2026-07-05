@@ -26,7 +26,7 @@ export function OverviewView() {
   const { data, loading } = useApiData(() =>
     Promise.all([
       api.overview(),
-      api.listReports('new'),
+      api.listReports({ status: 'new' }),
       api.listLMS({ reviewed: false, status_filter: 'approved', limit: 6 }),
     ]),
   )

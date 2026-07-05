@@ -4,7 +4,7 @@ import { api } from '@/lib/api'
 import { useApiData } from '@/lib/useApiData'
 import { useStore } from '@/store'
 import { timeAgo, hostOf } from '@/lib/format'
-import type { Report, ReportStatus } from '@/lib/types'
+import type { Report, ReportStatus, Severity, ReportCategory, AffectedLMS } from '@/lib/types'
 import {
   Card,
   Button,
@@ -25,32 +25,50 @@ import {
   IconMobile,
   IconClock,
   IconShield,
+  IconLayers,
 } from '@/components/icons'
 
 type Filter = ReportStatus | 'all'
 const FILTERS: Filter[] = ['new', 'reviewing', 'blocked', 'dismissed', 'all']
+const SEVERITIES: (Severity | 'all')[] = ['all', 'high', 'medium', 'low']
+const CATEGORIES: (ReportCategory | 'all')[] = ['all', 'inappropriate', 'scam', 'impersonation', 'spam', 'broken', 'other']
 
 const PAGE = 100
 
 export function ReportsView() {
   const [filter, setFilter] = useState<Filter>('new')
+  const [severity, setSeverity] = useState<Severity | 'all'>('all')
+  const [category, setCategory] = useState<ReportCategory | 'all'>('all')
+  const [lmsFilter, setLmsFilter] = useState<{ id: number; name: string } | null>(null)
+  const [grouped, setGrouped] = useState(false)
   const [limit, setLimit] = useState(PAGE)
   const stats = useStore((s) => s.stats)
   const refreshStats = useStore((s) => s.refreshStats)
   const { data, loading, error, reload } = useApiData<Report[]>(
-    () => api.listReports(filter === 'all' ? undefined : filter, limit),
-    [filter, limit],
+    () =>
+      api.listReports({
+        status: filter === 'all' ? undefined : filter,
+        severity: severity === 'all' ? undefined : severity,
+        category: category === 'all' ? undefined : category,
+        lms_id: lmsFilter?.id,
+        limit,
+      }),
+    [filter, severity, category, lmsFilter, limit],
   )
-  // Reset paging when the filter changes.
-  const onFilter = (f: Filter) => {
-    setLimit(PAGE)
-    setFilter(f)
-  }
+  const resetPage = () => setLimit(PAGE)
   const hasMore = !!data && data.length === limit
 
   const afterChange = () => {
     reload()
     refreshStats()
+  }
+
+  const drillIntoLms = (id: number, name: string) => {
+    setGrouped(false)
+    setFilter('all')
+    setSeverity('all')
+    setCategory('all')
+    setLmsFilter({ id, name })
   }
 
   const counts: Record<Filter, number | null> = {
@@ -62,7 +80,7 @@ export function ReportsView() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Complaints</h1>
@@ -71,30 +89,84 @@ export function ReportsView() {
             block it or dismiss the report.
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={reload}>
-          <IconRefresh /> Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant={grouped ? 'primary' : 'ghost'} size="sm" onClick={() => setGrouped((g) => !g)}>
+            <IconLayers /> {grouped ? 'Grouped by platform' : 'Group by platform'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={reload}>
+            <IconRefresh /> Refresh
+          </Button>
+        </div>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => onFilter(f)}
-            className={
-              'flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ' +
-              (filter === f
-                ? 'border-accent-500/40 bg-accent-500/12 text-accent-200'
-                : 'border-white/10 text-surface-400 hover:text-surface-200')
-            }
-          >
-            {f === 'all' ? 'All' : STATUS_LABEL[f]}
-            {counts[f] !== null && <span className="tnum text-[11px] text-surface-500">{counts[f]}</span>}
-          </button>
-        ))}
-      </div>
+      {grouped ? (
+        <GroupedInbox onOpen={drillIntoLms} onChange={afterChange} />
+      ) : (
+        <>
+          {lmsFilter && (
+            <div className="flex items-center gap-2 rounded-xl border border-accent-500/25 bg-accent-500/[0.06] px-3.5 py-2 text-[13px] text-accent-200">
+              Showing complaints for <span className="font-semibold">{lmsFilter.name}</span>
+              <button className="ml-auto text-surface-400 hover:text-white" onClick={() => setLmsFilter(null)}>
+                Clear
+              </button>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  resetPage()
+                  setFilter(f)
+                }}
+                className={
+                  'flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ' +
+                  (filter === f
+                    ? 'border-accent-500/40 bg-accent-500/12 text-accent-200'
+                    : 'border-white/10 text-surface-400 hover:text-surface-200')
+                }
+              >
+                {f === 'all' ? 'All' : STATUS_LABEL[f]}
+                {counts[f] !== null && <span className="tnum text-[11px] text-surface-500">{counts[f]}</span>}
+              </button>
+            ))}
+          </div>
 
-      {loading ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {SEVERITIES.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  resetPage()
+                  setSeverity(s)
+                }}
+                className={
+                  'rounded-full border px-3 py-1 text-[12px] font-medium capitalize transition-colors ' +
+                  (severity === s
+                    ? 'border-rose-500/40 bg-rose-500/12 text-rose-200'
+                    : 'border-white/10 text-surface-500 hover:text-surface-300')
+                }
+              >
+                {s === 'all' ? 'Any severity' : s}
+              </button>
+            ))}
+            <select
+              value={category}
+              onChange={(e) => {
+                resetPage()
+                setCategory(e.target.value as ReportCategory | 'all')
+              }}
+              className="rounded-full border border-white/10 bg-surface-900 px-3 py-1 text-[12px] text-surface-300 outline-none"
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat === 'all' ? 'Any category' : CATEGORY_LABEL[cat]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {loading ? (
         <div className="flex flex-col gap-3">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-36" />
@@ -128,6 +200,83 @@ export function ReportsView() {
           )}
         </div>
       )}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ── Grouped-by-platform triage (makes brigading visible) ─────── */
+function GroupedInbox({
+  onOpen,
+  onChange,
+}: {
+  onOpen: (id: number, name: string) => void
+  onChange: () => void
+}) {
+  const pushToast = useStore((s) => s.pushToast)
+  const { data, loading, error, reload } = useApiData<AffectedLMS[]>(() => api.reportsByLMS())
+  const [busy, setBusy] = useState<number | null>(null)
+
+  const block = async (id: number, name: string) => {
+    setBusy(id)
+    try {
+      await api.blockLMS(id)
+      pushToast({ kind: 'success', title: `${name} blocked`, detail: 'Removed from the catalog.' })
+      reload()
+      onChange()
+    } catch (e) {
+      pushToast({ kind: 'error', title: 'Block failed', detail: (e as Error).message })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  if (loading) return <div className="flex flex-col gap-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24" />)}</div>
+  if (error) return <EmptyState icon={<IconAlert />} title="Could not load" detail={error} action={<Button size="sm" onClick={reload}>Try again</Button>} />
+  if (!data || data.length === 0)
+    return <EmptyState icon={<IconCheck />} title="No open complaints" detail="Nothing to triage right now." />
+
+  return (
+    <div className="flex flex-col gap-3">
+      {data.map((g) => {
+        const name = g.lms?.name ?? hostOf(g.reported_base_url)
+        return (
+          <Card key={g.lms?.id ?? g.reported_base_url} className={'relative overflow-hidden p-5 pl-6 before:absolute before:inset-y-0 before:left-0 before:w-1 ' + SEV_BORDER[g.worst_severity]}>
+            <div className="flex flex-wrap items-start gap-4">
+              <LogoBadge name={name} accent={g.lms?.accent_color} logoUrl={g.lms?.logo_url || undefined} size={44} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-[15px] font-semibold text-white">{name}</span>
+                  <SeverityMark severity={g.worst_severity} />
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-surface-400">
+                  <span><span className="tnum font-semibold text-surface-200">{g.open_count}</span> open complaint{g.open_count === 1 ? '' : 's'}</span>
+                  <span><span className="tnum font-semibold text-surface-200">{g.distinct_reporters}</span> distinct reporter{g.distinct_reporters === 1 ? '' : 's'}</span>
+                  <span className="flex items-center gap-1"><IconClock /> {timeAgo(g.latest_at)}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {g.categories.map((c) => (
+                    <Pill key={c} tone="slate">{CATEGORY_LABEL[c]}</Pill>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {g.lms && (
+                  <Button size="sm" variant="ghost" onClick={() => onOpen(g.lms!.id, name)}>
+                    View {g.open_count}
+                  </Button>
+                )}
+                {g.lms && (
+                  <Button size="sm" variant="danger" loading={busy === g.lms.id} onClick={() => block(g.lms!.id, name)}>
+                    <IconShield /> Block platform
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        )
+      })}
     </div>
   )
 }

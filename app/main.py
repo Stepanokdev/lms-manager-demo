@@ -18,6 +18,7 @@ from .database import Base, engine, get_db
 from .models import (
     User, LMSInstance, LMSStatus, UserRole, Visibility,
     Report, ReportCategory, ReportStatus, ReportSeverity, CATEGORY_SEVERITY,
+    ModerationEvent,
 )
 from .schemas import (
     RegisterRequest, LoginRequest, TokenResponse, UserResponse,
@@ -26,6 +27,7 @@ from .schemas import (
     LMSReviewRequest, LMSResponse,
     ReportCreateRequest, ReportCreateResponse, ReportUpdateRequest,
     ReportResponse, ReportStats, PublicConfigResponse, NotifyOwnerResponse,
+    ModerationEventResponse, AffectedLMS, ReportLMSBrief,
 )
 from .auth import (
     hash_password, verify_password, create_access_token,
@@ -36,6 +38,8 @@ from .config import get_config
 from .database import migrate
 from .seed import seed
 from . import webhook, email_notify
+from .netguard import is_public_url
+from .ratelimit import reports_limiter, validate_limiter, client_ip
 
 os.makedirs("data", exist_ok=True)
 os.makedirs("data/uploads", exist_ok=True)
@@ -156,6 +160,11 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
     base = base_url.rstrip("/")
     result = {"url_valid": False, "oauth_valid": False, "url_error": None, "oauth_error": None}
 
+    # SSRF guard: never let an owner-supplied URL point at our own network.
+    if not is_public_url(base):
+        result["url_error"] = "This address could not be reached (must be a public https URL)."
+        return result
+
     async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
         try:
             r = await client.get(f"{base}/user_api/v1/account/registration/")
@@ -200,8 +209,10 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
 
 
 @app.post("/validate-lms")
-async def validate_lms(req: LMSValidateRequest):
+async def validate_lms(req: LMSValidateRequest, request: Request):
     """Validate LMS reachability and OAuth Client ID without user credentials."""
+    if not validate_limiter.allow(client_ip(request), limit=20, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Too many checks. Try again in a minute.")
     return await _probe_lms(req.base_url, req.oauth_client_id)
 
 
@@ -241,6 +252,22 @@ def my_lms(user: User = Depends(get_current_user), db: Session = Depends(get_db)
     return db.query(LMSInstance).filter(LMSInstance.submitted_by == user.id).all()
 
 
+@app.post("/my/lms/{lms_id}/request-review", response_model=LMSResponse)
+def request_review(lms_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Owner asks for a re-review after fixing a blocked instance."""
+    lms = db.query(LMSInstance).filter(
+        LMSInstance.id == lms_id, LMSInstance.submitted_by == user.id
+    ).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    lms.review_requested_at = datetime.datetime.utcnow()
+    _log_event(db, actor_id=user.id, actor_name=user.name, lms_id=lms.id,
+               action="review_requested", detail="owner says the issue is fixed")
+    db.commit()
+    db.refresh(lms)
+    return lms
+
+
 # ── Admin: LMS ────────────────────────────────────────
 
 @app.get("/admin/lms", response_model=list[LMSResponse])
@@ -250,6 +277,7 @@ def admin_list_lms(
     reviewed: bool | None = None,
     visibility: Visibility | None = None,
     featured: bool | None = None,
+    review_requested: bool | None = None,
     limit: int = 100,
     offset: int = 0,
     admin: User = Depends(require_admin),
@@ -260,6 +288,8 @@ def admin_list_lms(
         query = query.filter(LMSInstance.status == status_filter)
     if reviewed is not None:
         query = query.filter(LMSInstance.admin_reviewed == reviewed)
+    if review_requested:
+        query = query.filter(LMSInstance.review_requested_at.isnot(None))
     if visibility is not None:
         query = query.filter(LMSInstance.visibility == visibility)
     if featured is not None:
@@ -347,9 +377,27 @@ def admin_review_lms(
     lms.admin_reviewed = req.admin_reviewed
     lms.reviewed_at = datetime.datetime.utcnow() if req.admin_reviewed else None
     lms.reviewed_by = admin.id if req.admin_reviewed else None
+    if req.admin_reviewed:
+        _log_event(db, actor_id=admin.id, actor_name=admin.name, lms_id=lms.id, action="reviewed")
     db.commit()
     db.refresh(lms)
     return lms
+
+
+@app.get("/admin/lms/{lms_id}/events", response_model=list[ModerationEventResponse])
+def admin_lms_events(
+    lms_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """The moderation timeline for one LMS (who did what, when)."""
+    return (
+        db.query(ModerationEvent)
+        .filter(ModerationEvent.lms_id == lms_id)
+        .order_by(ModerationEvent.id.desc())
+        .limit(100)
+        .all()
+    )
 
 
 @app.post("/admin/lms/{lms_id}/recheck", response_model=LMSResponse)
@@ -442,9 +490,14 @@ def _match_lms_by_url(db: Session, base_url: str) -> LMSInstance | None:
 def create_report(
     req: ReportCreateRequest,
     background: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """Public endpoint: a mobile user files a complaint about an LMS."""
+    ip = client_ip(request)
+    if not reports_limiter.allow(ip, limit=10, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Too many reports. Try again shortly.")
+
     lms: LMSInstance | None = None
     if req.lms_id is not None:
         lms = db.query(LMSInstance).filter(LMSInstance.id == req.lms_id).first()
@@ -462,6 +515,7 @@ def create_report(
         severity=severity,
         message=(req.message or "").strip(),
         reporter_email=(req.reporter_email or ""),
+        reporter_ip=ip,
         screenshot_url=_save_report_screenshot(req.screenshot_base64),
         platform=(req.platform or "").strip().lower(),
         app_version=(req.app_version or "").strip(),
@@ -471,8 +525,51 @@ def create_report(
     db.commit()
     db.refresh(report)
 
+    if lms is not None:
+        _maybe_auto_hide(db, lms, report)
+
     background.add_task(webhook.deliver, webhook.build_payload(report, lms))
     return report
+
+
+def _maybe_auto_hide(db: Session, lms: LMSInstance, report: Report) -> None:
+    """
+    Safety net for auto-approve: if an LMS collects enough high-severity
+    complaints from DISTINCT sources, soft-hide it from search pending review.
+    Counting distinct sources (IP or email) stops one attacker from hiding a
+    rival by spamming. The LMS stays approved; it just leaves public search.
+    """
+    if report.severity != ReportSeverity.high or lms.visibility != Visibility.public:
+        return
+    cfg = get_config()
+    highs = (
+        db.query(Report)
+        .filter(
+            Report.lms_id == lms.id,
+            Report.severity == ReportSeverity.high,
+            Report.status.in_(_OPEN_STATUSES),
+        )
+        .all()
+    )
+    sources = {(r.reporter_ip or r.reporter_email or f"r{r.id}") for r in highs}
+    if len(sources) >= cfg.auto_hide_threshold:
+        lms.visibility = Visibility.hidden
+        _log_event(db, actor_id=None, lms_id=lms.id, action="auto_hidden",
+                   detail=f"{len(sources)} distinct high-severity reports")
+        db.commit()
+
+
+def _log_event(db: Session, *, actor_id, action, lms_id=None, report_id=None,
+               detail="", actor_name=""):
+    """Append a moderation event to the audit trail."""
+    db.add(ModerationEvent(
+        actor_id=actor_id,
+        actor_name=actor_name,
+        lms_id=lms_id,
+        report_id=report_id,
+        action=action,
+        detail=detail,
+    ))
 
 
 # High severity first, then newest — computed in SQL so paging is cheap at scale.
@@ -495,14 +592,27 @@ def _report_query(db: Session, status: ReportStatus | None):
 @app.get("/admin/reports", response_model=list[ReportResponse])
 def admin_list_reports(
     status: ReportStatus | None = None,
+    category: ReportCategory | None = None,
+    severity: ReportSeverity | None = None,
+    platform: str | None = None,
+    lms_id: int | None = None,
     limit: int = 100,
     offset: int = 0,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     # Order + paginate in SQL, and eager-load lms + owner to avoid N+1 per row.
+    query = _report_query(db, status)
+    if category is not None:
+        query = query.filter(Report.category == category)
+    if severity is not None:
+        query = query.filter(Report.severity == severity)
+    if platform:
+        query = query.filter(Report.platform == platform.strip().lower())
+    if lms_id is not None:
+        query = query.filter(Report.lms_id == lms_id)
     return (
-        _report_query(db, status)
+        query
         .order_by(_SEVERITY_ORDER.asc(), Report.id.desc())
         .offset(max(0, offset))
         .limit(min(max(1, limit), 500))
@@ -511,6 +621,51 @@ def admin_list_reports(
 
 
 _OPEN_STATUSES = [ReportStatus.new, ReportStatus.reviewing]
+_SEV_RANK = {ReportSeverity.high: 0, ReportSeverity.medium: 1, ReportSeverity.low: 2}
+
+
+@app.get("/admin/reports/by-lms", response_model=list[AffectedLMS])
+def admin_reports_by_lms(
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Triage grouped by LMS: one row per reported platform with open count,
+    distinct-reporter count, categories and worst severity. Makes brigading
+    visible (40 reports != 1) and lets an admin act per platform, not per row.
+    """
+    rows = (
+        _report_query(db, None)
+        .filter(Report.status.in_(_OPEN_STATUSES))
+        .order_by(Report.id.desc())
+        .limit(2000)
+        .all()
+    )
+    groups: dict = {}
+    for r in rows:
+        key = r.lms_id if r.lms_id is not None else f"url:{r.reported_base_url}"
+        g = groups.setdefault(key, {"lms": r.lms, "url": r.reported_base_url or "", "reports": []})
+        g["reports"].append(r)
+
+    out = []
+    for g in groups.values():
+        reps = g["reports"]
+        reporters = {(x.reporter_ip or x.reporter_email or f"r{x.id}") for x in reps}
+        categories = list(dict.fromkeys(x.category for x in reps))
+        worst = min((x.severity for x in reps), key=lambda s: _SEV_RANK.get(s, 3))
+        latest = max(x.created_at for x in reps)
+        out.append(AffectedLMS(
+            lms=ReportLMSBrief.model_validate(g["lms"]) if g["lms"] else None,
+            reported_base_url=g["url"],
+            open_count=len(reps),
+            total_count=len(reps),
+            distinct_reporters=len(reporters),
+            worst_severity=worst,
+            categories=categories,
+            latest_at=latest,
+        ))
+    out.sort(key=lambda a: (_SEV_RANK.get(a.worst_severity, 3), -a.open_count))
+    return out
 
 
 def _report_stats(db: Session) -> ReportStats:
@@ -573,6 +728,9 @@ def admin_update_report(
         else:
             report.resolved_by = None
             report.resolved_at = None
+        _log_event(db, actor_id=admin.id, actor_name=admin.name, lms_id=report.lms_id,
+                   report_id=report.id, action=req.status.value,
+                   detail=(req.resolution_note or "").strip())
     if req.resolution_note is not None:
         report.resolution_note = req.resolution_note
     db.commit()
@@ -607,6 +765,8 @@ def admin_block_lms(
         report.status = ReportStatus.blocked
         report.resolved_by = admin.id
         report.resolved_at = now
+    _log_event(db, actor_id=admin.id, actor_name=admin.name, lms_id=lms.id,
+               action="blocked", detail=lms.block_reason)
     db.commit()
     db.refresh(lms)
     return lms
@@ -642,6 +802,8 @@ def admin_notify_owner(
     sent = email_notify.send_email(lms.owner_email, subject, body)
 
     lms.owner_notified_at = datetime.datetime.utcnow()
+    _log_event(db, actor_id=admin.id, actor_name=admin.name, lms_id=lms.id,
+               action="notified", detail="sent" if sent else "drafted (mail client)")
     db.commit()
     db.refresh(lms)
 
@@ -666,6 +828,8 @@ def admin_unblock_lms(
         raise HTTPException(status_code=404, detail="LMS not found")
     lms.status = LMSStatus.approved
     lms.block_reason = ""
+    lms.review_requested_at = None
+    _log_event(db, actor_id=admin.id, actor_name=admin.name, lms_id=lms.id, action="unblocked")
     db.commit()
     db.refresh(lms)
     return lms

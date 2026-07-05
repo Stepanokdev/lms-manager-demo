@@ -8,7 +8,11 @@ import type {
   LMSStatus,
   Visibility,
   ReportStatus,
+  ReportCategory,
+  Severity,
   NotifyOwnerResult,
+  AffectedLMS,
+  ModerationEvent,
 } from './types'
 
 const TOKEN_KEY = 'lms-admin-token'
@@ -61,6 +65,7 @@ export interface LMSQuery {
   reviewed?: boolean
   visibility?: Visibility
   featured?: boolean
+  review_requested?: boolean
   limit?: number
   offset?: number
 }
@@ -110,8 +115,19 @@ export const api = {
     request<NotifyOwnerResult>(`/admin/lms/${id}/notify-owner`, { method: 'POST' }),
 
   // Reports
-  listReports: (status?: ReportStatus, limit = 100) =>
-    request<Report[]>(`/admin/reports${qs({ status, limit })}`),
+  listReports: (
+    opts: {
+      status?: ReportStatus
+      category?: ReportCategory
+      severity?: Severity
+      platform?: string
+      lms_id?: number
+      limit?: number
+    } = {},
+  ) => request<Report[]>(`/admin/reports${qs({ limit: 100, ...opts } as Record<string, unknown>)}`),
+  reportsByLMS: () => request<AffectedLMS[]>('/admin/reports/by-lms'),
+  lmsEvents: (id: number) => request<ModerationEvent[]>(`/admin/lms/${id}/events`),
+  requestReview: (id: number) => request<LMS>(`/my/lms/${id}/request-review`, { method: 'POST' }),
   reportStats: () => request<ReportStats>('/admin/reports/stats'),
   updateReport: (id: number, patch: { status?: ReportStatus; resolution_note?: string }) =>
     request<Report>(`/admin/reports/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),

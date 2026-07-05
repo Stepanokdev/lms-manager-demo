@@ -130,6 +130,8 @@ class LMSInstance(Base):
     owner_notified_at = Column(DateTime, nullable=True)
     # Human-readable reason shown to the owner when their LMS is blocked
     block_reason = Column(String, default="")
+    # Set when the owner asks for a re-review after fixing a blocked instance
+    review_requested_at = Column(DateTime, nullable=True)
 
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -162,6 +164,7 @@ class Report(Base):
     severity = Column(SAEnum(ReportSeverity), default=ReportSeverity.low, nullable=False)
     message = Column(Text, default="")
     reporter_email = Column(String, default="")
+    reporter_ip = Column(String, default="")      # for dedup / brigading detection
     screenshot_url = Column(String, default="")   # optional evidence from the reporter
 
     platform = Column(String, default="")     # "ios" | "android" | "web"
@@ -176,3 +179,17 @@ class Report(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     lms = relationship("LMSInstance", back_populates="reports")
+
+
+class ModerationEvent(Base):
+    """Append-only audit trail of moderation actions (who did what, when)."""
+    __tablename__ = "moderation_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # null = system/automatic
+    actor_name = Column(String, default="")
+    lms_id = Column(Integer, index=True, nullable=True)
+    report_id = Column(Integer, nullable=True)
+    action = Column(String, nullable=False)   # blocked | unblocked | dismissed | reviewed | notified | auto_hidden | review_requested
+    detail = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

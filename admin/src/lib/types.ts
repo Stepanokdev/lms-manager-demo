@@ -51,9 +51,30 @@ export interface LMS {
   owner_notified_at: string | null
   owner_email: string
   block_reason: string
+  review_requested_at: string | null
   submitted_by: number
   created_at: string
   updated_at: string
+}
+
+export interface AffectedLMS {
+  lms: ReportLMSBrief | null
+  reported_base_url: string
+  open_count: number
+  total_count: number
+  distinct_reporters: number
+  worst_severity: Severity
+  categories: ReportCategory[]
+  latest_at: string
+}
+
+export interface ModerationEvent {
+  id: number
+  actor_name: string
+  action: string
+  detail: string
+  report_id: number | null
+  created_at: string
 }
 
 export interface NotifyOwnerResult {

@@ -71,6 +71,7 @@ def migrate():
         ("last_health_note", "VARCHAR DEFAULT ''"),
         ("owner_notified_at", "DATETIME"),
         ("block_reason", "VARCHAR DEFAULT ''"),
+        ("review_requested_at", "DATETIME"),
     ]
     with engine.begin() as conn:
         for col_name, col_def in new_columns:
@@ -83,6 +84,7 @@ def migrate():
         report_cols = {col["name"] for col in insp.get_columns("reports")}
         report_new = [
             ("screenshot_url", "VARCHAR DEFAULT ''"),
+            ("reporter_ip", "VARCHAR DEFAULT ''"),
         ]
         with engine.begin() as conn:
             for col_name, col_def in report_new:

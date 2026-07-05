@@ -27,9 +27,10 @@ import {
   IconShield,
 } from '@/components/icons'
 
-type FilterKey = 'all' | 'public' | 'hidden' | 'featured' | 'unreviewed' | 'pending'
+type FilterKey = 'all' | 'rereview' | 'public' | 'hidden' | 'featured' | 'unreviewed' | 'pending'
 const FILTERS: { key: FilterKey; label: string; query: LMSQuery }[] = [
   { key: 'all', label: 'All', query: {} },
+  { key: 'rereview', label: 'Re-review requested', query: { review_requested: true } },
   { key: 'unreviewed', label: 'Needs review', query: { reviewed: false, status_filter: 'approved' } },
   { key: 'featured', label: 'Featured', query: { featured: true } },
   { key: 'public', label: 'Public', query: { visibility: 'public' } },
@@ -243,6 +244,9 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
                 </Pill>
               ) : (
                 <Pill tone="amber">Unreviewed</Pill>
+              )}
+              {lms.review_requested_at && lms.status === 'rejected' && (
+                <Pill tone="cyan">Re-review requested</Pill>
               )}
             </div>
             <a

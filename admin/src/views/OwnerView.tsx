@@ -5,13 +5,24 @@ import { useApiData } from '@/lib/useApiData'
 import { hostOf, timeAgo } from '@/lib/format'
 import type { LMS, PublicConfig } from '@/lib/types'
 import { Card, Button, Pill, Skeleton, EmptyState, LogoBadge } from '@/components/ui'
-import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer, IconAlert } from '@/components/icons'
+import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer, IconAlert, IconCheck } from '@/components/icons'
 
 export function OwnerView({ config }: { config: PublicConfig | null }) {
   const user = useStore((s) => s.user)
   const logout = useStore((s) => s.logout)
+  const pushToast = useStore((s) => s.pushToast)
   const { data, loading, error, reload } = useApiData<LMS[]>(() => api.myLMS())
   const provider = config?.provider_name || 'Universal Open edX'
+
+  const requestReview = async (id: number) => {
+    try {
+      await api.requestReview(id)
+      pushToast({ kind: 'success', title: 'Re-review requested', detail: "We'll take another look." })
+      reload()
+    } catch (e) {
+      pushToast({ kind: 'error', title: 'Could not request review', detail: (e as Error).message })
+    }
+  }
 
   return (
     <div className="min-h-[100dvh] w-full bg-surface-950">
@@ -95,9 +106,19 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
                       </div>
                       <p className="mt-1.5 text-[13px] leading-relaxed text-rose-100/80">
                         Learners reported this platform for {lms.block_reason || 'a policy issue'}. Please
-                        fix the issue — once it's resolved, reply to our email and we'll restore it in the
-                        catalog.
+                        fix the issue, then let us know and we'll take another look.
                       </p>
+                      <div className="mt-3">
+                        {lms.review_requested_at ? (
+                          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-300">
+                            <IconCheck /> Re-review requested — we'll get back to you
+                          </span>
+                        ) : (
+                          <Button size="sm" variant="subtle" onClick={() => requestReview(lms.id)}>
+                            I've fixed it — request re-review
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </Card>

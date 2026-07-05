@@ -151,6 +151,7 @@ class LMSResponse(BaseModel):
     owner_notified_at: datetime | None
     owner_email: str
     block_reason: str
+    review_requested_at: datetime | None
     submitted_by: int
     created_at: datetime
     updated_at: datetime
@@ -237,6 +238,29 @@ class ReportStats(BaseModel):
     total: int
     high_open: int          # open (new/reviewing) reports at high severity
     affected_lms: int       # distinct LMS with at least one open report
+
+
+class ModerationEventResponse(BaseModel):
+    id: int
+    actor_name: str
+    action: str
+    detail: str
+    report_id: int | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AffectedLMS(BaseModel):
+    """One row per reported LMS for the grouped triage view."""
+    lms: ReportLMSBrief | None
+    reported_base_url: str
+    open_count: int
+    total_count: int
+    distinct_reporters: int
+    worst_severity: ReportSeverity
+    categories: list[ReportCategory]
+    latest_at: datetime
 
 
 # --- Public app config ---
