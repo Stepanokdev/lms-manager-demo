@@ -30,14 +30,23 @@ import {
 type Filter = ReportStatus | 'all'
 const FILTERS: Filter[] = ['new', 'reviewing', 'blocked', 'dismissed', 'all']
 
+const PAGE = 100
+
 export function ReportsView() {
   const [filter, setFilter] = useState<Filter>('new')
+  const [limit, setLimit] = useState(PAGE)
   const stats = useStore((s) => s.stats)
   const refreshStats = useStore((s) => s.refreshStats)
   const { data, loading, error, reload } = useApiData<Report[]>(
-    () => api.listReports(filter === 'all' ? undefined : filter),
-    [filter],
+    () => api.listReports(filter === 'all' ? undefined : filter, limit),
+    [filter, limit],
   )
+  // Reset paging when the filter changes.
+  const onFilter = (f: Filter) => {
+    setLimit(PAGE)
+    setFilter(f)
+  }
+  const hasMore = !!data && data.length === limit
 
   const afterChange = () => {
     reload()
@@ -71,7 +80,7 @@ export function ReportsView() {
         {FILTERS.map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => onFilter(f)}
             className={
               'flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ' +
               (filter === f
@@ -110,6 +119,13 @@ export function ReportsView() {
               <ReportCard key={r.id} report={r} onChange={afterChange} />
             ))}
           </AnimatePresence>
+          {hasMore && (
+            <div className="flex justify-center pt-1">
+              <Button variant="ghost" size="sm" onClick={() => setLimit((l) => l + PAGE)}>
+                Load more
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

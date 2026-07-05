@@ -110,8 +110,8 @@ export const api = {
     request<NotifyOwnerResult>(`/admin/lms/${id}/notify-owner`, { method: 'POST' }),
 
   // Reports
-  listReports: (status?: ReportStatus) =>
-    request<Report[]>(`/admin/reports${qs({ status })}`),
+  listReports: (status?: ReportStatus, limit = 100) =>
+    request<Report[]>(`/admin/reports${qs({ status, limit })}`),
   reportStats: () => request<ReportStats>('/admin/reports/stats'),
   updateReport: (id: number, patch: { status?: ReportStatus; resolution_note?: string }) =>
     request<Report>(`/admin/reports/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),

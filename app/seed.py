@@ -1,5 +1,13 @@
-"""Seed the database with demo data on first run."""
+"""Seed the database on first run.
+
+Demo credentials (admin@demo.com / user@demo.com) are ONLY created when
+SEED_DEMO is truthy — it defaults to OFF so a production database never ships
+with known passwords. For a real deployment, set ADMIN_EMAIL + ADMIN_PASSWORD
+(and leave SEED_DEMO unset) and the initial admin is created from those.
+Local development: run with SEED_DEMO=1.
+"""
 import datetime
+import os
 
 from sqlalchemy.orm import Session
 
@@ -12,11 +20,36 @@ from .auth import hash_password
 from .color_utils import adapt_accent_for_dark
 
 
+def _truthy(value: str | None) -> bool:
+    return (value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def seed():
     db: Session = SessionLocal()
     try:
         if db.query(User).first():
             return  # already seeded
+
+        # Production path: create the admin from the environment, no demo data.
+        admin_email = os.environ.get("ADMIN_EMAIL")
+        admin_password = os.environ.get("ADMIN_PASSWORD")
+        if admin_email and admin_password:
+            db.add(User(
+                email=admin_email,
+                name=os.environ.get("ADMIN_NAME", "Admin"),
+                password_hash=hash_password(admin_password),
+                role=UserRole.admin,
+            ))
+            db.commit()
+            print(f"Created admin '{admin_email}' from environment.")
+            return
+
+        if not _truthy(os.environ.get("SEED_DEMO")):
+            print(
+                "No users seeded. Set ADMIN_EMAIL + ADMIN_PASSWORD to create an admin, "
+                "or SEED_DEMO=1 for demo data."
+            )
+            return
 
         admin = User(
             email="admin@demo.com",

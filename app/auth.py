@@ -6,12 +6,23 @@ import hashlib
 import hmac
 import os
 import base64
+import logging
+import secrets
 from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import User, UserRole
 
-SECRET_KEY = "poc-secret-key-change-in-production"
+# Never ship a hardcoded shared secret. Read it from the environment; if it is
+# unset, generate a strong random key for this process only. That means tokens
+# don't survive a restart when SECRET_KEY is unset — safe by default, and a
+# real deployment MUST set SECRET_KEY so tokens persist across restarts.
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    logging.getLogger("lms_registry.auth").warning(
+        "SECRET_KEY is not set — using an ephemeral key; set SECRET_KEY in production."
+    )
+    SECRET_KEY = secrets.token_urlsafe(48)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 

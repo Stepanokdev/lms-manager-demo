@@ -1,9 +1,31 @@
-from sqlalchemy import create_engine
+import os
+
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "sqlite:///./data/lms_registry.db"
+# Default to SQLite for the pilot; DATABASE_URL lets a real deployment point at
+# Postgres (recommended for many concurrent writers) with no code change.
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./data/lms_registry.db")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
+)
+
+
+if _is_sqlite:
+    @event.listens_for(engine, "connect")
+    def _sqlite_pragmas(dbapi_connection, _record):
+        # WAL lets readers and a writer coexist; busy_timeout waits out a lock
+        # instead of failing immediately with "database is locked".
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -66,3 +88,18 @@ def migrate():
             for col_name, col_def in report_new:
                 if col_name not in report_cols:
                     conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col_name} {col_def}"))
+
+    # Indexes on hot filter/sort columns (idempotent; works on SQLite + Postgres)
+    tables = set(insp.get_table_names())
+    index_specs = [
+        ("ix_reports_status", "reports", "status"),
+        ("ix_reports_lms_id", "reports", "lms_id"),
+        ("ix_reports_status_severity", "reports", "status, severity"),
+        ("ix_lms_status", "lms_instances", "status"),
+        ("ix_lms_visibility", "lms_instances", "visibility"),
+        ("ix_lms_featured", "lms_instances", "featured"),
+    ]
+    with engine.begin() as conn:
+        for name, table, cols in index_specs:
+            if table in tables:
+                conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({cols})"))

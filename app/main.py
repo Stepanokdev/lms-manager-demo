@@ -11,8 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel as _BaseModel
-from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy import func, case
+from sqlalchemy.orm import Session, joinedload
 
 from .database import Base, engine, get_db
 from .models import (
@@ -51,14 +51,18 @@ app = FastAPI(title="LMS Registry", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # Auth is via Bearer tokens (Authorization header), not cookies, so we do
+    # not enable credentials — that keeps a wildcard origin safe.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 UPLOAD_DIR = Path("data/uploads")
 REPORT_SHOT_DIR = UPLOAD_DIR / "reports"
-ALLOWED_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"}
+# No SVG: uploads are served same-origin as the console, and SVG can carry
+# scripts (stored XSS). Raster formats only.
+ALLOWED_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
 MAX_SIZE = 2 * 1024 * 1024  # 2MB
 MAX_SCREENSHOT_SIZE = 4 * 1024 * 1024  # 4MB decoded
 
@@ -78,7 +82,8 @@ def _save_report_screenshot(b64: str | None) -> str:
     """Decode a base64 image from a mobile report and store it. Returns a URL or ''."""
     if not b64:
         return ""
-    raw = b64.split(",", 1)[1] if b64.startswith("data:") else b64
+    # A data: URI without a comma would otherwise crash the split.
+    raw = b64.split(",", 1)[1] if (b64.startswith("data:") and "," in b64) else b64
     try:
         data = base64.b64decode(raw, validate=False)
     except (binascii.Error, ValueError):
@@ -470,15 +475,21 @@ def create_report(
     return report
 
 
+# High severity first, then newest — computed in SQL so paging is cheap at scale.
+_SEVERITY_ORDER = case(
+    {ReportSeverity.high: 0, ReportSeverity.medium: 1, ReportSeverity.low: 2},
+    value=Report.severity,
+    else_=3,
+)
+
+
 def _report_query(db: Session, status: ReportStatus | None):
-    query = db.query(Report)
+    query = db.query(Report).options(
+        joinedload(Report.lms).joinedload(LMSInstance.submitter)
+    )
     if status is not None:
         query = query.filter(Report.status == status)
     return query
-
-
-# Order: high severity first, then newest.
-_SEVERITY_RANK = {ReportSeverity.high: 0, ReportSeverity.medium: 1, ReportSeverity.low: 2}
 
 
 @app.get("/admin/reports", response_model=list[ReportResponse])
@@ -489,9 +500,14 @@ def admin_list_reports(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    reports = _report_query(db, status).all()
-    reports.sort(key=lambda r: (_SEVERITY_RANK.get(r.severity, 3), -(r.id or 0)))
-    return reports[max(0, offset): max(0, offset) + min(max(1, limit), 500)]
+    # Order + paginate in SQL, and eager-load lms + owner to avoid N+1 per row.
+    return (
+        _report_query(db, status)
+        .order_by(_SEVERITY_ORDER.asc(), Report.id.desc())
+        .offset(max(0, offset))
+        .limit(min(max(1, limit), 500))
+        .all()
+    )
 
 
 _OPEN_STATUSES = [ReportStatus.new, ReportStatus.reviewing]
@@ -774,6 +790,8 @@ def directory_search(
 
 @app.get("/api/v1/directory/{lms_id}")
 def directory_detail(lms_id: str, request: Request, db: Session = Depends(get_db)):
+    if not lms_id.isdigit():
+        raise HTTPException(status_code=404, detail="LMS not found")
     lms = db.query(LMSInstance).filter(
         LMSInstance.id == int(lms_id),
         LMSInstance.status == LMSStatus.approved,
