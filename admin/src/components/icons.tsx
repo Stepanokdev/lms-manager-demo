@@ -163,3 +163,11 @@ export const IconMail = (p: SVGProps<SVGSVGElement>) => (
     <path d="m3 7 9 6 9-6" />
   </Base>
 )
+export const IconQr = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <path d="M14 14h3v3h-3zM20.5 14v.01M14 20.5v.01M20.5 20.5v.01M17.5 17.5v.01" />
+  </Base>
+)

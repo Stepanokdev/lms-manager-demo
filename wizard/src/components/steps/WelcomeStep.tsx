@@ -110,7 +110,7 @@ export function WelcomeStep() {
         </h1>
 
         <p className="mx-auto mt-3 max-w-md text-lg text-surface-400 text-center">
-          Configure how your Open edX instance appears in the universal mobile app.
+          Configure how your Open edX instance appears in the Open X Project mobile app.
           <br />
           <span className="text-sm text-surface-500">Requires Open edX Ulmo or newer.</span>
         </p>

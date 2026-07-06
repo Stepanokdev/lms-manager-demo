@@ -40,7 +40,7 @@ Aliases `/api/universal-login/lms/search`, `/api/universal-login/lms/{id}`, and
 
 ### `GET /api/v1/config`
 ```json
-{ "directory_mode": "search", "provider_name": "Universal Open edX",
+{ "directory_mode": "search", "provider_name": "Open X Project",
   "provider_tagline": "One app for every Open edX platform", "provider_logo_url": null }
 ```
 

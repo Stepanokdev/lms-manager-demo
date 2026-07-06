@@ -1,4 +1,4 @@
-# Universal Open edX — LMS Registry
+# Open X Project — LMS Registry
 
 One mobile app that works with any Open edX platform. This service is the
 registry behind it: LMS owners register their instance, it shows up in the
@@ -34,27 +34,28 @@ Live instance: **https://openedx-lms.stepanok.com**
 3. Learners open the mobile app, **find their platform** in the catalog, and
    sign in. The app themes itself from the registry (accent color, logo, feature
    flags).
-4. If something breaks, a learner taps **Report a problem**. The complaint lands
-   in the admin **triage inbox** within seconds, and an outgoing webhook pings
-   whatever channel the team watches.
-5. An admin opens the inbox, hits **Check LMS now** to re-probe the instance,
-   and marks the report investigating, resolved, or dismissed.
+4. If something's wrong, the learner opens the app's **Profile** tab and taps
+   **Report this LMS**. The complaint lands in the admin **triage inbox** within
+   seconds, and an outgoing webhook pings whatever channel the team watches.
+5. An admin opens the platform to check it, then **blocks** it (removed from the
+   app) or **dismisses** the report, and can email the owner the reason. Blocking
+   is always a human decision — complaints never take a platform down on their own.
 
 ## Screens
 
 **Admin console — overview**
 ![Overview](docs/screenshots/02-overview.png)
 
-**Complaints triage inbox** (high severity floats to the top, with a live health probe)
+**Complaints triage inbox** (high severity first, with the reporter's screenshot inline)
 ![Complaints](docs/screenshots/03-complaints.png)
 
-**A complaint arriving live from the mobile app**
+**A complaint arriving live** (badge + toast the moment a high-severity report lands)
 ![Live alert](docs/screenshots/04-live-alert.png)
 
 **LMS instances** (search, filters, health, catalog placement)
 ![LMS instances](docs/screenshots/05-lms.png)
 
-**Registration wizard** (the design language the console follows)
+**Registration wizard** (owners register and theme their platform)
 ![Wizard](docs/screenshots/08-wizard.png)
 
 <details>
@@ -111,7 +112,7 @@ root (env wins over file). Everything has a working default.
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `DIRECTORY_MODE` | `search` | `search` = public catalog; `curated` = provider mode |
-| `PROVIDER_NAME` | `Universal Open edX` | Brand shown on the app landing + console |
+| `PROVIDER_NAME` | `Open X Project` | Brand shown on the app landing + console |
 | `PROVIDER_TAGLINE` | … | One-liner under the brand |
 | `AUTO_APPROVE` | `true` | New submissions go live immediately |
 | `WEBHOOK_URL` | – | POST target for each new complaint |
@@ -150,12 +151,16 @@ URL.
 
 ## Complaints and moderation
 
-- Anyone using the app can report an LMS by category (sign-in, content,
-  branding, server down, inappropriate, other). Category sets severity.
+- From the app's **Profile** tab a learner reports the platform they're signed
+  into, by category: inappropriate content, scam or phishing, impersonation,
+  spam or fake platform, doesn't work / can't sign in, or something else.
+  Category sets severity, and a screenshot can be attached as evidence.
 - The console polls for new complaints, grows a badge on the sidebar, and raises
-  a toast the moment one arrives. High-severity reports pulse.
-- **Check LMS now** re-runs the same reachability + OAuth probe the wizard uses,
-  so an admin confirms a "can't sign in" report in one click.
+  a toast the moment one arrives. High-severity reports float to the top.
+- Complaints never hide a platform on their own. An admin opens it, checks it,
+  then **blocks** it (removed from the app) or **dismisses** the report, and can
+  email the owner the reason. **Recheck health** re-runs the wizard's
+  reachability + OAuth probe so a "can't sign in" report is easy to confirm.
 - Several admins can share the load. Any admin can add another from **Team**.
 
 ## Mobile apps

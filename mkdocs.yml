@@ -1,5 +1,5 @@
-site_name: Universal Open edX — Documentation
-site_description: How the Universal Open edX app, the LMS registry, and the admin console work — for learners, LMS owners, and administrators.
+site_name: Open X Project — Documentation
+site_description: How the Open X Project app, the LMS registry, and the admin console work — for learners, LMS owners, and administrators.
 site_url: https://openedx-lms.stepanok.com/guide/
 docs_dir: docs
 # Built into the app's static dir so the same container serves the docs at /guide/.

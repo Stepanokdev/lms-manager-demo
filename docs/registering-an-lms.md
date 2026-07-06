@@ -36,6 +36,14 @@ and choose **Register a new LMS**. The wizard walks you through it.
 | **Content display** | How unsupported units are handled |
 | **Review & submit** | Confirm everything and register |
 
+The **Branding** step previews your app live, in both light and dark mode, as you
+change the accent colour and logo — so you see exactly what learners will get.
+
+<figure markdown>
+  ![Branding step with a live light/dark app preview](screenshots/14-wizard-branding.png)
+  <figcaption>Set your colour and logo; the phone preview updates as you type</figcaption>
+</figure>
+
 On the first step the wizard checks, live, that your URL is reachable and that the
 OAuth client exists — so you catch mistakes before submitting.
 

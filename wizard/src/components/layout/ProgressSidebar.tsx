@@ -9,7 +9,7 @@ export function ProgressSidebar() {
   return (
     <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-white/10 bg-surface-900/80 backdrop-blur-sm">
       <div className="border-b border-white/10 p-6">
-        <h1 className="text-lg font-bold text-white">OpenEdX Mobile</h1>
+        <h1 className="text-lg font-bold text-white">Open X Project</h1>
         <p className="text-sm text-surface-400">App Configurator</p>
       </div>
 

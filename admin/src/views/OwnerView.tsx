@@ -1,18 +1,19 @@
 import { motion } from 'motion/react'
+import QRCode from 'qrcode'
 import { useStore } from '@/store'
 import { api } from '@/lib/api'
 import { useApiData } from '@/lib/useApiData'
 import { hostOf, timeAgo } from '@/lib/format'
 import type { LMS, PublicConfig } from '@/lib/types'
 import { Card, Button, Pill, Skeleton, EmptyState, LogoBadge } from '@/components/ui'
-import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer, IconAlert, IconCheck } from '@/components/icons'
+import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer, IconAlert, IconCheck, IconQr } from '@/components/icons'
 
 export function OwnerView({ config }: { config: PublicConfig | null }) {
   const user = useStore((s) => s.user)
   const logout = useStore((s) => s.logout)
   const pushToast = useStore((s) => s.pushToast)
   const { data, loading, error, reload } = useApiData<LMS[]>(() => api.myLMS())
-  const provider = config?.provider_name || 'Universal Open edX'
+  const provider = config?.provider_name || 'Open X Project'
 
   const requestReview = async (id: number) => {
     try {
@@ -21,6 +22,28 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
       reload()
     } catch (e) {
       pushToast({ kind: 'error', title: 'Could not request review', detail: (e as Error).message })
+    }
+  }
+
+  // Generate a high-resolution QR of the LMS address and download it as a PNG.
+  // Scanning it in the app's "Find your LMS" QR reader opens this platform directly.
+  const downloadQR = async (lms: LMS) => {
+    try {
+      const dataUrl = await QRCode.toDataURL(lms.base_url, {
+        width: 720,
+        margin: 2,
+        errorCorrectionLevel: 'M',
+        color: { dark: '#0A3055', light: '#FFFFFF' },
+      })
+      const slug = (lms.name || 'lms').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `${slug || 'lms'}-qr.png`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+    } catch (e) {
+      pushToast({ kind: 'error', title: 'Could not generate QR', detail: (e as Error).message })
     }
   }
 
@@ -94,6 +117,9 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
                       </a>
                       <div className="mt-1 text-[12px] text-muted">Updated {timeAgo(lms.updated_at)}</div>
                     </div>
+                    <Button variant="ghost" size="sm" onClick={() => downloadQR(lms)} title="Download a QR code that opens this platform in the app">
+                      <IconQr /> QR
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => launchWizard(lms.id)}>
                       <IconEdit /> Edit
                     </Button>

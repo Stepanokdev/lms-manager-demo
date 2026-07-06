@@ -8,8 +8,8 @@ Three groups of people touch the system, and the registry ties them together.
  │  Wizard  │─────────────▶│  auto-approved     │◀───────────│  search / browse │
  └──────────┘              │  + admin review    │            │  pick an LMS     │
        ▲                   │                    │            │                  │
-       │ email + appeal    │  complaints inbox  │◀── report ─│  "report a       │
-       └───────────────────│  block / dismiss   │            │   problem" (+shot)│
+       │ email + appeal    │  complaints inbox  │◀── report ─│  "report this    │
+       └───────────────────│  block / dismiss   │            │   LMS" (Profile) │
                            └───────────────────┘            └──────────────────┘
 ```
 
@@ -36,9 +36,19 @@ Three groups of people touch the system, and the registry ties them together.
 6. **Restored.** The owner fixes the issue and requests a re-review; an admin
    restores it.
 
+<figure markdown>
+  ![A reported platform in the triage inbox, with the learner's screenshot](screenshots/09-complaint-screenshot.png)
+  <figcaption>A learner's report as the moderator sees it — message, evidence, and one-tap Block / Dismiss</figcaption>
+</figure>
+
 ## Trust & safety, in one line
 
 Anyone can register a platform, so anyone can register a **bad** one. The whole
 moderation side exists for that: learners report, admins see volume and distinct
 reporters, and **a human always makes the block decision** — there is no automatic
 takedown that a spam campaign could trigger.
+
+<figure markdown>
+  ![Complaints grouped by platform with distinct-reporter counts](screenshots/11-grouped-inbox.png)
+  <figcaption>Grouping by platform shows distinct reporters — how you tell a real problem from one person filing many reports</figcaption>
+</figure>

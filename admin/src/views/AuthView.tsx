@@ -30,7 +30,7 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
     }
   }
 
-  const provider = config?.provider_name || 'Universal Open edX'
+  const provider = config?.provider_name || 'Open X Project'
 
   return (
     <div className="grid min-h-[100dvh] w-full grid-cols-1 bg-canvas lg:grid-cols-[1.05fr_1fr]">

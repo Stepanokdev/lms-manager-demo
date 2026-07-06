@@ -23,7 +23,7 @@ _CONFIG_FILE = Path(__file__).resolve().parent.parent / "provider_config.json"
 
 _DEFAULTS = {
     "directory_mode": "search",          # "search" | "curated"
-    "provider_name": "Universal Open edX",
+    "provider_name": "Open X Project",
     "provider_tagline": "One app for every Open edX platform",
     "provider_logo_url": "",
     "auto_approve": True,                 # new submissions go live immediately

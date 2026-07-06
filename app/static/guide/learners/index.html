@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="How the Universal Open edX app, the LMS registry, and the admin console work — for learners, LMS owners, and administrators.">
+        <meta name="description" content="How the Open X Project app, the LMS registry, and the admin console work — for learners, LMS owners, and administrators.">
       
       
       
@@ -27,7 +27,7 @@
     
     
       
-        <title>For learners (mobile app) - Universal Open edX — Documentation</title>
+        <title>For learners (mobile app) - Open X Project — Documentation</title>
       
     
     
@@ -90,7 +90,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Universal Open edX — Documentation" class="md-header__button md-logo" aria-label="Universal Open edX — Documentation" data-md-component="logo">
+    <a href=".." title="Open X Project — Documentation" class="md-header__button md-logo" aria-label="Open X Project — Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 16.54 7.37-5.74L21 12.07l-9 7-9-7 1.62-1.26zM12 14 3 7l9-7 9 7zm0-11.47L6.26 7 12 11.47 17.74 7zm0 18.94 7.37-5.74L21 17l-9 7-9-7 1.62-1.26z"/></svg>
@@ -104,7 +104,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            Universal Open edX — Documentation
+            Open X Project — Documentation
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -202,13 +202,13 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Universal Open edX — Documentation" class="md-nav__button md-logo" aria-label="Universal Open edX — Documentation" data-md-component="logo">
+    <a href=".." title="Open X Project — Documentation" class="md-nav__button md-logo" aria-label="Open X Project — Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 16.54 7.37-5.74L21 12.07l-9 7-9-7 1.62-1.26zM12 14 3 7l9-7 9 7zm0-11.47L6.26 7 12 11.47 17.74 7zm0 18.94 7.37-5.74L21 17l-9 7-9-7 1.62-1.26z"/></svg>
 
     </a>
-    Universal Open edX — Documentation
+    Open X Project — Documentation
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -608,44 +608,53 @@
 
 
 <h1 id="for-learners-the-mobile-app">For learners — the mobile app<a class="headerlink" href="#for-learners-the-mobile-app" title="Permanent link">&para;</a></h1>
-<p>The app is a normal Open edX mobile app, with one difference at the start: instead
-of being tied to a single platform, you pick which Open edX platform you want to
-use.</p>
+<p>The app works like any Open edX mobile app, with one difference at the very start:
+instead of being locked to a single platform, you choose which Open edX platform
+to open. Everything after sign-in is the Open edX experience you already know.</p>
 <figure>
-<p><img alt="The app" src="../img/mobile-phone.jpeg" width="280" />
+<p><img alt="Find your LMS — the app's first screen" src="../screenshots/ios/01-landing.png" width="300" />
   </p>
-<figcaption>The Universal Open edX app</figcaption>
+<figcaption>The first screen: pick a platform before you sign in</figcaption>
 </figure>
 <h2 id="1-find-your-platform">1. Find your platform<a class="headerlink" href="#1-find-your-platform" title="Permanent link">&para;</a></h2>
-<p>When you first open the app you land on <strong>Find your LMS</strong>.</p>
+<p>Open the app and you land on <strong>Find your LMS</strong>.</p>
 <ul>
-<li><strong>Search mode</strong> (the default): type your platform's name or web address. Matching
-  platforms from the catalog appear; tap one to select it.</li>
-<li><strong>Scan a QR code</strong>: if your platform shows a QR code, scan it to jump straight
-  to it.</li>
-<li><strong>Curated mode</strong>: if you installed a provider's own branded build, you skip the
-  search and see that provider's platforms in a list — just tap the one you want.</li>
+<li><strong>Search</strong> (the default): type your platform's name or web address. Matches from
+  the catalog appear with their logo — tap one to select it.</li>
+<li><strong>Scan a QR code</strong>: if your platform shows a sign-in QR code, use <strong>QR Login</strong> to
+  jump straight to it.</li>
+<li><strong>Curated build</strong>: if you installed a provider's own branded version of the app,
+  you skip the search and see just that provider's platforms in a list.</li>
 </ul>
-<p>Once you pick a platform, the app themes itself to match it (logo, colors) and
-takes you to sign in.</p>
 <figure>
-<p><img alt="Course discovery in the app" src="../img/mobile-discovery.png" width="820" />
+<p><img alt="Search results with real platform logos" src="../screenshots/ios/02-search-results.png" width="300" />
   </p>
-<figcaption>Browsing courses after selecting a platform</figcaption>
+<figcaption>Live results from the catalog, each with its own logo and address</figcaption>
+</figure>
+<p>Pick a platform and the app takes on its identity — logo, colours, sign-in
+background — then drops you on that platform's sign-in screen.</p>
+<figure>
+<p><img alt="The app themed for the selected platform" src="../screenshots/ios/03-branded-login.png" width="300" />
+  </p>
+<figcaption>One app, themed for the platform you chose (here: Venus)</figcaption>
 </figure>
 <h2 id="2-sign-in-and-learn">2. Sign in and learn<a class="headerlink" href="#2-sign-in-and-learn" title="Permanent link">&para;</a></h2>
-<p>Sign in with the account you already use on that platform. From there it's the
-standard Open edX experience: your dashboard, course content, videos, dates, and
-offline downloads.</p>
-<figure>
-<p><img alt="Learning in the app" src="../img/mobile-learn.png" width="820" />
-  </p>
-<figcaption>Course content</figcaption>
-</figure>
+<p>Sign in with the account you already use on that platform. From here it's the
+standard Open edX app: your dashboard, course content, videos, dates, and offline
+downloads. Nothing about that part changes — the registry only decides which
+platform you connected to.</p>
+<p>Want to switch platforms later? Tap <strong>Change</strong> on the sign-in screen to go back to
+the catalog.</p>
 <h2 id="3-report-a-problem-with-a-platform">3. Report a problem with a platform<a class="headerlink" href="#3-report-a-problem-with-a-platform" title="Permanent link">&para;</a></h2>
-<p>Because anyone can add a platform to the catalog, you might run into one that
-doesn't belong there. From the platform list, choose <strong>Report a problem</strong> and pick
-what's wrong:</p>
+<p>Anyone can add a platform to the catalog, so once in a while you might hit one that
+doesn't belong. While you're signed into it, open the <strong>Profile</strong> tab and tap
+<strong>Report this LMS</strong>.</p>
+<figure>
+<p><img alt="The Report this LMS button on the Profile tab" src="../screenshots/ios/04-report-button.png" width="300" />
+  </p>
+<figcaption>Report the platform you're signed into, from the Profile tab</figcaption>
+</figure>
+<p>Pick what's wrong, add a short note, and optionally attach a screenshot:</p>
 <table>
 <thead>
 <tr>
@@ -660,18 +669,18 @@ what's wrong:</p>
 </tr>
 <tr>
 <td>Scam or phishing</td>
-<td>It asks for payment/credentials in a suspicious way</td>
+<td>It asks for payment or credentials in a suspicious way</td>
 </tr>
 <tr>
-<td>Impersonation</td>
-<td>It pretends to be a real institution it isn't</td>
+<td>Pretends to be someone else</td>
+<td>It impersonates a real institution</td>
 </tr>
 <tr>
 <td>Spam or fake platform</td>
 <td>It isn't a real learning platform</td>
 </tr>
 <tr>
-<td>Doesn't work / can't sign in</td>
+<td>Doesn't work or can't sign in</td>
 <td>It's broken or inaccessible</td>
 </tr>
 <tr>
@@ -680,14 +689,19 @@ what's wrong:</p>
 </tr>
 </tbody>
 </table>
-<p>You can <strong>attach a screenshot</strong> so an administrator sees exactly what you saw. The
-app shrinks and compresses the image before sending, so it uploads quickly even on
-mobile data. Adding your email is optional.</p>
+<figure>
+<p><img alt="The report form with categories and screenshot attach" src="../screenshots/ios/05-report-sheet.png" width="300" />
+  </p>
+<figcaption>Attach a screenshot so a moderator sees exactly what you saw</figcaption>
+</figure>
+<p>The app shrinks and compresses the screenshot before sending, so it uploads quickly
+even on mobile data. Your email is optional.</p>
 <div class="admonition info">
 <p class="admonition-title">What happens next</p>
-<p>Your report goes straight to the administrators. They open the platform to
-check it and decide whether to remove it from the app. You won't see the
-platform disappear yourself, but a real person reviews every report.</p>
+<p>Your report goes straight to the moderators. They open the platform, check it
+themselves, and decide whether to remove it. Reports never hide a platform
+automatically — a real person makes every call — so a pile of complaints can't
+be used to knock a legitimate platform offline.</p>
 </div>
 <h2 id="getting-the-app">Getting the app<a class="headerlink" href="#getting-the-app" title="Permanent link">&para;</a></h2>
 <ul>
