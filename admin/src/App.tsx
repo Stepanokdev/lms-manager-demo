@@ -87,8 +87,8 @@ export default function App() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            {view === 'overview' && <OverviewView />}
-            {view === 'lms' && <LMSView />}
+            {view === 'overview' && <OverviewView config={config} />}
+            {view === 'lms' && <LMSView config={config} />}
             {view === 'reports' && <ReportsView />}
             {view === 'admins' && <AdminsView />}
           </motion.div>

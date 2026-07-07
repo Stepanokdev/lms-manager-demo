@@ -32,7 +32,9 @@ Every registered platform, built to stay usable at hundreds of entries.
   requested, featured, public/hidden, or pending.
 - Per platform you can: **recheck health** (is it online?), **feature** it (for
   curated mode), toggle **public/hidden**, mark **reviewed**, **block/restore**,
-  and **edit** it in the wizard.
+  **show its QR code** (learners scan it in the app's "Find your LMS" reader to
+  open that platform directly; right-click the code to save it), and **edit** it
+  in the wizard.
 - Status pills show approved / pending / **blocked**, plus health and review state.
 
 ## Complaints (triage inbox)

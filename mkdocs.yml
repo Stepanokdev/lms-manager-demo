@@ -51,6 +51,6 @@ nav:
   - For learners (mobile app): learners.md
   - Register your LMS (owners): registering-an-lms.md
   - Admin console: admin-console.md
-  - Provider / white-label mode: provider-mode.md
+  - Provider / curated mode: provider-mode.md
   - Configuration & deployment: deploying.md
   - API reference: api.md

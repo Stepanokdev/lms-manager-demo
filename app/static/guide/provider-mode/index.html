@@ -27,7 +27,7 @@
     
     
       
-        <title>Provider / white-label mode - Open X Project — Documentation</title>
+        <title>Provider / curated mode - Open X Project — Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#provider-white-label-mode" class="md-skip">
+        <a href="#provider-curated-mode" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Provider / white-label mode
+              Provider / curated mode
             
           </span>
         </div>
@@ -371,7 +371,7 @@
   <span class="md-ellipsis">
     
   
-    Provider / white-label mode
+    Provider / curated mode
   
 
     
@@ -389,7 +389,7 @@
   <span class="md-ellipsis">
     
   
-    Provider / white-label mode
+    Provider / curated mode
   
 
     
@@ -415,10 +415,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-it-differs-from-the-pilot" class="md-nav__link">
+  <a href="#what-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How it differs from the pilot
+        What changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-console-trimmed-to-match" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The console, trimmed to match
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#curated-vs-the-open-pilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Curated vs. the open pilot
       
     </span>
   </a>
@@ -536,10 +558,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-it-differs-from-the-pilot" class="md-nav__link">
+  <a href="#what-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How it differs from the pilot
+        What changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-console-trimmed-to-match" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The console, trimmed to match
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#curated-vs-the-open-pilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Curated vs. the open pilot
       
     </span>
   </a>
@@ -585,10 +629,61 @@
 
 
 
-<h1 id="provider-white-label-mode">Provider / white-label mode<a class="headerlink" href="#provider-white-label-mode" title="Permanent link">&para;</a></h1>
-<p>Some organizations run more than one Open edX platform and want a single branded
-app that lists <strong>their</strong> platforms only — no public search. That's <strong>curated mode</strong>.</p>
-<h2 id="how-it-differs-from-the-pilot">How it differs from the pilot<a class="headerlink" href="#how-it-differs-from-the-pilot" title="Permanent link">&para;</a></h2>
+<h1 id="provider-curated-mode">Provider / curated mode<a class="headerlink" href="#provider-curated-mode" title="Permanent link">&para;</a></h1>
+<p>The pilot runs an open catalog: anyone can register an Open edX platform, learners
+search for it, and moderators clean up what doesn't belong. That model assumes you
+don't trust the list.</p>
+<p>An institution that runs a handful of its own platforms has the opposite problem.
+Say you're a university with three Open edX sites — one for undergraduates, one for
+the graduate school, one for continuing education. You want a single branded app
+where students pick their site and sign in. You don't want a search box, you don't
+want strangers adding entries, and there's nothing to moderate because every
+platform on the list is yours.</p>
+<p>That's <strong>curated mode</strong> (<code>DIRECTORY_MODE=curated</code>). It turns the whole public
+marketplace layer off and treats the registry as one organization's own catalog.</p>
+<figure>
+<p><img alt="The curated app opens straight to your platforms" src="../screenshots/ios/06-curated-list.png" width="300" />
+  </p>
+<figcaption>No search, no landing screen — the app opens on your platforms and a
+  student taps one to sign in</figcaption>
+</figure>
+<h2 id="what-changes">What changes<a class="headerlink" href="#what-changes" title="Permanent link">&para;</a></h2>
+<p>Everything that exists to police an untrusted list goes away.</p>
+<ul>
+<li><strong>No moderation.</strong> A platform you add is live and marked reviewed the moment you
+  save it. There's no "pending" or "unreviewed" state, because you're not vetting
+  submissions from strangers — you're listing your own sites.</li>
+<li><strong>No learner reports.</strong> The app hides <em>Report this LMS</em>, and the report endpoint
+  is closed. Nobody reports a platform they were handed by their own institution.</li>
+<li><strong>No public sign-up.</strong> The account form only signs people in. You provision admins
+  yourself (an environment variable at first boot, or the <strong>Team</strong> tab afterwards),
+  and any admin can add a platform.</li>
+<li><strong>The app skips search.</strong> Learners don't hunt for a platform. The app opens
+  directly on your platforms, and tapping one themes the app to that site and drops
+  the student on its sign-in screen.</li>
+</ul>
+<p>Public visibility is the one control that still matters: a platform set to <strong>public</strong>
+shows up in the app, and one set to <strong>hidden</strong> doesn't. That's how you stage a site
+before students see it, or retire one without deleting its history.</p>
+<h2 id="the-console-trimmed-to-match">The console, trimmed to match<a class="headerlink" href="#the-console-trimmed-to-match" title="Permanent link">&para;</a></h2>
+<p>Because there's nothing to moderate, the admin console loses the parts that only
+made sense for an open catalog. The <strong>Complaints</strong> tab is gone, the review queue and
+the reviewed/featured badges disappear, and the LMS list keeps a single filter:
+public or hidden.</p>
+<figure>
+<p><img alt="The curated admin console listing an organization's own platforms" src="../screenshots/15-curated-console.png" />
+  </p>
+<figcaption>"Your platforms" — add one, brand it, and toggle whether it shows in
+  the app. No triage inbox, no review backlog.</figcaption>
+</figure>
+<p>The console is responsive, so you can add or hide a platform from a phone as easily
+as from a desktop.</p>
+<figure>
+<p><img alt="The same console on a phone" src="../screenshots/16-curated-console-mobile.png" width="300" />
+  </p>
+<figcaption>On a small screen the sidebar becomes a bottom tab bar</figcaption>
+</figure>
+<h2 id="curated-vs-the-open-pilot">Curated vs. the open pilot<a class="headerlink" href="#curated-vs-the-open-pilot" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -599,41 +694,68 @@ app that lists <strong>their</strong> platforms only — no public search. That'
 </thead>
 <tbody>
 <tr>
-<td>Who's in the catalog</td>
+<td>Who fills the catalog</td>
 <td>Anyone who registers</td>
-<td>Only the platforms you feature</td>
+<td>Only admins you provision</td>
 </tr>
 <tr>
-<td>Learner's first screen</td>
+<td>The learner's first screen</td>
 <td>A search box</td>
 <td>Your platforms, listed directly</td>
 </tr>
 <tr>
-<td>Best for</td>
-<td>A public, shared app</td>
-<td>One provider's own branded app</td>
+<td>New submissions</td>
+<td>Auto-approved, then reviewed</td>
+<td>Live and reviewed on save</td>
+</tr>
+<tr>
+<td>Learner reports</td>
+<td>Routed to a triage inbox</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Public sign-up</td>
+<td>Open to LMS owners</td>
+<td>Closed</td>
+</tr>
+<tr>
+<td>What "in the app" means</td>
+<td>Public + not blocked</td>
+<td>Public (hidden = staged/retired)</td>
+</tr>
+<tr>
+<td>Best fit</td>
+<td>A shared, public app</td>
+<td>One organization's branded app</td>
 </tr>
 </tbody>
 </table>
 <h2 id="set-it-up">Set it up<a class="headerlink" href="#set-it-up" title="Permanent link">&para;</a></h2>
 <ol>
-<li><strong>Fork this repository</strong> and deploy your own registry (see
-   <a href="../deploying/">Configuration &amp; deployment</a>).</li>
-<li>Set <code>DIRECTORY_MODE=curated</code>, plus your <code>PROVIDER_NAME</code> and <code>PROVIDER_TAGLINE</code>.</li>
-<li>Register each of your platforms through the wizard. In the console open <strong>LMS
-   instances</strong> and toggle the <strong>star</strong> to feature each one; <code>sort_order</code> controls
-   the order learners see.</li>
-<li>Point your mobile builds at your registry:<ul>
-<li><strong>iOS</strong> — <code>LMS_DIRECTORY_URL</code> in <code>rg-feature-flags.yaml</code></li>
-<li><strong>Android</strong> — <code>LMS_DIRECTORY_URL</code> (and optionally <code>DIRECTORY_MODE</code>) in
-  <code>core/assets/config/rg_config.json</code></li>
+<li><strong>Deploy your own registry.</strong> Fork this repository and stand it up following
+   <a href="../deploying/">Configuration &amp; deployment</a>. A provider runs its own instance
+   rather than sharing the public pilot.</li>
+<li><strong>Switch the mode on.</strong> Set <code>DIRECTORY_MODE=curated</code>, and set <code>PROVIDER_NAME</code> and
+   <code>PROVIDER_TAGLINE</code> so the console and app carry your name.</li>
+<li><strong>Provision the first admin.</strong> Set <code>ADMIN_EMAIL</code> and <code>ADMIN_PASSWORD</code> before the
+   first boot. After that, add teammates from the <strong>Team</strong> tab.</li>
+<li><strong>Add your platforms.</strong> In the console open <strong>LMS instances → Add a platform</strong> and
+   run the wizard for each site: base URL, OAuth client, logo, colours, sign-in
+   background. Each one goes live immediately. Keep a platform <strong>hidden</strong> until it's
+   ready, and use its <code>sort_order</code> to set where it sits in the list.</li>
+<li><strong>Point your app at the registry.</strong><ul>
+<li><strong>iOS</strong> — set <code>LMS_DIRECTORY.DIRECTORY_URL</code> in your config. The app follows the
+  server's mode, so it switches to curated on its own.</li>
+<li><strong>Android</strong> — set <code>LMS_DIRECTORY.DIRECTORY_URL</code> in <code>rg_config.json</code>. The app
+  treats the list as curated when either the server or its own
+  <code>DIRECTORY_MODE</code> says so.</li>
 </ul>
 </li>
 </ol>
-<p>In curated mode the app skips the search box and shows your featured list directly.
-Switching back to <code>search</code> turns it into the open public catalog again.</p>
+<p>Flip <code>DIRECTORY_MODE</code> back to <code>search</code> and the same registry reopens as a public
+catalog, moderation and all.</p>
 <h2 id="example-provider_configjson">Example <code>provider_config.json</code><a class="headerlink" href="#example-provider_configjson" title="Permanent link">&para;</a></h2>
-<p>Drop this at the repository root (environment variables override it):</p>
+<p>Drop this at the repository root. Environment variables override anything set here.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;directory_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;curated&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;provider_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Acme Learning&quot;</span><span class="p">,</span>

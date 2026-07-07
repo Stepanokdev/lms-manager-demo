@@ -107,6 +107,11 @@ def _save_report_screenshot(b64: str | None) -> str:
 
 @app.post("/auth/register", response_model=TokenResponse)
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
+    if get_config().is_curated:
+        # Curated (institution) registry: it lists the org's own platforms, so there is
+        # no public self-service sign-up. Admins are provisioned deliberately and manage
+        # the list themselves.
+        raise HTTPException(status_code=403, detail="Sign-up is disabled for this registry.")
     if db.query(User).filter(User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     user = User(email=req.email, name=req.name, password_hash=hash_password(req.password))
@@ -237,10 +242,23 @@ def get_lms(lms_id: int, db: Session = Depends(get_db)):
 def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     data = req.model_dump()
     data["accent_color_dark"] = adapt_accent_for_dark(data.get("accent_color", "#007AFF"))
-    # Submissions go live immediately when auto-approve is on; admins then
-    # confirm they checked the instance (admin_reviewed).
-    initial_status = LMSStatus.approved if get_config().auto_approve else LMSStatus.pending
-    lms = LMSInstance(**data, submitted_by=user.id, status=initial_status, admin_reviewed=False)
+    cfg = get_config()
+    if cfg.is_curated:
+        # Curated (institution) mode: the registry lists the org's own platforms, so
+        # every addition is trusted and live immediately — no review step, no "unreviewed".
+        lms = LMSInstance(
+            **data,
+            submitted_by=user.id,
+            status=LMSStatus.approved,
+            admin_reviewed=True,
+            reviewed_at=datetime.datetime.utcnow(),
+            reviewed_by=user.id,
+        )
+    else:
+        # Public marketplace: go live when auto-approve is on; admins then confirm they
+        # checked the instance (admin_reviewed).
+        initial_status = LMSStatus.approved if cfg.auto_approve else LMSStatus.pending
+        lms = LMSInstance(**data, submitted_by=user.id, status=initial_status, admin_reviewed=False)
     db.add(lms)
     db.commit()
     db.refresh(lms)
@@ -494,6 +512,10 @@ def create_report(
     db: Session = Depends(get_db),
 ):
     """Public endpoint: a mobile user files a complaint about an LMS."""
+    if get_config().is_curated:
+        # Curated (institution) registry lists the org's own platforms — there is no
+        # trust-&-safety reporting flow. The apps hide the entry point; reject here too.
+        raise HTTPException(status_code=403, detail="Reporting is not available for this registry.")
     ip = client_ip(request)
     if not reports_limiter.allow(ip, limit=10, window_seconds=60):
         raise HTTPException(status_code=429, detail="Too many reports. Try again shortly.")
@@ -897,8 +919,15 @@ def directory_search(
     cfg = get_config()
     approved = db.query(LMSInstance).filter(LMSInstance.status == LMSStatus.approved)
 
-    curated = cfg.is_curated or featured
-    if curated:
+    if cfg.is_curated:
+        # Curated (institution) mode: the app shows the org's whole published list —
+        # visibility (public/hidden) is the only control, no separate "featured" step.
+        rows = (
+            approved.filter(LMSInstance.visibility == Visibility.public)
+            .order_by(LMSInstance.sort_order.asc(), LMSInstance.name.asc())
+            .all()
+        )
+    elif featured:
         rows = (
             approved.filter(LMSInstance.featured == True)  # noqa: E712
             .order_by(LMSInstance.sort_order.asc(), LMSInstance.name.asc())

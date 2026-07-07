@@ -5,6 +5,7 @@ import { useApiData } from '@/lib/useApiData'
 import { timeAgo } from '@/lib/format'
 import { Card, Button, Skeleton, LogoBadge, SeverityMark, Pill, HealthDot } from '@/components/ui'
 import { CATEGORY_LABEL } from './reportMeta'
+import type { PublicConfig } from '@/lib/types'
 import {
   IconAlert,
   IconServer,
@@ -20,7 +21,8 @@ const fade = {
   animate: { opacity: 1, y: 0 },
 }
 
-export function OverviewView() {
+export function OverviewView({ config }: { config: PublicConfig | null }) {
+  const isCurated = config?.directory_mode === 'curated'
   const setView = useStore((s) => s.setView)
   const user = useStore((s) => s.user)
   const { data, loading } = useApiData(() =>
@@ -46,19 +48,24 @@ export function OverviewView() {
             {greeting()}, {user?.name?.split(' ')[0] || 'Admin'}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Here is what needs your attention across the registry.
+            {isCurated
+              ? "Your organization's platforms at a glance."
+              : 'Here is what needs your attention across the registry.'}
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setView('reports')}>
-          <IconAlert /> Open triage inbox
-        </Button>
+        {!isCurated && (
+          <Button variant="ghost" size="sm" onClick={() => setView('reports')}>
+            <IconAlert /> Open triage inbox
+          </Button>
+        )}
       </header>
 
       {loading || !overview ? (
         <OverviewSkeleton />
       ) : (
         <>
-          {/* Hero row: complaints (wide) + review queue */}
+          {/* Hero row: complaints (wide) + review queue — moderation only, hidden in curated. */}
+          {!isCurated && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
             <motion.div {...fade} transition={{ duration: 0.4 }}>
               <Card className="relative overflow-hidden p-6">
@@ -113,6 +120,7 @@ export function OverviewView() {
               </Card>
             </motion.div>
           </div>
+          )}
 
           {/* LMS metric strip — divided, not boxed */}
           <motion.div {...fade} transition={{ duration: 0.4, delay: 0.1 }}>
@@ -126,7 +134,8 @@ export function OverviewView() {
             </Card>
           </motion.div>
 
-          {/* Two panels: latest complaints + review queue */}
+          {/* Two panels: latest complaints + review queue — moderation only, hidden in curated. */}
+          {!isCurated && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Panel title="Latest complaints" onSeeAll={() => setView('reports')}>
               {latestReports.length === 0 ? (
@@ -188,6 +197,7 @@ export function OverviewView() {
               )}
             </Panel>
           </div>
+          )}
         </>
       )}
     </div>

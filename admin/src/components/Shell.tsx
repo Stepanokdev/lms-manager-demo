@@ -36,14 +36,17 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
   const hasHigh = (stats?.high_open ?? 0) > 0
 
   const brandName = config?.provider_name || 'LMS Registry'
+  // Curated (institution) mode has no learner reports, so drop the Complaints tab.
+  const isCurated = config?.directory_mode === 'curated'
+  const nav = isCurated ? NAV.filter((item) => item.id !== 'reports') : NAV
 
   return (
-    <div className="flex min-h-[100dvh] w-full bg-canvas">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-canvas">
       {/* Sidebar (lg+) */}
-      <aside className="sticky top-0 hidden h-[100dvh] w-64 shrink-0 flex-col border-r border-line bg-card px-4 py-6 lg:flex">
+      <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-line bg-card px-4 py-6 lg:flex">
         <Brand name={brandName} />
-        <nav className="mt-8 flex flex-1 flex-col gap-1">
-          {NAV.map((item) => (
+        <nav className="mt-8 flex flex-1 flex-col gap-1 overflow-y-auto">
+          {nav.map((item) => (
             <NavButton
               key={item.id}
               item={item}
@@ -57,47 +60,74 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
         <UserChip name={user?.name ?? ''} email={user?.email ?? ''} onLogout={logout} />
       </aside>
 
-      {/* Mobile top bar */}
+      {/* Content column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-card/90 px-4 py-3 backdrop-blur-xl lg:hidden">
-          <Brand name={brandName} compact />
-          <div className="ml-auto flex items-center gap-1 overflow-x-auto">
-            {NAV.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setView(item.id)}
-                className={cn(
-                  'relative flex h-9 w-9 items-center justify-center rounded-md text-lg transition-colors',
-                  view === item.id ? 'bg-brand-50 text-brand-600' : 'text-muted hover:text-ink',
-                )}
-                aria-label={item.label}
-              >
-                {item.icon}
-                {item.id === 'reports' && openReports > 0 && (
-                  <span
-                    className={cn(
-                      'absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full',
-                      hasHigh ? 'bg-danger' : 'bg-link',
-                    )}
-                  />
-                )}
-              </button>
-            ))}
-            <button
-              onClick={logout}
-              className="ml-1 flex h-9 w-9 items-center justify-center rounded-md text-lg text-muted hover:text-ink"
-              aria-label="Sign out"
-            >
-              <IconLogout />
-            </button>
-          </div>
+        {/* Mobile top bar: brand + sign out (navigation lives in the bottom bar) */}
+        <header className="flex shrink-0 items-center gap-3 border-b border-line bg-card px-4 py-3 lg:hidden">
+          <Brand name={brandName} />
+          <button
+            onClick={logout}
+            className="ml-auto flex h-9 w-9 items-center justify-center rounded-md text-lg text-muted transition-colors hover:bg-canvas-2 hover:text-ink"
+            aria-label="Sign out"
+          >
+            <IconLogout />
+          </button>
         </header>
 
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
+        {/* The one scroll container — content scrolls here on every screen size. */}
+        <main className="min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
+
+        {/* Mobile bottom nav: thumb-friendly, labeled tabs */}
+        <nav className="flex shrink-0 items-stretch border-t border-line bg-card pb-[env(safe-area-inset-bottom)] lg:hidden">
+          {nav.map((item) => (
+            <MobileTab
+              key={item.id}
+              item={item}
+              active={view === item.id}
+              alert={item.id === 'reports' && openReports > 0}
+              alertHigh={item.id === 'reports' && hasHigh}
+              onClick={() => setView(item.id)}
+            />
+          ))}
+        </nav>
       </div>
     </div>
+  )
+}
+
+function MobileTab({
+  item,
+  active,
+  alert,
+  alertHigh,
+  onClick,
+}: {
+  item: NavItem
+  active: boolean
+  alert: boolean
+  alertHigh: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
+        active ? 'text-brand-600' : 'text-muted hover:text-ink',
+      )}
+      aria-label={item.label}
+      aria-current={active ? 'page' : undefined}
+    >
+      <span className="relative text-xl">
+        {item.icon}
+        {alert && (
+          <span className={cn('absolute -right-1.5 -top-0.5 h-2 w-2 rounded-full', alertHigh ? 'bg-danger' : 'bg-link')} />
+        )}
+      </span>
+      {item.label}
+    </button>
   )
 }
 

@@ -165,9 +165,9 @@ export const IconMail = (p: SVGProps<SVGSVGElement>) => (
 )
 export const IconQr = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}>
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <path d="M14 14h3v3h-3zM20.5 14v.01M14 20.5v.01M20.5 20.5v.01M17.5 17.5v.01" />
+    <rect x="3" y="3" width="6" height="6" rx="1" />
+    <rect x="15" y="3" width="6" height="6" rx="1" />
+    <rect x="3" y="15" width="6" height="6" rx="1" />
+    <path d="M15 15h2v2M21 15v.01M21 19v2h-2M15 21v.01M19 15v.01M15 19h.01" />
   </Base>
 )

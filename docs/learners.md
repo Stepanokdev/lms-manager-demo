@@ -17,8 +17,9 @@ Open the app and you land on **Find your LMS**.
   the catalog appear with their logo — tap one to select it.
 - **Scan a QR code**: if your platform shows a sign-in QR code, use **QR Login** to
   jump straight to it.
-- **Curated build**: if you installed a provider's own branded version of the app,
-  you skip the search and see just that provider's platforms in a list.
+- **Curated app**: if your school or company runs its own version of the app, there's
+  no search — it opens straight onto their platforms as a list. See
+  [Provider / curated mode](provider-mode.md).
 
 <figure markdown>
   ![Search results with real platform logos](screenshots/ios/02-search-results.png){ width="300" }

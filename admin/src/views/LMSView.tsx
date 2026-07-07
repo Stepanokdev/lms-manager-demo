@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { api, ApiError, type LMSQuery } from '@/lib/api'
 import { useStore } from '@/store'
+import { QrDialog } from '@/components/QrDialog'
 import { timeAgo, hostOf } from '@/lib/format'
-import type { LMS } from '@/lib/types'
+import type { LMS, PublicConfig } from '@/lib/types'
 import {
   Card,
   Button,
@@ -17,6 +18,7 @@ import {
   IconSearch,
   IconServer,
   IconRefresh,
+  IconPlus,
   IconStar,
   IconEye,
   IconEyeOff,
@@ -25,6 +27,7 @@ import {
   IconExternal,
   IconSignal,
   IconShield,
+  IconQr,
 } from '@/components/icons'
 
 type FilterKey = 'all' | 'rereview' | 'public' | 'hidden' | 'featured' | 'unreviewed' | 'pending'
@@ -40,7 +43,13 @@ const FILTERS: { key: FilterKey; label: string; query: LMSQuery }[] = [
 
 const PAGE = 25
 
-export function LMSView() {
+// In curated mode the whole review/moderation layer is gone, so only the
+// visibility-oriented filters make sense.
+const CURATED_FILTER_KEYS: FilterKey[] = ['all', 'public', 'hidden']
+
+export function LMSView({ config }: { config: PublicConfig | null }) {
+  const isCurated = config?.directory_mode === 'curated'
+  const filters = isCurated ? FILTERS.filter((f) => CURATED_FILTER_KEYS.includes(f.key)) : FILTERS
   const [input, setInput] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<FilterKey>('all')
@@ -109,14 +118,30 @@ export function LMSView() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">LMS instances</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">
+            {isCurated ? 'Your platforms' : 'LMS instances'}
+          </h1>
           <p className="mt-1 text-sm text-muted">
-            Every registered Open edX platform. Search, verify, and control catalog placement.
+            {isCurated
+              ? "Your organization's Open edX platforms. Add, brand, and control which appear in the app."
+              : 'Every registered Open edX platform. Search, verify, and control catalog placement.'}
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={load}>
-          <IconRefresh /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {isCurated && (
+            <a
+              href="/wizard/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-brand-600"
+            >
+              <IconPlus /> Add a platform
+            </a>
+          )}
+          <Button variant="ghost" size="sm" onClick={load}>
+            <IconRefresh /> Refresh
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-col gap-3">
@@ -132,7 +157,7 @@ export function LMSView() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
@@ -168,7 +193,7 @@ export function LMSView() {
           <div className="flex flex-col gap-2.5">
             <AnimatePresence initial={false} mode="popLayout">
               {items.map((lms) => (
-                <LMSRow key={lms.id} lms={lms} onChange={patchItem} />
+                <LMSRow key={lms.id} lms={lms} onChange={patchItem} isCurated={isCurated} />
               ))}
             </AnimatePresence>
           </div>
@@ -185,10 +210,11 @@ export function LMSView() {
   )
 }
 
-function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
+function LMSRow({ lms, onChange, isCurated }: { lms: LMS; onChange: (l: LMS) => void; isCurated: boolean }) {
   const pushToast = useStore((s) => s.pushToast)
   const [rechecking, setRechecking] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
+  const [showQr, setShowQr] = useState(false)
 
   const wrap = async (key: string, fn: () => Promise<LMS>, ok?: string) => {
     setBusy(key)
@@ -220,6 +246,7 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
     }
   }
 
+
   const statusTone = lms.status === 'approved' ? 'emerald' : lms.status === 'pending' ? 'amber' : 'rose'
   const healthColor =
     lms.last_health_ok === null ? 'bg-faint' : lms.last_health_ok ? 'bg-success' : 'bg-danger'
@@ -233,19 +260,23 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
           <div className="min-w-[200px] flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[15px] font-semibold text-ink">{lms.name}</span>
-              {lms.featured && (
+              {/* Curated mode has no review/featured concepts — the org's platforms are
+                  trusted and all published ones show, so these badges are hidden. */}
+              {!isCurated && lms.featured && (
                 <span className="text-warning" title="Featured in curated mode">
                   <IconStar />
                 </span>
               )}
-              {lms.admin_reviewed ? (
-                <Pill tone="emerald">
-                  <IconCheck /> Reviewed
-                </Pill>
-              ) : (
-                <Pill tone="amber">Unreviewed</Pill>
+              {!isCurated && (
+                lms.admin_reviewed ? (
+                  <Pill tone="emerald">
+                    <IconCheck /> Reviewed
+                  </Pill>
+                ) : (
+                  <Pill tone="amber">Unreviewed</Pill>
+                )
               )}
-              {lms.review_requested_at && lms.status === 'rejected' && (
+              {!isCurated && lms.review_requested_at && lms.status === 'rejected' && (
                 <Pill tone="cyan">Re-review requested</Pill>
               )}
             </div>
@@ -273,16 +304,22 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
             <IconBtn label="Recheck health" loading={rechecking} onClick={recheck}>
               <IconSignal />
             </IconBtn>
+            {!isCurated && (
+              <IconBtn
+                label={lms.featured ? 'Unfeature' : 'Feature in curated mode'}
+                active={lms.featured}
+                loading={busy === 'feat'}
+                onClick={() => wrap('feat', () => api.updateLMS(lms.id, { featured: !lms.featured }), lms.featured ? 'Removed from featured' : 'Added to featured')}
+              >
+                <IconStar />
+              </IconBtn>
+            )}
             <IconBtn
-              label={lms.featured ? 'Unfeature' : 'Feature in curated mode'}
-              active={lms.featured}
-              loading={busy === 'feat'}
-              onClick={() => wrap('feat', () => api.updateLMS(lms.id, { featured: !lms.featured }), lms.featured ? 'Removed from featured' : 'Added to featured')}
-            >
-              <IconStar />
-            </IconBtn>
-            <IconBtn
-              label={lms.visibility === 'public' ? 'Hide from search' : 'Make public'}
+              label={
+                isCurated
+                  ? (lms.visibility === 'public' ? 'Hide from the app' : 'Show in the app')
+                  : (lms.visibility === 'public' ? 'Hide from search' : 'Make public')
+              }
               loading={busy === 'vis'}
               onClick={() =>
                 wrap(
@@ -294,27 +331,34 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
             >
               {lms.visibility === 'public' ? <IconEye /> : <IconEyeOff />}
             </IconBtn>
-            <IconBtn
-              label={lms.admin_reviewed ? 'Mark unreviewed' : 'Mark reviewed'}
-              active={lms.admin_reviewed}
-              loading={busy === 'rev'}
-              onClick={() => wrap('rev', () => api.reviewLMS(lms.id, !lms.admin_reviewed), lms.admin_reviewed ? 'Marked unreviewed' : 'Marked reviewed')}
-            >
-              <IconCheck />
-            </IconBtn>
-            <IconBtn
-              label={lms.status === 'rejected' ? 'Restore to catalog' : 'Block (remove from catalog)'}
-              active={lms.status === 'rejected'}
-              loading={busy === 'block'}
-              onClick={() =>
-                wrap(
-                  'block',
-                  () => (lms.status === 'rejected' ? api.unblockLMS(lms.id) : api.blockLMS(lms.id)),
-                  lms.status === 'rejected' ? 'Restored to catalog' : 'Blocked',
+            {!isCurated && (
+              <IconBtn
+                label={lms.admin_reviewed ? 'Mark unreviewed' : 'Mark reviewed'}
+                active={lms.admin_reviewed}
+                loading={busy === 'rev'}
+                onClick={() => wrap('rev', () => api.reviewLMS(lms.id, !lms.admin_reviewed), lms.admin_reviewed ? 'Marked unreviewed' : 'Marked reviewed')}
+              >
+                <IconCheck />
+              </IconBtn>
+            )}
+            {!isCurated && (
+              <IconBtn
+                label={lms.status === 'rejected' ? 'Restore to catalog' : 'Block (remove from catalog)'}
+                active={lms.status === 'rejected'}
+                loading={busy === 'block'}
+                onClick={() =>
+                  wrap(
+                    'block',
+                    () => (lms.status === 'rejected' ? api.unblockLMS(lms.id) : api.blockLMS(lms.id)),
+                    lms.status === 'rejected' ? 'Restored to catalog' : 'Blocked',
                 )
               }
             >
-              <IconShield />
+                <IconShield />
+              </IconBtn>
+            )}
+            <IconBtn label="Show QR code (opens this LMS in the app)" onClick={() => setShowQr(true)}>
+              <IconQr />
             </IconBtn>
             <a
               href={`/wizard/?edit=${lms.id}`}
@@ -328,6 +372,7 @@ function LMSRow({ lms, onChange }: { lms: LMS; onChange: (l: LMS) => void }) {
           </div>
         </div>
       </Card>
+      {showQr && <QrDialog lms={lms} onClose={() => setShowQr(false)} />}
     </motion.div>
   )
 }

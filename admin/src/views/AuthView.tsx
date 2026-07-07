@@ -31,6 +31,8 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
   }
 
   const provider = config?.provider_name || 'Open X Project'
+  // Curated (institution) registry: no public sign-up, no moderation framing.
+  const isCurated = config?.directory_mode === 'curated'
 
   return (
     <div className="grid min-h-[100dvh] w-full grid-cols-1 bg-canvas lg:grid-cols-[1.05fr_1fr]">
@@ -45,16 +47,29 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
 
         <div className="max-w-md">
           <h1 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-ink">
-            The registry behind one app for every platform
+            {isCurated
+              ? 'Your organization’s platforms, in one app'
+              : 'The registry behind one app for every platform'}
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-muted">
-            Owners register their Open edX instance here. Admins keep the catalog safe and act on
-            what learners report from the apps.
+            {isCurated
+              ? 'Manage the Open edX platforms your learners choose from in the app. Add a platform, brand it, and control which ones appear.'
+              : 'Owners register their Open edX instance here. Admins keep the catalog safe and act on what learners report from the apps.'}
           </p>
           <ul className="mt-8 flex flex-col gap-3.5 text-sm text-ink-soft">
-            <Feature icon={<IconServer />} text="Every registered LMS in one searchable catalog" />
-            <Feature icon={<IconAlert />} text="Learner complaints routed to a triage inbox" />
-            <Feature icon={<IconShield />} text="Block a harmful instance in one click" />
+            {isCurated ? (
+              <>
+                <Feature icon={<IconServer />} text="All your platforms in one place" />
+                <Feature icon={<IconEye />} text="Show or hide each one in the app" />
+                <Feature icon={<IconShield />} text="Brand the app to your organization" />
+              </>
+            ) : (
+              <>
+                <Feature icon={<IconServer />} text="Every registered LMS in one searchable catalog" />
+                <Feature icon={<IconAlert />} text="Learner complaints routed to a triage inbox" />
+                <Feature icon={<IconShield />} text="Block a harmful instance in one click" />
+              </>
+            )}
           </ul>
         </div>
 
@@ -80,9 +95,11 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
             {mode === 'login' ? 'Sign in' : 'Create your account'}
           </h2>
           <p className="mt-1.5 text-sm text-muted">
-            {mode === 'login'
-              ? 'Use your registry account. Owners land on their instances, admins on the console.'
-              : 'Register an owner account to submit and manage your LMS.'}
+            {mode === 'register'
+              ? 'Register an owner account to submit and manage your LMS.'
+              : isCurated
+                ? 'Sign in to manage your organization’s platforms.'
+                : 'Use your registry account. Owners land on their instances, admins on the console.'}
           </p>
 
           <form
@@ -134,18 +151,21 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted">
-            {mode === 'login' ? 'Own an LMS and need an account?' : 'Already have an account?'}{' '}
-            <button
-              onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login')
-                setError('')
-              }}
-              className="font-semibold text-link transition-colors hover:text-link-hover"
-            >
-              {mode === 'login' ? 'Create one' : 'Sign in'}
-            </button>
-          </div>
+          {/* No public sign-up in curated mode — admins are provisioned deliberately. */}
+          {!isCurated && (
+            <div className="mt-6 text-center text-sm text-muted">
+              {mode === 'login' ? 'Own an LMS and need an account?' : 'Already have an account?'}{' '}
+              <button
+                onClick={() => {
+                  setMode(mode === 'login' ? 'register' : 'login')
+                  setError('')
+                }}
+                className="font-semibold text-link transition-colors hover:text-link-hover"
+              >
+                {mode === 'login' ? 'Create one' : 'Sign in'}
+              </button>
+            </div>
+          )}
 
           <div className="mt-8 border-t border-line pt-5 text-center">
             <a
