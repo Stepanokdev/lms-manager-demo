@@ -1,0 +1,42 @@
+# Provider portal — a SECOND registry on the same host, beside the public catalog.
+#
+# Same image, different mode, different database, different hostname. It is a
+# separate deployment on purpose: portal mode expects an empty database (rows
+# created before the switch belong to no organization and appear in no provider
+# directory), and the public pilot must keep running untouched.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.portal.yml up -d --build
+#
+# Needs, before the first run:
+#   * a DNS A record for the Host() below pointing at this server
+#   * .env.portal (see .env.portal.example) — it MUST set DIRECTORY_MODE=portal
+#     and REGISTRY_PUBLIC_URL, because the addresses this deployment hands to
+#     providers get compiled into their shipped mobile apps
+#   * ./data-portal on the host, which is this deployment's own SQLite volume
+# A DISTINCT project name. Both deployments are launched from this same
+# directory, and Compose identifies a project by that directory unless told
+# otherwise — without this, bringing the portal up would be read as "recreate the
+# public catalog with new settings" and would take the pilot down.
+name: openedx-lms-portal
+
+services:
+  api:
+    container_name: openedx-lms-portal
+    restart: unless-stopped
+    ports: !reset []
+    env_file:
+      - .env.portal
+    volumes: !override
+      - ./data-portal:/app/data
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lms-portal.rule=Host(`providers.openedx-lms.stepanok.com`)"
+      - "traefik.http.routers.lms-portal.entrypoints=websecure"
+      - "traefik.http.routers.lms-portal.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lms-portal.loadbalancer.server.port=8000"
+
+networks:
+  web:
+    external: true

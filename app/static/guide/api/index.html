@@ -272,6 +272,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Three ways to run it
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../learners/" class="md-nav__link">
         
   
@@ -360,7 +387,34 @@
   <span class="md-ellipsis">
     
   
-    Provider / curated mode
+    One organization (curated)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../portal-mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provider portal
   
 
     
@@ -479,6 +533,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#per-organization-directories-portal-mode-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-organization directories (portal mode only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#file-a-complaint" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -502,6 +567,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Owner (authenticated)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provider-portal-mode-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provider (portal mode only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -563,6 +645,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#per-organization-directories-portal-mode-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-organization directories (portal mode only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#file-a-complaint" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -586,6 +679,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Owner (authenticated)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provider-portal-mode-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provider (portal mode only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -622,6 +732,14 @@
 <strong><code>/docs</code></strong> on a running instance; this page is the summary. Auth is a Bearer JWT
 from <code>/auth/login</code> or <code>/auth/register</code>.</p>
 <h2 id="public-used-by-the-mobile-apps">Public (used by the mobile apps)<a class="headerlink" href="#public-used-by-the-mobile-apps" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title"><code>GET /lms</code> and <code>GET /lms/{id}</code></p>
+<p>These two return a redacted view — no owner email, block reason, or review
+and health state — and <code>/lms/{id}</code> resolves only <strong>approved</strong> platforms. An
+owner reads their own full record from <code>/my/lms/{id}</code>. In <code>portal</code> mode
+<code>/lms</code> is empty and <code>/lms/{id}</code> is <code>404</code>, because a deployment-wide list
+would expose every tenant.</p>
+</div>
 <table>
 <thead>
 <tr>
@@ -655,6 +773,50 @@ from <code>/auth/login</code> or <code>/auth/register</code>.</p>
 </table>
 <p><code>/api/universal-login/lms/search</code>, <code>/…/{id}</code>, and <code>/…/reports</code> are aliases of the
 same handlers.</p>
+<h3 id="per-organization-directories-portal-mode-only">Per-organization directories (<code>portal</code> mode only)<a class="headerlink" href="#per-organization-directories-portal-mode-only" title="Permanent link">&para;</a></h3>
+<p>In <code>portal</code> mode the same public endpoints live under a per-organization prefix,
+and the site root serves no catalog at all:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/p/{slug}/api/v1/config</code></td>
+<td>Always <code>directory_mode: "curated"</code>, plus that organization's name, tagline and logo</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/p/{slug}/api/v1/directory</code></td>
+<td>That organization's published platforms, ordered by <code>sort_order</code></td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/p/{slug}/api/v1/directory/{id}</code></td>
+<td>Full detail — <code>404</code> if the id belongs to another organization</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/p/{slug}/api/v1/reports</code></td>
+<td>Always <code>403</code>; provider directories have no complaint channel</td>
+</tr>
+</tbody>
+</table>
+<p><code>/p/{slug}/api/universal-login/lms/search</code> and <code>/…/{id}</code> are aliases.</p>
+<p>An unknown slug and a suspended organization both answer <code>404 Unknown directory</code>,
+so the responses can't be used to enumerate the providers on a portal.</p>
+<p>The apps need no change for this: they resolve their paths <strong>relative to
+<code>DIRECTORY_URL</code></strong>, so setting it to <code>https://host/p/acme</code> yields
+<code>https://host/p/acme/api/v1/config</code>.</p>
+<p>At the site root in <code>portal</code> mode, <code>/api/v1/config</code> reports
+<code>directory_mode: "portal"</code> (the console reads it to decide which workspace to
+render) while <code>/api/v1/directory</code> returns <code>404</code> with an explanation — so a build
+that was pointed at the bare origin fails loudly instead of showing an empty list.</p>
 <h3 id="file-a-complaint">File a complaint<a class="headerlink" href="#file-a-complaint" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="err">POST</span><span class="w"> </span><span class="err">/api/v</span><span class="mi">1</span><span class="err">/repor</span><span class="kc">ts</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">{</span>
@@ -688,7 +850,17 @@ same handlers.</p>
 <tr>
 <td><code>GET</code></td>
 <td><code>/my/lms</code></td>
-<td>My platforms</td>
+<td>My platforms — in <code>portal</code> mode, my organization's</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/my/lms/{id}</code></td>
+<td>Full record for one of mine (what the wizard loads to edit)</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/my/lms/{id}</code></td>
+<td>Edit one of mine. Moderation fields (<code>status</code>, <code>featured</code>, <code>admin_reviewed</code>) are not accepted</td>
 </tr>
 <tr>
 <td><code>POST</code></td>
@@ -698,10 +870,39 @@ same handlers.</p>
 <tr>
 <td><code>POST</code></td>
 <td><code>/validate-lms</code></td>
-<td>Check a URL + OAuth client are reachable</td>
+<td>Check a URL + OAuth client are reachable. Requires auth in <code>portal</code> mode</td>
 </tr>
 </tbody>
 </table>
+<p>Anything that belongs to another owner or organization answers <code>404</code>, not <code>403</code>,
+so ids can't be probed.</p>
+<h3 id="provider-portal-mode-only">Provider (<code>portal</code> mode only)<a class="headerlink" href="#provider-portal-mode-only" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/provider/org</code></td>
+<td>My organization, its <code>directory_url</code> and platform counts</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/provider/org</code></td>
+<td>Update name, tagline, logo, contact email. <code>slug</code> is <strong>not</strong> accepted — it is compiled into shipped apps</td>
+</tr>
+</tbody>
+</table>
+<p>The organization is resolved from the account, never from the request, so a token
+minted for one provider cannot be aimed at another by editing a path or a body.</p>
+<p>Sign-up in <code>portal</code> mode goes through the ordinary <code>POST /auth/register</code> with an
+extra required <code>organization_name</code> (and an optional <code>organization_slug</code>); the
+account and the organization are created together.</p>
 <h2 id="admin-authenticated-admin-role">Admin (authenticated, admin role)<a class="headerlink" href="#admin-authenticated-admin-role" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -768,14 +969,28 @@ same handlers.</p>
 <td>Compose / send the owner notice</td>
 </tr>
 <tr>
+<td><code>GET</code></td>
+<td><code>/admin/lms/{id}</code></td>
+<td>Full record for one platform</td>
+</tr>
+<tr>
 <td><code>GET</code> <code>POST</code></td>
 <td><code>/admin/users</code>, <code>/admin/users/{id}/role</code></td>
 <td>Manage the team</td>
 </tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/admin/orgs</code></td>
+<td><em>(portal)</em> Every organization, its directory URL and owner</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/admin/orgs/{id}</code></td>
+<td><em>(portal)</em> Suspend or restore one organization</td>
+</tr>
 </tbody>
 </table>
-<p>The full field-level contract lives in
-<a href="https://github.com/"><code>SPEC.md</code></a> in the repository root.</p>
+<p>The full field-level contract lives in <code>SPEC.md</code> in the repository root.</p>
 
 
 

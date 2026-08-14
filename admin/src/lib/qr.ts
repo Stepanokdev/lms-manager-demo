@@ -7,7 +7,12 @@ import type { LMS } from '@/lib/types'
  * save). Shared by the owner workspace and the admin console so both show the same code.
  */
 export function makeLmsQrDataUrl(lms: Pick<LMS, 'base_url'>): Promise<string> {
-  return QRCode.toDataURL(lms.base_url, {
+  return makeQrDataUrl(lms.base_url)
+}
+
+/** The same code for any URL — used for a provider's directory address too. */
+export function makeQrDataUrl(text: string): Promise<string> {
+  return QRCode.toDataURL(text, {
     width: 720,
     margin: 2,
     errorCorrectionLevel: 'M',

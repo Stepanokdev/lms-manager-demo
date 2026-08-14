@@ -58,6 +58,12 @@ Live instance: **https://openedx-lms.stepanok.com**
 **Registration wizard** (owners register and theme their platform)
 ![Wizard](docs/screenshots/08-wizard.png)
 
+**Provider portal — a provider's platforms** (`portal` mode: their own list, in their own order)
+![Provider platforms](docs/screenshots/17-portal-platforms.png)
+
+**Provider portal — app configuration** (the address, and the exact block to paste into a build)
+![App config](docs/screenshots/18-portal-app-config.png)
+
 <details>
 <summary>More screens</summary>
 
@@ -69,6 +75,18 @@ Live instance: **https://openedx-lms.stepanok.com**
 
 **Responsive** (the console on a phone)
 ![Mobile](docs/screenshots/07-mobile.png)
+
+**Provider portal — the config block and what each key does**
+![App config steps](docs/screenshots/19-portal-app-config-steps.png)
+
+**Provider portal — organization settings**
+![Organization](docs/screenshots/20-portal-organization.png)
+
+**Provider portal — the operator's list of tenants**
+![Organizations](docs/screenshots/23-portal-operator-orgs.png)
+
+**Provider portal — sign-up**
+![Provider sign-up](docs/screenshots/22-portal-signup.png)
 
 </details>
 
@@ -111,12 +129,13 @@ root (env wins over file). Everything has a working default.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `DIRECTORY_MODE` | `search` | `search` = public catalog; `curated` = provider mode |
+| `DIRECTORY_MODE` | `search` | `search` = public catalog; `curated` = one organization; `portal` = many provider organizations |
 | `PROVIDER_NAME` | `Open X Project` | Brand shown on the app landing + console |
 | `PROVIDER_TAGLINE` | … | One-liner under the brand |
 | `AUTO_APPROVE` | `true` | New submissions go live immediately |
 | `WEBHOOK_URL` | – | POST target for each new complaint |
 | `WEBHOOK_SECRET` | – | Sent as `X-Webhook-Secret` if set |
+| `REGISTRY_PUBLIC_URL` | – | Canonical `https://` origin. Required in `portal` mode — the addresses handed to providers get compiled into their apps |
 
 Example `provider_config.json`:
 
@@ -129,25 +148,49 @@ Example `provider_config.json`:
 }
 ```
 
-## Running one app for several of your own LMS (provider mode)
+## Three ways to run it
 
-Some providers run more than one Open edX platform and want a single branded app
-that lists all of them, with no search step. That is what `curated` mode is for.
+`DIRECTORY_MODE` decides whose platforms the app shows.
 
-1. **Fork this repository** and deploy your own registry.
-2. Set `DIRECTORY_MODE=curated` and your `PROVIDER_NAME` / `PROVIDER_TAGLINE`.
-3. Register each of your platforms through the wizard, then in the console open
-   **LMS instances** and toggle the **star** to feature each one. `sort_order`
-   controls the order they appear in.
-4. Point your mobile builds at your registry:
-   - iOS: `LMS_DIRECTORY_URL` in `rg-feature-flags.yaml`
-   - Android: `LMS_DIRECTORY_URL` (and optionally `DIRECTORY_MODE`) in
-     `core/assets/config/rg_config.json`
+| Mode | Whose platforms | Who runs the server | The app opens onto |
+|------|-----------------|---------------------|--------------------|
+| `search` | Everyone's | Us (the pilot) | A search box |
+| `curated` | Yours | You | Your fixed list |
+| `portal` | Each provider's own | One host, many providers | That provider's fixed list |
 
-In curated mode the apps skip the search box and show your featured list
-directly, so a learner picks a platform and signs in. Public search mode (the
-pilot default) instead lets anyone find any registered LMS by typing its name or
-URL.
+### `curated` — one organization, your own server
+
+Fork the repo, deploy it, set `DIRECTORY_MODE=curated` plus `PROVIDER_NAME` /
+`PROVIDER_TAGLINE`, and add your platforms from **LMS instances → Add a
+platform**. `visibility` decides what the app lists and `sort_order` the order.
+
+### `portal` — many providers, one server
+
+Set `DIRECTORY_MODE=portal` and `REGISTRY_PUBLIC_URL`. Each provider registers
+their own organization, adds their own platforms, and is handed a permanent
+address `https://<origin>/p/<slug>` to put in their own builds. A provider can
+only see and change their own list; the registry operator can list the
+organizations and suspend one, and nothing more.
+
+### Pointing a build at any of them
+
+Both apps read the same block from `default_config/<env>/config.yaml`:
+
+```yaml
+LMS_DIRECTORY:
+  ENABLED: true
+  DIRECTORY_URL: "https://providers.example.com/p/your-org"
+  DIRECTORY_MODE: "curated"
+```
+
+`DIRECTORY_MODE: "curated"` is required for any white-label build: both apps fall
+back to search mode when the registry is unreachable, so without it a branded app
+that starts offline opens a search box over every public platform. It can only add
+curated mode, never remove it.
+
+Full guides: [docs/modes.md](docs/modes.md),
+[docs/provider-mode.md](docs/provider-mode.md),
+[docs/portal-mode.md](docs/portal-mode.md).
 
 ## Complaints and moderation
 
@@ -172,7 +215,11 @@ after the pilot):
 - Android — `white-label-android`, branch `feat/unit_list`
 
 Both read the registry through `/api/v1/config`, `/api/v1/directory`, and
-`/api/v1/reports`. See [`SPEC.md`](SPEC.md) for the full contract.
+`/api/v1/reports`, resolved **relative to `DIRECTORY_URL`**. That is what makes
+`portal` mode need no mobile change at all: a path-prefixed address like
+`https://…/p/acme` yields `https://…/p/acme/api/v1/config`, because iOS uses
+`URL.appendingPathComponent` and Android uses Retrofit relative paths. See
+[`SPEC.md`](SPEC.md) for the full contract.
 
 ## Deployment
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useStore } from '@/store'
 import { Button, Field, Input } from '@/components/ui'
-import { IconLayers, IconServer, IconAlert, IconShield, IconEye, IconEyeOff, IconBook } from '@/components/icons'
+import { IconLayers, IconServer, IconAlert, IconShield, IconEye, IconEyeOff, IconBook, IconLink } from '@/components/icons'
 import { ApiError } from '@/lib/api'
 import type { PublicConfig } from '@/lib/types'
 
@@ -11,28 +11,33 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
   const register = useStore((s) => s.register)
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
+  const [orgName, setOrgName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const provider = config?.provider_name || 'Open X Project'
+  // Curated (institution) registry: no public sign-up, no moderation framing.
+  const isCurated = config?.directory_mode === 'curated'
+  // Provider portal: signing up creates an organization, so the form asks for one.
+  const isPortal = config?.directory_mode === 'portal'
+
   const submit = async () => {
     setError('')
     setBusy(true)
     try {
       if (mode === 'login') await login(email.trim(), password)
-      else await register(name.trim(), email.trim(), password)
+      else if (isPortal) {
+        await register(name.trim(), email.trim(), password, { name: orgName.trim() })
+      } else await register(name.trim(), email.trim(), password)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.')
     } finally {
       setBusy(false)
     }
   }
-
-  const provider = config?.provider_name || 'Open X Project'
-  // Curated (institution) registry: no public sign-up, no moderation framing.
-  const isCurated = config?.directory_mode === 'curated'
 
   return (
     <div className="grid min-h-[100dvh] w-full grid-cols-1 bg-canvas lg:grid-cols-[1.05fr_1fr]">
@@ -47,17 +52,27 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
 
         <div className="max-w-md">
           <h1 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-ink">
-            {isCurated
-              ? 'Your organization’s platforms, in one app'
-              : 'The registry behind one app for every platform'}
+            {isPortal
+              ? 'Your platforms, in your own app'
+              : isCurated
+                ? 'Your organization’s platforms, in one app'
+                : 'The registry behind one app for every platform'}
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-muted">
-            {isCurated
-              ? 'Manage the Open edX platforms your learners choose from in the app. Add a platform, brand it, and control which ones appear.'
-              : 'Owners register their Open edX instance here. Admins keep the catalog safe and act on what learners report from the apps.'}
+            {isPortal
+              ? 'Register your organization, add the Open edX platforms you run, and get one address to put in your own iOS and Android builds. Your app lists your platforms and nobody else’s.'
+              : isCurated
+                ? 'Manage the Open edX platforms your learners choose from in the app. Add a platform, brand it, and control which ones appear.'
+                : 'Owners register their Open edX instance here. Admins keep the catalog safe and act on what learners report from the apps.'}
           </p>
           <ul className="mt-8 flex flex-col gap-3.5 text-sm text-ink-soft">
-            {isCurated ? (
+            {isPortal ? (
+              <>
+                <Feature icon={<IconServer />} text="Add every platform you run, in the order you choose" />
+                <Feature icon={<IconLink />} text="One address to paste into your app config" />
+                <Feature icon={<IconShield />} text="Only you can change your list" />
+              </>
+            ) : isCurated ? (
               <>
                 <Feature icon={<IconServer />} text="All your platforms in one place" />
                 <Feature icon={<IconEye />} text="Show or hide each one in the app" />
@@ -92,14 +107,22 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
           </div>
 
           <h2 className="text-2xl font-bold tracking-tight text-ink">
-            {mode === 'login' ? 'Sign in' : 'Create your account'}
+            {mode === 'login'
+              ? 'Sign in'
+              : isPortal
+                ? 'Register your organization'
+                : 'Create your account'}
           </h2>
           <p className="mt-1.5 text-sm text-muted">
             {mode === 'register'
-              ? 'Register an owner account to submit and manage your LMS.'
-              : isCurated
-                ? 'Sign in to manage your organization’s platforms.'
-                : 'Use your registry account. Owners land on their instances, admins on the console.'}
+              ? isPortal
+                ? 'One account per organization. You’ll get your directory address as soon as you’re in.'
+                : 'Register an owner account to submit and manage your LMS.'
+              : isPortal
+                ? 'Sign in to manage your organization’s platforms and app config.'
+                : isCurated
+                  ? 'Sign in to manage your organization’s platforms.'
+                  : 'Use your registry account. Owners land on their instances, admins on the console.'}
           </p>
 
           <form
@@ -109,8 +132,23 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
               if (!busy) submit()
             }}
           >
+            {mode === 'register' && isPortal && (
+              <Field
+                label="Organization"
+                hint="Your address is built from this name. It stays the same afterwards, even if you rename."
+              >
+                <Input
+                  name="organization"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="Northwind Education Group"
+                  autoComplete="organization"
+                  maxLength={120}
+                />
+              </Field>
+            )}
             {mode === 'register' && (
-              <Field label="Name">
+              <Field label={isPortal ? 'Your name' : 'Name'}>
                 <Input name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jordan Alvarez" autoComplete="name" />
               </Field>
             )}
@@ -147,14 +185,18 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
             </Field>
 
             <Button type="submit" variant="primary" loading={busy} className="mt-1 w-full py-3 text-base">
-              {mode === 'login' ? 'Sign in' : 'Create account'}
+              {mode === 'login' ? 'Sign in' : isPortal ? 'Create organization' : 'Create account'}
             </Button>
           </form>
 
           {/* No public sign-up in curated mode — admins are provisioned deliberately. */}
           {!isCurated && (
             <div className="mt-6 text-center text-sm text-muted">
-              {mode === 'login' ? 'Own an LMS and need an account?' : 'Already have an account?'}{' '}
+              {mode === 'login'
+                ? isPortal
+                  ? 'Run Open edX platforms and want your own app?'
+                  : 'Own an LMS and need an account?'
+                : 'Already have an account?'}{' '}
               <button
                 onClick={() => {
                   setMode(mode === 'login' ? 'register' : 'login')
@@ -162,7 +204,7 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
                 }}
                 className="font-semibold text-link transition-colors hover:text-link-hover"
               >
-                {mode === 'login' ? 'Create one' : 'Sign in'}
+                {mode === 'login' ? (isPortal ? 'Register your organization' : 'Create one') : 'Sign in'}
               </button>
             </div>
           )}

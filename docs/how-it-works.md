@@ -2,6 +2,13 @@
 
 Three groups of people touch the system, and the registry ties them together.
 
+!!! note "This page describes the open catalog"
+    Everything below — self-service registration, learner reports, moderation —
+    belongs to the shared public catalog. Run the same registry for a single
+    organization or as a provider portal and the moderation half disappears
+    entirely, because nobody is listing platforms you didn't choose. See
+    [Three ways to run it](modes.md).
+
 ```
   LMS owner                Registry (web)                    Learner (mobile app)
  ┌──────────┐   register   ┌───────────────────┐   catalog   ┌──────────────────┐

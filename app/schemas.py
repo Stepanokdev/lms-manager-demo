@@ -12,6 +12,13 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     name: str
     password: str
+    # Portal mode only, and required there: signing up creates the provider's
+    # organization in the same step, because a provider account without an
+    # organization has nothing to own and no directory URL.
+    organization_name: str | None = None
+    # Optional. Becomes the permanent /p/<slug> address; derived from
+    # organization_name when omitted.
+    organization_slug: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -29,6 +36,7 @@ class UserResponse(BaseModel):
     email: str
     name: str
     role: UserRole
+    organization_id: int | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -114,6 +122,40 @@ class LMSFullUpdateRequest(BaseModel):
     status: LMSStatus | None = None
 
 
+class LMSOwnerUpdateRequest(BaseModel):
+    """
+    What the owner of a platform may change about it.
+
+    Mirrors LMSFullUpdateRequest minus `status`, `featured` and `admin_reviewed`:
+    those are moderation decisions, and letting an owner set them would let a
+    provider un-block or promote their own listing.
+    """
+    name: str | None = None
+    base_url: str | None = None
+    platform_name: str | None = None
+    oauth_client_id: str | None = None
+    description: str | None = None
+    token_type: str | None = None
+    sso_url: str | None = None
+    sso_finished_url: str | None = None
+    feedback_email: str | None = None
+    logo_url: str | None = None
+    accent_color: str | None = None
+    sso_button_title: str | None = None
+    pre_login_discovery: bool | None = None
+    login_background_url: str | None = None
+    logo_upload_url: str | None = None
+    unknown_units_mode: str | None = None
+    dashboard_type: str | None = None
+    pre_login_experience: bool | None = None
+    course_unit_progress: bool | None = None
+    course_dropdown_nav: bool | None = None
+    offline_downloads: bool | None = None
+    smart_push_automation: bool | None = None
+    visibility: Visibility | None = None
+    sort_order: int | None = None
+
+
 class LMSResponse(BaseModel):
     id: int
     name: str
@@ -153,6 +195,49 @@ class LMSResponse(BaseModel):
     block_reason: str
     review_requested_at: datetime | None
     submitted_by: int
+    organization_id: int | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PublicLMSResponse(BaseModel):
+    """
+    What an unauthenticated caller may see about a platform.
+
+    Everything the catalog needs, and nothing about the people or the moderation
+    behind it: no `owner_email`, no `block_reason`, no review or health state.
+    `oauth_client_id` stays — it is a public mobile OAuth client id, already
+    shipped inside every app binary and already served by /api/v1/directory/{id}.
+    """
+    id: int
+    name: str
+    base_url: str
+    platform_name: str
+    oauth_client_id: str
+    description: str
+    token_type: str
+    sso_url: str
+    sso_finished_url: str
+    feedback_email: str
+    logo_url: str
+    accent_color: str
+    accent_color_dark: str
+    sso_button_title: str
+    pre_login_discovery: bool
+    login_background_url: str
+    logo_upload_url: str
+    unknown_units_mode: str
+    dashboard_type: str
+    pre_login_experience: bool
+    course_unit_progress: bool
+    course_dropdown_nav: bool
+    offline_downloads: bool
+    smart_push_automation: bool
+    visibility: Visibility
+    featured: bool
+    sort_order: int
     created_at: datetime
     updated_at: datetime
 
@@ -261,6 +346,56 @@ class AffectedLMS(BaseModel):
     worst_severity: ReportSeverity
     categories: list[ReportCategory]
     latest_at: datetime
+
+
+# --- Organizations (portal mode) ---
+
+class OrganizationResponse(BaseModel):
+    """A provider's own view of its organization, including the URL it ships."""
+    id: int
+    slug: str
+    name: str
+    tagline: str
+    logo_url: str
+    contact_email: str
+    active: bool
+    created_at: datetime
+    # Derived, not stored: the absolute URL a provider pastes into
+    # LMS_DIRECTORY.DIRECTORY_URL in their iOS and Android config.
+    directory_url: str = ""
+    platform_count: int = 0
+    published_count: int = 0
+
+    model_config = {"from_attributes": True}
+
+
+class OrganizationUpdateRequest(BaseModel):
+    """What a provider may change. `slug` is absent on purpose — it is permanent."""
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    tagline: str | None = Field(default=None, max_length=200)
+    logo_url: str | None = None
+    contact_email: str | None = None
+
+
+class OrganizationAdminResponse(BaseModel):
+    """The platform superadmin's view of one tenant."""
+    id: int
+    slug: str
+    name: str
+    tagline: str
+    logo_url: str
+    contact_email: str
+    active: bool
+    created_at: datetime
+    directory_url: str = ""
+    platform_count: int = 0
+    published_count: int = 0
+    owner_email: str = ""
+    owner_name: str = ""
+
+
+class OrganizationStatusRequest(BaseModel):
+    active: bool
 
 
 # --- Public app config ---

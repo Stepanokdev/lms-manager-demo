@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://openedx-lms.stepanok.com/guide/deploying/">
       
       
-        <link rel="prev" href="../provider-mode/">
+        <link rel="prev" href="../portal-mode/">
       
       
         <link rel="next" href="../api/">
@@ -274,6 +274,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Three ways to run it
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../learners/" class="md-nav__link">
         
   
@@ -362,7 +389,34 @@
   <span class="md-ellipsis">
     
   
-    Provider / curated mode
+    One organization (curated)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../portal-mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provider portal
   
 
     
@@ -491,6 +545,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#running-a-provider-portal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a provider portal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -602,6 +678,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#running-a-provider-portal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a provider portal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -651,11 +749,15 @@ pre-built into <code>app/static/</code>, so the container needs no Node step.</p
 <tbody>
 <tr>
 <td><code>DIRECTORY_MODE</code></td>
-<td><code>search</code> (public catalog) or <code>curated</code> (provider mode)</td>
+<td><code>search</code> (public catalog), <code>curated</code> (one organization) or <code>portal</code> (many provider organizations) — see <a href="../modes/">Three ways to run it</a></td>
 </tr>
 <tr>
 <td><code>PROVIDER_NAME</code> / <code>PROVIDER_TAGLINE</code></td>
 <td>Branding on the app landing + console</td>
+</tr>
+<tr>
+<td><code>REGISTRY_PUBLIC_URL</code></td>
+<td>Canonical <code>https://</code> origin. <strong>Required in <code>portal</code> mode</strong></td>
 </tr>
 <tr>
 <td><code>AUTO_APPROVE</code></td>
@@ -691,6 +793,56 @@ pre-built into <code>app/static/</code>, so the container needs no Node step.</p
 TLS. Persist <code>./data</code> as a volume. Verify after deploy:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>https://YOUR-HOST/api/v1/config
 </code></pre></div>
+<h2 id="running-a-provider-portal">Running a provider portal<a class="headerlink" href="#running-a-provider-portal" title="Permanent link">&para;</a></h2>
+<p>A portal is the same image with a different mode, its own database and its own
+hostname. Run it <strong>alongside</strong> an existing catalog rather than converting one.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">DIRECTORY_MODE</span><span class="o">=</span>portal
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">REGISTRY_PUBLIC_URL</span><span class="o">=</span>https://providers.example.com
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">SECRET_KEY</span><span class="o">=</span>&lt;a<span class="w"> </span>long<span class="w"> </span>random<span class="w"> </span>string&gt;
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nv">ADMIN_EMAIL</span><span class="o">=</span>you@example.com
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>&lt;<span class="nb">set</span><span class="w"> </span>before<span class="w"> </span>first<span class="w"> </span>boot&gt;
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title"><code>REGISTRY_PUBLIC_URL</code> is not optional here</p>
+<p>Behind a reverse proxy the request the app sees is plain HTTP on an internal
+hostname. The address a provider is handed ends up compiled into a shipped
+mobile binary — set this, or every provider ships the wrong URL.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Start from an empty database</p>
+<p>A row created before the switch belongs to no organization, so it appears in
+no <code>/p/&lt;slug&gt;</code> directory. That is the safe outcome, not a useful one. Give a
+portal its own database and its own <code>./data</code> volume.</p>
+</div>
+<p>The repository ships <code>docker-compose.portal.yml</code> as a second Traefik service on
+the same host — its own Compose <strong>project name</strong>, container name, volume
+(<code>./data-portal</code>), <code>Host()</code> rule and <code>.env.portal</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cp<span class="w"> </span>.env.portal.example<span class="w"> </span>.env.portal<span class="w">   </span><span class="c1"># then fill it in</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>data-portal
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span>-f<span class="w"> </span>docker-compose.portal.yml<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--build
+</code></pre></div>
+<div class="admonition danger">
+<p class="admonition-title">The project name is what keeps the two apart</p>
+<p>Both stacks are launched from the same directory, and Compose identifies a
+project by that directory. <code>docker-compose.portal.yml</code> sets
+<code>name: openedx-lms-portal</code> for exactly this reason — without it, starting the
+portal reads as <em>recreate the public catalog with new settings</em> and takes the
+running pilot down. Don't remove it, and check <code>docker compose … config | head -1</code>
+says <code>name: openedx-lms-portal</code> before you bring anything up.</p>
+</div>
+<p>Point a DNS <code>A</code> record at the server for the <code>Host()</code> in the compose file first;
+Traefik gets the certificate on the first request.</p>
+<p>Verify:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>https://providers.example.com/api/v1/config<span class="w">     </span><span class="c1"># {&quot;directory_mode&quot;:&quot;portal&quot;,…}</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>curl<span class="w"> </span>-s<span class="w"> </span>https://providers.example.com/p/&lt;slug&gt;/api/v1/config<span class="w">  </span><span class="c1"># {&quot;directory_mode&quot;:&quot;curated&quot;,…}</span>
+</code></pre></div>
+<h2 id="tests">Tests<a class="headerlink" href="#tests" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements-dev.txt
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>./verify.sh
+</code></pre></div>
+<p>Covers cross-organization isolation in <code>portal</code> mode, that <code>search</code> and <code>curated</code>
+still behave exactly as before, and that the schema migration is safe to run twice
+against a copy of the production database.</p>
 
 
 
@@ -726,7 +878,7 @@ TLS. Persist <code>./data</code> as a volume. Verify after deploy:</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../provider-mode/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Provider / curated mode">
+          <a href="../portal-mode/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Provider portal">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -736,7 +888,7 @@ TLS. Persist <code>./data</code> as a volume. Verify after deploy:</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Provider / curated mode
+                Provider portal
               </div>
             </div>
           </a>

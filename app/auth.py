@@ -27,6 +27,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 security = HTTPBearer()
+# Same scheme, but a missing header is not an error — for routes that are public in
+# one deployment mode and authenticated in another.
+optional_security = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -67,6 +70,21 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
+
+
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """The signed-in user, or None. An invalid token is treated as absent."""
+    if credentials is None:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload["sub"])
+    except (JWTError, KeyError, ValueError):
+        return None
+    return db.query(User).filter(User.id == user_id).first()
 
 
 def require_admin(user: User = Depends(get_current_user)) -> User:

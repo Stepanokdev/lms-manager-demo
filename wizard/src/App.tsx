@@ -30,9 +30,12 @@ export default function App() {
 
     setLoading(true)
     const token = localStorage.getItem('token')
-    fetch(`/lms/${id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+    // The owner's own record — the public /lms/{id} deliberately omits the OAuth
+    // client id and everything else the wizard needs to prefill. Admins editing
+    // an instance they don't own fall back to the operator route.
+    fetch(`/my/lms/${id}`, { headers })
+      .then((r) => (r.status === 404 ? fetch(`/admin/lms/${id}`, { headers }) : r))
       .then((r) => {
         if (!r.ok) throw new Error('Failed to load LMS')
         return r.json()

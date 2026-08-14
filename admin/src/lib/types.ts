@@ -16,7 +16,31 @@ export interface User {
   email: string
   name: string
   role: Role
+  /** Portal mode: set for a provider account, null for the platform operator. */
+  organization_id: number | null
   created_at: string
+}
+
+/** A provider organization — the tenant of portal mode. */
+export interface Organization {
+  id: number
+  slug: string
+  name: string
+  tagline: string
+  logo_url: string
+  contact_email: string
+  active: boolean
+  created_at: string
+  /** Absolute URL the provider pastes into their mobile config. */
+  directory_url: string
+  platform_count: number
+  published_count: number
+}
+
+/** The platform operator's view of one tenant. */
+export interface OrganizationAdmin extends Organization {
+  owner_email: string
+  owner_name: string
 }
 
 export interface LMS {
@@ -142,7 +166,12 @@ export interface Overview {
 }
 
 export interface PublicConfig {
-  directory_mode: 'search' | 'curated'
+  /**
+   * How this deployment is run. `portal` means many provider organizations share
+   * it, each with its own directory at /p/<slug> — the console then shows a
+   * provider workspace instead of the catalog.
+   */
+  directory_mode: 'search' | 'curated' | 'portal'
   provider_name: string
   provider_tagline: string
   provider_logo_url: string | null

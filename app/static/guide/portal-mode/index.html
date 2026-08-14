@@ -1,0 +1,1145 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="How the Open X Project app, the LMS registry, and the admin console work — for learners, LMS owners, and administrators.">
+      
+      
+      
+        <link rel="canonical" href="https://openedx-lms.stepanok.com/guide/portal-mode/">
+      
+      
+        <link rel="prev" href="../provider-mode/">
+      
+      
+        <link rel="next" href="../deploying/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Provider portal - Open X Project — Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#provider-portal" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Open X Project — Documentation" class="md-header__button md-logo" aria-label="Open X Project — Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 16.54 7.37-5.74L21 12.07l-9 7-9-7 1.62-1.26zM12 14 3 7l9-7 9 7zm0-11.47L6.26 7 12 11.47 17.74 7zm0 18.94 7.37-5.74L21 17l-9 7-9-7 1.62-1.26z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Open X Project — Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Provider portal
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Open X Project — Documentation" class="md-nav__button md-logo" aria-label="Open X Project — Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 16.54 7.37-5.74L21 12.07l-9 7-9-7 1.62-1.26zM12 14 3 7l9-7 9 7zm0-11.47L6.26 7 12 11.47 17.74 7zm0 18.94 7.37-5.74L21 17l-9 7-9-7 1.62-1.26z"/></svg>
+
+    </a>
+    Open X Project — Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Three ways to run it
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../learners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    For learners (mobile app)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../registering-an-lms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Register your LMS (owners)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-console/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider-mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    One organization (curated)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provider portal
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Provider portal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#set-it-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set it up
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Set it up">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-register-your-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Register your organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-add-your-platforms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Add your platforms
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-wire-it-into-your-apps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Wire it into your apps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-check-it-before-you-ship" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Check it before you ship
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-a-learner-sees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a learner sees
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#your-organizations-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your organization's details
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-registry-operator-can-and-cant-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the registry operator can and can't do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-a-portal-yourself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a portal yourself
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration & deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#set-it-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set it up
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Set it up">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-register-your-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Register your organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-add-your-platforms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Add your platforms
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-wire-it-into-your-apps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Wire it into your apps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-check-it-before-you-ship" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Check it before you ship
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-a-learner-sees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a learner sees
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#your-organizations-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your organization's details
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-registry-operator-can-and-cant-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the registry operator can and can't do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-a-portal-yourself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a portal yourself
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="provider-portal">Provider portal<a class="headerlink" href="#provider-portal" title="Permanent link">&para;</a></h1>
+<p>You run five Open edX platforms. You want <strong>one app, under your own name</strong>, that
+opens onto those five and nothing else — not a public catalog, not somebody
+else's platforms. You don't want to run a server to get it.</p>
+<p>That's the provider portal. One registry, many provider organizations. You sign
+up, add your platforms, and the portal hands you a permanent address:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>https://providers.example.com/p/your-org
+</code></pre></div>
+<p>You paste that address into your own iOS and Android builds, ship them under your
+own name, and your learners see your five platforms the moment they open the app.</p>
+<figure>
+<p><img alt="The provider workspace listing five platforms" src="../screenshots/17-portal-platforms.png" />
+  </p>
+<figcaption>Your platforms, in the order your app will show them</figcaption>
+</figure>
+<div class="admonition info">
+<p class="admonition-title">Which mode is this?</p>
+<p>This is the third of three ways to run the registry — see
+<a href="../modes/">Three ways to run it</a>. If you want to host the registry yourself
+and it only ever serves your own organization, you want
+<a href="../provider-mode/">curated mode</a> instead: same result in the app, but the
+server is yours.</p>
+</div>
+<h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
+<p><strong>Your own list.</strong> Only you can add, hide or reorder platforms in your directory.
+No other provider on the portal can touch it, and you can't see theirs.</p>
+<p><strong>Your own app.</strong> The bundle id, the name, the icon, the signing certificate and
+the Firebase project stay yours. The portal only decides which platforms the app
+offers.</p>
+<p><strong>Per-platform branding.</strong> Each platform keeps its own logo, accent colour and
+sign-in background. A learner picks one and the app re-themes to it.</p>
+<p><strong>Changes without a release.</strong> Add a platform, hide one, or change the order in
+the console and installed apps pick it up on their next launch. No App Store
+review, no Play rollout.</p>
+<p><strong>No search box, no reporting.</strong> Your learners were handed these platforms by
+you, so the app doesn't offer to search the wider world and doesn't offer to
+report them. Both entry points are hidden in the app, and the endpoints behind
+them are closed on the server.</p>
+<h2 id="set-it-up">Set it up<a class="headerlink" href="#set-it-up" title="Permanent link">&para;</a></h2>
+<h3 id="1-register-your-organization">1. Register your organization<a class="headerlink" href="#1-register-your-organization" title="Permanent link">&para;</a></h3>
+<p>Sign up on the portal. The name you give becomes your permanent address — "Northwind
+Education Group" gives you <code>/p/northwind-education-group</code>.</p>
+<figure>
+<p><img alt="The provider sign-up form" src="../screenshots/22-portal-signup.png" />
+  </p>
+<figcaption>One account per organization; signing up creates the organization with it</figcaption>
+</figure>
+<div class="admonition warning">
+<p class="admonition-title">The address is permanent</p>
+<p>It gets compiled into every build you ship, so renaming it later would take
+every installed app offline with no way for you to undo it. Renaming your
+<em>organization</em> is fine and changes nothing about the address. If you truly
+need a different one, ask the registry operator before you ship anything.</p>
+</div>
+<h3 id="2-add-your-platforms">2. Add your platforms<a class="headerlink" href="#2-add-your-platforms" title="Permanent link">&para;</a></h3>
+<p><strong>Platforms → Add a platform</strong> opens the same wizard LMS owners use: the
+instance URL, its OAuth client id, branding, and the mobile feature flags. Each
+platform you add is live in your directory as soon as you save it.</p>
+<p>Use the eye button to hide one while you're still setting it up, and the arrows to
+set the order the app lists them in.</p>
+<p>You'll need, per platform:</p>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where it comes from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Instance URL</td>
+<td>Your Open edX site, e.g. <code>https://learn.example.edu</code></td>
+</tr>
+<tr>
+<td>OAuth client id</td>
+<td>Django admin → <strong>Django OAuth Toolkit → Applications</strong> on that instance</td>
+</tr>
+<tr>
+<td>Logo and accent colour</td>
+<td>Yours — this is what a learner sees in the picker</td>
+</tr>
+</tbody>
+</table>
+<p>Open edX <strong>Ulmo or newer</strong> is required. Older releases are missing mobile API
+endpoints the app depends on.</p>
+<h3 id="3-wire-it-into-your-apps">3. Wire it into your apps<a class="headerlink" href="#3-wire-it-into-your-apps" title="Permanent link">&para;</a></h3>
+<p><strong>App config</strong> gives you the address and the exact block to paste.</p>
+<figure>
+<p><img alt="The App config view: address, snippet and what each key does" src="../screenshots/18-portal-app-config.png" />
+  </p>
+<figcaption>Copy the address, paste the block, rebuild</figcaption>
+</figure>
+<p>In your fork of <code>openedx-app-ios</code> or <code>openedx-app-android</code>, edit
+<code>default_config/&lt;env&gt;/config.yaml</code> — for every environment you actually build:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">LMS_DIRECTORY</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">ENABLED</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">DIRECTORY_URL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://providers.example.com/p/your-org&quot;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">DIRECTORY_MODE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;curated&quot;</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ENABLED</code></td>
+<td>Turns the directory on. Left <code>false</code>, the app ignores the rest and behaves like a stock single-platform build.</td>
+</tr>
+<tr>
+<td><code>DIRECTORY_URL</code></td>
+<td>Your address, <strong>including the <code>/p/…</code> part</strong>. Point it at the bare site root and the app finds no catalog.</td>
+</tr>
+<tr>
+<td><code>DIRECTORY_MODE</code></td>
+<td>Set it to <code>"curated"</code>. See the warning below — this one is load-bearing.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition danger">
+<p class="admonition-title">Always set <code>DIRECTORY_MODE: \"curated\"</code></p>
+<p>The registry already tells the app it is curated, so this looks redundant. It
+isn't. Both apps fall back to <strong>search</strong> mode when they can't reach the
+registry at all, and Android does so silently. Without the local flag, a
+learner opening your branded app on a bad connection gets a search box over
+every public Open edX platform instead of your five. With it, the app stays
+yours no matter what the network does.</p>
+</div>
+<figure>
+<p><img alt="Steps two and three of the App config view" src="../screenshots/19-portal-app-config-steps.png" />
+  </p>
+<figcaption>The block is per-platform because the two repositories indent their config differently — copy the one you're building</figcaption>
+</figure>
+<h3 id="4-check-it-before-you-ship">4. Check it before you ship<a class="headerlink" href="#4-check-it-before-you-ship" title="Permanent link">&para;</a></h3>
+<p>Open <code>https://providers.example.com/p/your-org/api/v1/directory</code> in a browser —
+the <strong>See exactly what the app receives</strong> link in the console does the same. You
+should see your platforms, in your order, and nothing else:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Axim&quot;</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;base_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://axim-ccpv-dev.raccoongang.net&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Venus&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;base_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://venus.raccoongang.net&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>If you get <code>404 Unknown directory</code>, the address is wrong or your organization is
+suspended. If you get <em>"This is a provider portal…"</em>, you dropped the <code>/p/…</code> part.</p>
+<h2 id="what-a-learner-sees">What a learner sees<a class="headerlink" href="#what-a-learner-sees" title="Permanent link">&para;</a></h2>
+<p>The app opens straight onto your platform list — no search, no intro screen. A
+learner taps one and the app re-themes to it and signs them in against it.</p>
+<figure>
+<p><img alt="The app opening onto a fixed list of platforms" src="../screenshots/ios/06-curated-list.png" width="300" />
+  </p>
+<figcaption>The platform picker in a curated build. A provider-portal build shows this same screen, filled from your <code>/p/…</code> directory — the app cannot tell the two apart, which is why it needs no code change.</figcaption>
+</figure>
+<h2 id="your-organizations-details">Your organization's details<a class="headerlink" href="#your-organizations-details" title="Permanent link">&para;</a></h2>
+<p><strong>Organization</strong> sets the name, tagline and logo the app shows above the platform
+list, and the contact address the registry operator uses to reach you.</p>
+<figure>
+<p><img alt="The organization settings view" src="../screenshots/20-portal-organization.png" />
+  </p>
+<figcaption>Renaming the organization never changes the address underneath it</figcaption>
+</figure>
+<p>The console works on a phone, so you can hide a platform or check your address
+without a laptop.</p>
+<figure>
+<p><img alt="The provider console on a phone" src="../screenshots/21-portal-mobile.png" width="300" />
+  </p>
+<figcaption>The sidebar becomes a bottom tab bar under 1024px</figcaption>
+</figure>
+<h2 id="what-the-registry-operator-can-and-cant-do">What the registry operator can and can't do<a class="headerlink" href="#what-the-registry-operator-can-and-cant-do" title="Permanent link">&para;</a></h2>
+<p>Someone runs the portal, and it is worth being precise about what that means.</p>
+<p><strong>They can</strong> see the list of organizations, how many platforms each has published,
+and the owner's email; and they can <strong>suspend</strong> an organization, which makes its
+<code>/p/&lt;slug&gt;</code> return nothing until it is restored. Suspension deletes nothing — the
+platforms are kept and the same address comes back on restore.</p>
+<p><strong>They can't</strong> edit your platforms for you, and there is no route that lets one
+provider read or change another's — the console has no such button and the API
+answers <code>404</code> rather than telling you the other organization exists.</p>
+<figure>
+<p><img alt="The operator's list of organizations" src="../screenshots/23-portal-operator-orgs.png" />
+  </p>
+<figcaption>The operator's view: every tenant, the directory each one ships, and one reversible action</figcaption>
+</figure>
+<h2 id="running-a-portal-yourself">Running a portal yourself<a class="headerlink" href="#running-a-portal-yourself" title="Permanent link">&para;</a></h2>
+<p>Set <code>DIRECTORY_MODE=portal</code> and give the deployment a public URL so the addresses
+it hands out are the real ones:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">DIRECTORY_MODE</span><span class="o">=</span>portal
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">REGISTRY_PUBLIC_URL</span><span class="o">=</span>https://providers.example.com
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">SECRET_KEY</span><span class="o">=</span>&lt;a<span class="w"> </span>long<span class="w"> </span>random<span class="w"> </span>string&gt;
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nv">ADMIN_EMAIL</span><span class="o">=</span>you@example.com
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>&lt;<span class="nb">set</span><span class="w"> </span>before<span class="w"> </span>first<span class="w"> </span>boot&gt;
+</code></pre></div>
+<p><code>REGISTRY_PUBLIC_URL</code> matters more here than in the other modes: behind a reverse
+proxy the request the app sees is plain HTTP on an internal hostname, and the
+address a provider is handed ends up inside a shipped binary. Set it, or providers
+compile the wrong URL into their apps.</p>
+<p>Portal mode expects a <strong>fresh database</strong>. Rows created before the switch belong to
+no organization and are therefore invisible to every <code>/p/&lt;slug&gt;</code> directory — safe,
+but not what you want. Run a portal as its own deployment rather than converting a
+running catalog. See <a href="../deploying/">Configuration &amp; deployment</a>.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<p><strong>The app shows a search box.</strong> <code>DIRECTORY_MODE</code> isn't set to <code>"curated"</code> in the
+config you actually built, or the app couldn't reach the registry on launch. Set
+the local flag; it can only ever add curated mode, never remove it.</p>
+<p><strong>The app shows nothing.</strong> Nothing is published. Check the platform count in
+<strong>App config</strong>; a platform that is hidden, or still pending, isn't served.</p>
+<p><strong><code>404 Unknown directory</code>.</strong> The slug is wrong, or the organization is suspended.
+An unknown slug and a suspended one answer identically on purpose, so that
+nobody can enumerate the providers on a portal — check with the operator.</p>
+<p><strong>A trailing space in <code>DIRECTORY_URL</code>.</strong> iOS keeps it, encodes it as <code>%20</code>, and
+every request 404s. Copy the address from the console rather than retyping it.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../provider-mode/" class="md-footer__link md-footer__link--prev" aria-label="Previous: One organization (curated)">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                One organization (curated)
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../deploying/" class="md-footer__link md-footer__link--next" aria-label="Next: Configuration &amp; deployment">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Configuration & deployment
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

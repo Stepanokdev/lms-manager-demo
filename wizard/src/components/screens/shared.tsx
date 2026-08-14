@@ -19,7 +19,7 @@ function adaptDarkAccent(base: string): string {
   const srgbLin = (u: number) => { const v=u/255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4) }
   const relLum = (hex: string) => { const [r,g,b]=hexToRgb(hex); return 0.2126*srgbLin(r)+0.7152*srgbLin(g)+0.0722*srgbLin(b) }
   const clamp = (v: number,lo: number,hi: number) => Math.min(Math.max(v,lo),hi)
-  const hexToHsl = (hex: string) => { const [r,g,b]=hexToRgb(hex).map(v=>v/255); const mx=Math.max(r,g,b),mn=Math.min(r,g,b); let h=0,s=0; const l=(mx+mn)/2,d=mx-mn; if(d){s=d/(1-Math.abs(2*l-1)); if(mx===r)h=((g-b)/d+(g<b?6:0))*60; else if(mx===g)h=((b-r)/d+2)*60; else h=((r-g)/d+4)*60}; return{h,s,l} }
+  const hexToHsl = (hex: string) => { const [r,g,b]=hexToRgb(hex).map(v=>v/255) as [number,number,number]; const mx=Math.max(r,g,b),mn=Math.min(r,g,b); let h=0,s=0; const l=(mx+mn)/2,d=mx-mn; if(d){s=d/(1-Math.abs(2*l-1)); if(mx===r)h=((g-b)/d+(g<b?6:0))*60; else if(mx===g)h=((b-r)/d+2)*60; else h=((r-g)/d+4)*60}; return{h,s,l} }
   const hslToHex = (h: number,s: number,l: number) => { const hue=((h%360)+360)%360,sat=clamp(s,0,1),li=clamp(l,0,1); const c=(1-Math.abs(2*li-1))*sat,x=c*(1-Math.abs((hue/60)%2-1)),m=li-c/2; let r=0,g=0,b=0; if(hue<60)[r,g,b]=[c,x,0]; else if(hue<120)[r,g,b]=[x,c,0]; else if(hue<180)[r,g,b]=[0,c,x]; else if(hue<240)[r,g,b]=[0,x,c]; else if(hue<300)[r,g,b]=[x,0,c]; else [r,g,b]=[c,0,x]; return '#'+[r+m,g+m,b+m].map(v=>Math.max(0,Math.min(255,Math.round(v*255))).toString(16).padStart(2,'0')).join('') }
   const findL = (h: number,s: number,tgt: number) => { let lo=0,hi=1; for(let i=0;i<24;i++){const mid=(lo+hi)/2; relLum(hslToHex(h,s,mid))<tgt?lo=mid:hi=mid}; return(lo+hi)/2 }
   const bg='#19202D',tc=4.5,maxB=0.85,minS=0.4,maxS=0.8,dsF=0.6

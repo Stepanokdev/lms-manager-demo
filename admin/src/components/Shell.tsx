@@ -10,9 +10,11 @@ import {
   IconAlert,
   IconUsers,
   IconLogout,
+  IconBuilding,
+  IconLink,
 } from './icons'
 
-interface NavItem {
+export interface NavItem {
   id: View
   label: string
   icon: ReactNode
@@ -25,7 +27,34 @@ const NAV: NavItem[] = [
   { id: 'admins', label: 'Team', icon: <IconUsers /> },
 ]
 
-export function Shell({ config, children }: { config: PublicConfig | null; children: ReactNode }) {
+/** Portal mode: the operator also runs the tenants themselves. */
+const OPERATOR_PORTAL_NAV: NavItem[] = [
+  { id: 'overview', label: 'Overview', icon: <IconGrid /> },
+  { id: 'orgs', label: 'Organizations', icon: <IconBuilding /> },
+  { id: 'lms', label: 'All platforms', icon: <IconServer /> },
+  { id: 'admins', label: 'Team', icon: <IconUsers /> },
+]
+
+/** What a provider sees: their shelf, their address, their details. */
+export const PROVIDER_NAV: NavItem[] = [
+  { id: 'platforms', label: 'Platforms', icon: <IconServer /> },
+  { id: 'appconfig', label: 'App config', icon: <IconLink /> },
+  { id: 'organization', label: 'Organization', icon: <IconBuilding /> },
+]
+
+export function Shell({
+  config,
+  children,
+  nav: navOverride,
+  subtitle,
+  brand,
+}: {
+  config: PublicConfig | null
+  children: ReactNode
+  nav?: NavItem[]
+  subtitle?: string
+  brand?: string
+}) {
   const view = useStore((s) => s.view)
   const setView = useStore((s) => s.setView)
   const user = useStore((s) => s.user)
@@ -35,16 +64,22 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
   const openReports = stats ? stats.new + stats.reviewing : 0
   const hasHigh = (stats?.high_open ?? 0) > 0
 
-  const brandName = config?.provider_name || 'LMS Registry'
+  const brandName = brand || config?.provider_name || 'LMS Registry'
   // Curated (institution) mode has no learner reports, so drop the Complaints tab.
   const isCurated = config?.directory_mode === 'curated'
-  const nav = isCurated ? NAV.filter((item) => item.id !== 'reports') : NAV
+  const isPortal = config?.directory_mode === 'portal'
+  const defaultNav = isPortal
+    ? OPERATOR_PORTAL_NAV
+    : isCurated
+      ? NAV.filter((item) => item.id !== 'reports')
+      : NAV
+  const nav = navOverride ?? defaultNav
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-canvas">
       {/* Sidebar (lg+) */}
       <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-line bg-card px-4 py-6 lg:flex">
-        <Brand name={brandName} />
+        <Brand name={brandName} subtitle={subtitle} />
         <nav className="mt-8 flex flex-1 flex-col gap-1 overflow-y-auto">
           {nav.map((item) => (
             <NavButton
@@ -64,7 +99,7 @@ export function Shell({ config, children }: { config: PublicConfig | null; child
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar: brand + sign out (navigation lives in the bottom bar) */}
         <header className="flex shrink-0 items-center gap-3 border-b border-line bg-card px-4 py-3 lg:hidden">
-          <Brand name={brandName} />
+          <Brand name={brandName} subtitle={subtitle} />
           <button
             onClick={logout}
             className="ml-auto flex h-9 w-9 items-center justify-center rounded-md text-lg text-muted transition-colors hover:bg-canvas-2 hover:text-ink"
@@ -131,7 +166,7 @@ function MobileTab({
   )
 }
 
-function Brand({ name, compact }: { name: string; compact?: boolean }) {
+function Brand({ name, compact, subtitle }: { name: string; compact?: boolean; subtitle?: string }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-500 text-white">
@@ -140,7 +175,7 @@ function Brand({ name, compact }: { name: string; compact?: boolean }) {
       {!compact && (
         <div className="min-w-0">
           <div className="truncate text-sm font-bold tracking-tight text-ink">{name}</div>
-          <div className="text-[11px] text-muted">Admin console</div>
+          <div className="text-[11px] text-muted">{subtitle || 'Admin console'}</div>
         </div>
       )}
     </div>

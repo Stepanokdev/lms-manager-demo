@@ -42,8 +42,9 @@ catalog safe and act on what learners report from the app.
 
 -   :material-domain: **Providers**
 
-    Run one branded app across several of your own platforms. →
-    [Provider mode](provider-mode.md)
+    Run one branded app across several of your own platforms — on your own
+    server, or on a shared provider portal. →
+    [Three ways to run it](modes.md)
 
 </div>
 
@@ -67,3 +68,17 @@ catalog safe and act on what learners report from the app.
 </figure>
 
 See [How it works](how-it-works.md) for the full picture.
+
+## Not everyone wants a shared catalog
+
+The steps above describe the **open catalog** — one app for the whole ecosystem,
+with moderation to match. An organization that runs its own platforms usually
+wants the opposite: one app, under its own name, listing only its own platforms
+and offering no way to wander off to anyone else's.
+
+The same registry does that too, in two shapes: run it yourself for
+[one organization](provider-mode.md), or register on a
+[provider portal](portal-mode.md) and skip running a server at all. Neither
+needs a change to the mobile apps — only a different address in their config.
+
+→ [Three ways to run it](modes.md)

@@ -5,15 +5,20 @@ SEED_DEMO is truthy — it defaults to OFF so a production database never ships
 with known passwords. For a real deployment, set ADMIN_EMAIL + ADMIN_PASSWORD
 (and leave SEED_DEMO unset) and the initial admin is created from those.
 Local development: run with SEED_DEMO=1.
+
+Portal deployments get a different demo set — see `_seed_portal_demo` — because
+the thing worth looking at there is one provider's own directory, not an open
+catalog with complaints in it.
 """
 import datetime
 import os
 
 from sqlalchemy.orm import Session
 
+from .config import get_config
 from .database import SessionLocal
 from .models import (
-    User, LMSInstance, UserRole, LMSStatus, Visibility,
+    User, LMSInstance, Organization, UserRole, LMSStatus, Visibility,
     Report, ReportCategory, ReportStatus, ReportSeverity, CATEGORY_SEVERITY,
 )
 from .auth import hash_password
@@ -22,6 +27,195 @@ from .color_utils import adapt_accent_for_dark
 
 def _truthy(value: str | None) -> bool:
     return (value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+# Logos are absolute URLs on the pilot registry rather than files committed here:
+# this is demo data that only ever runs with SEED_DEMO=1, and keeping real logos
+# is what makes the branded list actually look like a provider's app.
+_PILOT_ASSETS = "https://openedx-lms.stepanok.com/uploads"
+
+# Five real Open edX platforms with genuinely different branding — the point of a
+# provider directory is that each one keeps its own identity inside one app.
+_DEMO_PORTAL_PLATFORMS = [
+    dict(
+        name="Axim", platform_name="AXIM Collaborative",
+        description="AXIM Collaborative Community Platform for development and testing of Open edX mobile applications.",
+        base_url="https://axim-ccpv-dev.raccoongang.net",
+        oauth_client_id="SxDFlH1rb8Xw3nT6lOPwUejLb9vgXzOfkgqx1sY2",
+        accent_color="#002545", logo_url=f"{_PILOT_ASSETS}/0f1c254f87b44e46bfc57d0bece0adac.webp",
+        login_background_url=f"{_PILOT_ASSETS}/64efba4fcc7d49a989f7d91d8318d8f5.png",
+        dashboard_type="list", unknown_units_mode="webview",
+        pre_login_discovery=False, pre_login_experience=False,
+        course_unit_progress=True, course_dropdown_nav=True,
+        offline_downloads=True, smart_push_automation=False,
+        feedback_email="support@example.com", sort_order=0,
+    ),
+    dict(
+        name="Venus", platform_name="Venus Education",
+        description="White Label development instance for customized Open edX deployments and partner integrations.",
+        base_url="https://venus.raccoongang.net",
+        oauth_client_id="K5TcezWSOG6WBzgjBcnn16mVdxTDwFd66aOJndXF",
+        accent_color="#8a2be2", logo_url=f"{_PILOT_ASSETS}/7a90f8c651b34116b95a8a38928c617c.png",
+        login_background_url=f"{_PILOT_ASSETS}/4e935500048f4667ab140d805d8ab191.jpg",
+        dashboard_type="gallery", unknown_units_mode="webview",
+        pre_login_discovery=False, pre_login_experience=True,
+        course_unit_progress=True, course_dropdown_nav=False,
+        offline_downloads=True, smart_push_automation=False,
+        feedback_email="support@example.com", sort_order=1,
+    ),
+    dict(
+        name="Banana", platform_name="Banana Learning",
+        description="Short professional courses, delivered mobile-first.",
+        base_url="https://axim-ccpv-dev.raccoongang.net",
+        oauth_client_id="SxDFlH1rb8Xw3nT6lOPwUejLb9vgXzOfkgqx1sY2",
+        accent_color="#fdc91d", logo_url=f"{_PILOT_ASSETS}/ef1668ef36e9468da84f18accd0f8009.png",
+        login_background_url=f"{_PILOT_ASSETS}/1e42d937e29d44a6a5b695a4a6988fd4.png",
+        dashboard_type="list", unknown_units_mode="webview",
+        pre_login_discovery=False, pre_login_experience=True,
+        course_unit_progress=False, course_dropdown_nav=True,
+        offline_downloads=True, smart_push_automation=True,
+        feedback_email="support@example.com", sort_order=2,
+    ),
+    dict(
+        name="Takoradi", platform_name="Takoradi Technical",
+        description="Technical university campus running on Open edX.",
+        base_url="https://takoradi.edunext.cloud",
+        oauth_client_id="ZoVMqJgxl4xhgZV4xi0a0m1hV8ywIhJFA2Qavlyo",
+        accent_color="#007BFF", logo_url=f"{_PILOT_ASSETS}/eb4330b3f342485fbab7b985a6d19af6.png",
+        login_background_url=f"{_PILOT_ASSETS}/b8ae95ea629c4c5c8af5d8ae6c973c5f.png",
+        dashboard_type="list", unknown_units_mode="webview",
+        pre_login_discovery=True, pre_login_experience=True,
+        course_unit_progress=True, course_dropdown_nav=True,
+        offline_downloads=True, smart_push_automation=False,
+        feedback_email="support@example.com", sort_order=3,
+    ),
+    dict(
+        name="Ulmo Demo", platform_name="Ulmo Demo Campus",
+        description="Public demo instance on the Ulmo release, used for onboarding.",
+        base_url="https://demo.ulmo.releases.edunext.link",
+        oauth_client_id="yEuuu5AkMoL1ijZyoKuiUkFgUHFZ9OtIsrsz41kR",
+        accent_color="#2196f3", logo_url=f"{_PILOT_ASSETS}/936d5d262b53433080680f2844a4152a.png",
+        login_background_url="",
+        dashboard_type="gallery", unknown_units_mode="block",
+        pre_login_discovery=True, pre_login_experience=True,
+        course_unit_progress=True, course_dropdown_nav=True,
+        offline_downloads=True, smart_push_automation=False,
+        feedback_email="support@example.com", sort_order=4,
+    ),
+]
+
+
+# A second provider, so the demo shows what the mode is actually for: two
+# organizations on one deployment, each with a directory the other cannot touch.
+_DEMO_SECOND_PROVIDER = [
+    dict(
+        name="Harbourline Campus", platform_name="Harbourline Institute",
+        description="Vocational and short-course programmes for the maritime trades.",
+        base_url="https://sandbox.openedx.org",
+        oauth_client_id="android",
+        accent_color="#6a2e7b", logo_url=f"{_PILOT_ASSETS}/9e8eb38dbcf841d9957d37a1cde1f0d1.png",
+        login_background_url=f"{_PILOT_ASSETS}/e882c3e59a2a44f39fa96bc0335a57a3.png",
+        dashboard_type="gallery", unknown_units_mode="webview",
+        pre_login_discovery=True, pre_login_experience=True,
+        course_unit_progress=True, course_dropdown_nav=True,
+        offline_downloads=True, smart_push_automation=False,
+        feedback_email="support@example.com", sort_order=0,
+    ),
+    dict(
+        name="Harbourline Online", platform_name="Harbourline Institute",
+        description="The distance-learning campus, open to students worldwide.",
+        base_url="https://demo.ulmo.releases.edunext.link",
+        oauth_client_id="yEuuu5AkMoL1ijZyoKuiUkFgUHFZ9OtIsrsz41kR",
+        accent_color="#0d7d4d", logo_url="",
+        login_background_url="",
+        dashboard_type="list", unknown_units_mode="block",
+        pre_login_discovery=False, pre_login_experience=False,
+        course_unit_progress=True, course_dropdown_nav=False,
+        offline_downloads=False, smart_push_automation=False,
+        feedback_email="support@example.com", sort_order=1,
+    ),
+]
+
+
+def _add_org(db: Session, *, slug, name, tagline, email, password, owner_name, platforms):
+    """One provider: its organization, its single account, and its platforms."""
+    org = Organization(slug=slug, name=name, tagline=tagline, contact_email=email, logo_url="")
+    db.add(org)
+    db.flush()
+
+    owner = User(
+        email=email,
+        name=owner_name,
+        password_hash=hash_password(password),
+        role=UserRole.user,
+        organization_id=org.id,
+    )
+    db.add(owner)
+    db.flush()
+
+    now = datetime.datetime.utcnow()
+    for spec in platforms:
+        data = dict(spec)
+        db.add(LMSInstance(
+            **data,
+            accent_color_dark=adapt_accent_for_dark(data["accent_color"]),
+            token_type="jwt",
+            visibility=Visibility.public,
+            featured=False,
+            status=LMSStatus.approved,
+            admin_reviewed=True,
+            reviewed_at=now,
+            reviewed_by=owner.id,
+            submitted_by=owner.id,
+            organization_id=org.id,
+        ))
+    return org
+
+
+def _seed_portal_demo(db: Session) -> None:
+    """
+    A portal with two providers already in it.
+
+    Two, not one, on purpose: the whole point of this mode is that each provider
+    sees only its own shelf, and a single-tenant demo cannot show that. On a
+    fresh install you get a registry operator, two organizations with real
+    directory URLs, and platforms whose branding genuinely differs so the app's
+    picker looks like a product rather than repeated rows.
+    """
+    db.add(User(
+        email="admin@demo.com",
+        name="Registry Operator",
+        password_hash=hash_password("admin123"),
+        role=UserRole.admin,
+    ))
+
+    _add_org(
+        db,
+        slug="northwind",
+        name="Northwind Education Group",
+        tagline="Five campuses, one app",
+        email="provider@demo.com",
+        password="provider123",
+        owner_name="Northwind Admin",
+        platforms=_DEMO_PORTAL_PLATFORMS,
+    )
+    _add_org(
+        db,
+        slug="harbourline",
+        name="Harbourline Institute",
+        tagline="Vocational training, on the move",
+        email="harbourline@demo.com",
+        password="provider123",
+        owner_name="Harbourline Admin",
+        platforms=_DEMO_SECOND_PROVIDER,
+    )
+
+    db.commit()
+    print(
+        "Portal demo seeded: operator admin@demo.com/admin123; providers "
+        "provider@demo.com and harbourline@demo.com (both provider123); "
+        "directories /p/northwind and /p/harbourline"
+    )
 
 
 def seed():
@@ -49,6 +243,10 @@ def seed():
                 "No users seeded. Set ADMIN_EMAIL + ADMIN_PASSWORD to create an admin, "
                 "or SEED_DEMO=1 for demo data."
             )
+            return
+
+        if get_config().is_portal:
+            _seed_portal_demo(db)
             return
 
         admin = User(

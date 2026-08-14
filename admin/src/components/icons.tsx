@@ -171,3 +171,36 @@ export const IconQr = (p: SVGProps<SVGSVGElement>) => (
     <path d="M15 15h2v2M21 15v.01M21 19v2h-2M15 21v.01M19 15v.01M15 19h.01" />
   </Base>
 )
+export const IconCopy = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </Base>
+)
+export const IconCode = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <path d="m8 17-5-5 5-5" />
+    <path d="m16 7 5 5-5 5" />
+    <path d="m13.5 4-3 16" opacity={0.55} />
+  </Base>
+)
+export const IconLink = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7L11.9 6.4" />
+    <path d="M13.5 10.5a4 4 0 0 0-5.7 0L5 13.3a4 4 0 0 0 5.7 5.7l1.4-1.4" />
+  </Base>
+)
+export const IconBuilding = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <path d="M4 21V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15" />
+    <path d="M14 10h4a2 2 0 0 1 2 2v9" />
+    <path d="M2 21h20" />
+    <path d="M7.5 8h3M7.5 12h3M7.5 16h3M17 14v.01M17 18v.01" />
+  </Base>
+)
+export const IconPhone = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <rect x="6" y="2" width="12" height="20" rx="2.5" />
+    <path d="M10.5 18.5h3" />
+  </Base>
+)

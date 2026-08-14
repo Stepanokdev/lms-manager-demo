@@ -1,4 +1,11 @@
-# Provider / curated mode
+# One organization (curated mode)
+
+!!! info "There are two ways to get a branded app"
+    This page is the **self-hosted** one: you run the registry, and it lists only
+    your organization's platforms. If you'd rather not operate a server, the
+    [provider portal](portal-mode.md) gives you the same result on shared
+    infrastructure. Both look identical in the app. See
+    [Three ways to run it](modes.md).
 
 The pilot runs an open catalog: anyone can register an Open edX platform, learners
 search for it, and moderators clean up what doesn't belong. That model assumes you
@@ -86,12 +93,23 @@ as from a desktop.
    run the wizard for each site: base URL, OAuth client, logo, colours, sign-in
    background. Each one goes live immediately. Keep a platform **hidden** until it's
    ready, and use its `sort_order` to set where it sits in the list.
-5. **Point your app at the registry.**
-    - **iOS** — set `LMS_DIRECTORY.DIRECTORY_URL` in your config. The app follows the
-      server's mode, so it switches to curated on its own.
-    - **Android** — set `LMS_DIRECTORY.DIRECTORY_URL` in `rg_config.json`. The app
-      treats the list as curated when either the server or its own
-      `DIRECTORY_MODE` says so.
+5. **Point your app at the registry.** Both apps read the same block from
+   `default_config/<env>/config.yaml` in your fork — do it for every environment
+   you actually build:
+
+    ```yaml
+    LMS_DIRECTORY:
+      ENABLED: true
+      DIRECTORY_URL: "https://registry.example.edu"
+      DIRECTORY_MODE: "curated"
+    ```
+
+    !!! danger "`DIRECTORY_MODE` is not redundant"
+        The server already reports `curated`, but both apps fall back to **search**
+        mode when they can't reach the registry — Android silently. Without the
+        local flag, a learner opening your branded app offline gets a search box
+        over every public Open edX platform. The flag can only add curated mode,
+        never remove it.
 
 Flip `DIRECTORY_MODE` back to `search` and the same registry reopens as a public
 catalog, moderation and all.

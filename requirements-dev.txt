@@ -1,0 +1,4 @@
+# Test-only dependencies. The app itself needs nothing beyond requirements.txt —
+# starlette's TestClient ships with FastAPI and httpx is already a runtime dep.
+-r requirements.txt
+pytest==8.3.3

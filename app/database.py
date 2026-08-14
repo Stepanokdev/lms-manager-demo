@@ -72,12 +72,25 @@ def migrate():
         ("owner_notified_at", "DATETIME"),
         ("block_reason", "VARCHAR DEFAULT ''"),
         ("review_requested_at", "DATETIME"),
+        # v0.4 — portal mode. Nullable on purpose: a NULL row belongs to no tenant
+        # and is therefore invisible to every /p/<slug> directory, which is the safe
+        # default for the rows that already exist in a search/curated deployment.
+        # SQLite refuses ADD COLUMN NOT NULL without a default, so nullable is also
+        # the only form that works on both engines.
+        ("organization_id", "INTEGER"),
     ]
     with engine.begin() as conn:
         for col_name, col_def in new_columns:
             if col_name not in existing:
                 conn.execute(text(f"ALTER TABLE lms_instances ADD COLUMN {col_name} {col_def}"))
         # Removing deprecated columns is not supported in SQLite, so we leave them.
+
+    # users table — portal mode attaches each provider account to an organization
+    if "users" in insp.get_table_names():
+        user_cols = {col["name"] for col in insp.get_columns("users")}
+        if "organization_id" not in user_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN organization_id INTEGER"))
 
     # reports table (added in v0.3) — new columns since
     if "reports" in insp.get_table_names():
@@ -91,8 +104,10 @@ def migrate():
                 if col_name not in report_cols:
                     conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col_name} {col_def}"))
 
-    # Indexes on hot filter/sort columns (idempotent; works on SQLite + Postgres)
-    tables = set(insp.get_table_names())
+    # Indexes on hot filter/sort columns (idempotent; works on SQLite + Postgres).
+    # Re-inspect: create_all may have added `organizations` after `insp` was built,
+    # and get_table_names() results are cached on the inspector.
+    tables = set(inspect(engine).get_table_names())
     index_specs = [
         ("ix_reports_status", "reports", "status"),
         ("ix_reports_lms_id", "reports", "lms_id"),
@@ -100,6 +115,10 @@ def migrate():
         ("ix_lms_status", "lms_instances", "status"),
         ("ix_lms_visibility", "lms_instances", "visibility"),
         ("ix_lms_featured", "lms_instances", "featured"),
+        # portal mode: every /p/<slug> directory query filters on this pair
+        ("ix_lms_org", "lms_instances", "organization_id"),
+        ("ix_lms_org_status", "lms_instances", "organization_id, status"),
+        ("ix_users_org", "users", "organization_id"),
     ]
     with engine.begin() as conn:
         for name, table, cols in index_specs:

@@ -48,9 +48,11 @@ markdown_extensions:
 nav:
   - Home: index.md
   - How it works: how-it-works.md
+  - Three ways to run it: modes.md
   - For learners (mobile app): learners.md
   - Register your LMS (owners): registering-an-lms.md
   - Admin console: admin-console.md
-  - Provider / curated mode: provider-mode.md
+  - One organization (curated): provider-mode.md
+  - Provider portal: portal-mode.md
   - Configuration & deployment: deploying.md
   - API reference: api.md

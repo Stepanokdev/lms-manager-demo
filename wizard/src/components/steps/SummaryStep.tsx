@@ -41,16 +41,23 @@ export function SummaryStep() {
         course_dropdown_nav: !!selections.course_dropdown_nav,
         unknown_units_mode: (selections.unknown_units_mode as string) || 'block',
       }
-      const url = isEditing ? `/admin/lms/${editingLmsId}` : '/lms'
-      const method = isEditing ? 'PUT' : 'POST'
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(body),
-      })
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers.Authorization = `Bearer ${token}`
+      // Save through the owner's own route. It is the only one a provider or an
+      // LMS owner can reach — /admin/lms/* is the registry operator's surface —
+      // and it refuses the moderation fields, so an edit can never approve or
+      // feature the instance it is editing. Admins editing someone else's
+      // instance still fall back to the admin route.
+      let res = isEditing
+        ? await fetch(`/my/lms/${editingLmsId}`, { method: 'PUT', headers, body: JSON.stringify(body) })
+        : await fetch('/lms', { method: 'POST', headers, body: JSON.stringify(body) })
+      if (isEditing && res.status === 404) {
+        res = await fetch(`/admin/lms/${editingLmsId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(body),
+        })
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.detail || `Error ${res.status}`)

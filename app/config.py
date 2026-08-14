@@ -6,13 +6,21 @@ Values are read from environment variables first, then from an optional
 defaults below. This lets a provider fork the repository and configure it in
 one place without touching code.
 
-Two operating modes exist:
+Three operating modes exist:
 
 * ``search``  — public catalog. Any owner registers an LMS and it becomes
   discoverable through the mobile search. This is the pilot default.
 * ``curated`` — provider / white-label mode. The mobile app skips the search
   step and shows a fixed list of the provider's own LMS instances (the ones
   flagged ``featured``) so a user can pick one immediately.
+* ``portal``  — provider portal. One deployment, many provider organizations.
+  Each provider signs up, gets an organization, adds only its own platforms,
+  and receives a permanent directory URL ``<origin>/p/<slug>`` to compile into
+  its own mobile builds. That URL serves ``directory_mode: "curated"``, so the
+  apps behave exactly like a white-label build with no mobile code change.
+
+``search`` and ``curated`` describe one catalog per deployment; ``portal``
+describes many. The mode is chosen once per deployment and never per request.
 """
 import json
 import os
@@ -21,8 +29,10 @@ from pathlib import Path
 
 _CONFIG_FILE = Path(__file__).resolve().parent.parent / "provider_config.json"
 
+MODES = {"search", "curated", "portal"}
+
 _DEFAULTS = {
-    "directory_mode": "search",          # "search" | "curated"
+    "directory_mode": "search",          # "search" | "curated" | "portal"
     "provider_name": "Open X Project",
     "provider_tagline": "One app for every Open edX platform",
     "provider_logo_url": "",
@@ -77,7 +87,7 @@ class AppConfig:
             resolved[key] = _coerce_bool(raw) if key in _BOOL_KEYS else raw
 
         mode = str(resolved["directory_mode"]).strip().lower()
-        resolved["directory_mode"] = mode if mode in {"search", "curated"} else "search"
+        resolved["directory_mode"] = mode if mode in MODES else "search"
 
         self.directory_mode: str = resolved["directory_mode"]
         self.provider_name: str = resolved["provider_name"]
@@ -100,6 +110,10 @@ class AppConfig:
     @property
     def is_curated(self) -> bool:
         return self.directory_mode == "curated"
+
+    @property
+    def is_portal(self) -> bool:
+        return self.directory_mode == "portal"
 
     @property
     def smtp_configured(self) -> bool:

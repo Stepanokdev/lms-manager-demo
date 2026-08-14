@@ -13,6 +13,8 @@ import type {
   NotifyOwnerResult,
   AffectedLMS,
   ModerationEvent,
+  Organization,
+  OrganizationAdmin,
 } from './types'
 
 const TOKEN_KEY = 'lms-admin-token'
@@ -86,18 +88,47 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
-  register: (name: string, email: string, password: string) =>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    // Portal mode only: signing up also creates the provider's organization,
+    // so the two can never exist without each other.
+    organization?: { name: string; slug?: string },
+  ) =>
     request<{ access_token: string }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        ...(organization
+          ? { organization_name: organization.name, organization_slug: organization.slug || undefined }
+          : {}),
+      }),
     }),
   me: () => request<User>('/auth/me'),
 
   // Overview
   overview: () => request<Overview>('/admin/overview'),
 
+  // Provider portal — the caller's own organization. The server resolves which
+  // organization that is from the account, so there is no id to pass or forge.
+  myOrg: () => request<Organization>('/provider/org'),
+  updateMyOrg: (patch: Partial<Pick<Organization, 'name' | 'tagline' | 'logo_url' | 'contact_email'>>) =>
+    request<Organization>('/provider/org', { method: 'PATCH', body: JSON.stringify(patch) }),
+  listOrgs: () => request<OrganizationAdmin[]>('/admin/orgs'),
+  setOrgActive: (id: number, active: boolean) =>
+    request<OrganizationAdmin>(`/admin/orgs/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ active }),
+    }),
+
   // LMS
   myLMS: () => request<LMS[]>('/my/lms'),
+  myLMSDetail: (id: number) => request<LMS>(`/my/lms/${id}`),
+  updateMyLMS: (id: number, patch: Partial<LMS>) =>
+    request<LMS>(`/my/lms/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
   listLMS: (query: LMSQuery = {}) =>
     request<LMS[]>(`/admin/lms${qs(query as Record<string, unknown>)}`),
   getLMS: (id: number) => request<LMS>(`/lms/${id}`),

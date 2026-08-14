@@ -1,8 +1,18 @@
 import { create } from 'zustand'
 import { api, setToken, clearToken, getToken } from './lib/api'
-import type { User, ReportStats } from './lib/types'
+import type { Organization, User, ReportStats } from './lib/types'
 
-export type View = 'overview' | 'lms' | 'reports' | 'admins'
+export type View =
+  // Platform operator
+  | 'overview'
+  | 'lms'
+  | 'reports'
+  | 'admins'
+  | 'orgs'
+  // Provider workspace (portal mode)
+  | 'platforms'
+  | 'appconfig'
+  | 'organization'
 
 export interface Toast {
   id: number
@@ -14,13 +24,24 @@ export interface Toast {
 interface State {
   authState: 'loading' | 'authed' | 'anon'
   user: User | null
+  /** Portal mode: the signed-in provider's own organization. Loaded once and
+   *  shared, so the shell brand and all three provider views agree. */
+  org: Organization | null
   view: View
   stats: ReportStats | null
   toasts: Toast[]
 
+  loadOrg: () => Promise<void>
+  setOrg: (org: Organization) => void
+
   bootstrap: () => Promise<void>
   login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    organization?: { name: string; slug?: string },
+  ) => Promise<void>
   logout: () => void
   setView: (view: View) => void
   refreshStats: () => Promise<void>
@@ -33,9 +54,22 @@ let toastSeq = 1
 export const useStore = create<State>((set, get) => ({
   authState: 'loading',
   user: null,
+  org: null,
   view: 'overview',
   stats: null,
   toasts: [],
+
+  loadOrg: async () => {
+    try {
+      set({ org: await api.myOrg() })
+    } catch {
+      // Not a provider account, or the deployment is not a portal — either way
+      // there is no organization to show and the workspace never renders.
+      set({ org: null })
+    }
+  },
+
+  setOrg: (org) => set({ org }),
 
   bootstrap: async () => {
     if (!getToken()) {
@@ -44,8 +78,11 @@ export const useStore = create<State>((set, get) => ({
     }
     try {
       const user = await api.me()
-      set({ user, authState: 'authed' })
+      // A provider has no Overview tab, so landing there after a refresh would
+      // render an empty shell with no nav item selected.
+      set({ user, authState: 'authed', view: user.role === 'admin' ? 'overview' : 'platforms' })
       if (user.role === 'admin') get().refreshStats()
+      if (user.organization_id !== null) get().loadOrg()
     } catch {
       clearToken()
       set({ authState: 'anon', user: null })
@@ -56,21 +93,25 @@ export const useStore = create<State>((set, get) => ({
     const { access_token } = await api.login(email, password)
     setToken(access_token)
     const user = await api.me()
-    set({ user, authState: 'authed', view: 'overview' })
+    set({ user, authState: 'authed', view: user.role === 'admin' ? 'overview' : 'platforms' })
     if (user.role === 'admin') get().refreshStats()
+    if (user.organization_id !== null) await get().loadOrg()
   },
 
-  register: async (name, email, password) => {
-    const { access_token } = await api.register(name, email, password)
+  register: async (name, email, password, organization) => {
+    const { access_token } = await api.register(name, email, password, organization)
     setToken(access_token)
     const user = await api.me()
-    set({ user, authState: 'authed', view: 'overview' })
-    get().refreshStats()
+    set({ user, authState: 'authed', view: user.role === 'admin' ? 'overview' : 'platforms' })
+    // Only admins may read complaint stats; a provider or owner signing up would
+    // take a silent 403 here.
+    if (user.role === 'admin') get().refreshStats()
+    if (user.organization_id !== null) await get().loadOrg()
   },
 
   logout: () => {
     clearToken()
-    set({ authState: 'anon', user: null, stats: null, toasts: [] })
+    set({ authState: 'anon', user: null, org: null, stats: null, toasts: [] })
   },
 
   setView: (view) => set({ view }),

@@ -131,6 +131,7 @@ export const useWizardStore = create<WizardStore>()(
             feedbackEmail: '',
             accentColor: '#42AAFF',
             logoUrl: '',
+            loginBackgroundUrl: '',
           },
           selections: getDefaultSelections(),
         }),

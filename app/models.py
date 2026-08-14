@@ -7,6 +7,11 @@ from .database import Base
 
 
 class UserRole(str, enum.Enum):
+    # Deliberately unchanged. In portal mode a provider is a `user` that carries an
+    # organization_id — see Organization below. Keeping the enum at two members means
+    # `require_admin` still can't be reached by a provider, so cross-org access to the
+    # global /admin/* surface is impossible by construction rather than by a filter we
+    # might forget to write.
     admin = "admin"
     user = "user"
 
@@ -60,6 +65,38 @@ CATEGORY_SEVERITY = {
 }
 
 
+class Organization(Base):
+    """
+    A provider organization — the tenant of portal mode.
+
+    One organization owns one set of LMS instances and gets one directory URL
+    (``<origin>/p/<slug>``) that its own mobile builds point at. The slug is
+    permanent: it is compiled into shipped apps, so renaming it would silently
+    break every install already in the field.
+
+    Only meaningful when ``DIRECTORY_MODE=portal``. In ``search`` and ``curated``
+    deployments the table stays empty and every query keeps its old global shape.
+    """
+    __tablename__ = "organizations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    tagline = Column(String, default="")
+    logo_url = Column(String, default="")
+    contact_email = Column(String, default="")
+
+    # Set false by a platform superadmin to take a provider's directory offline
+    # without deleting anything: /p/<slug>/* then 404s exactly like an unknown slug.
+    active = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    members = relationship("User", back_populates="organization")
+    lms_instances = relationship("LMSInstance", back_populates="organization")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -68,13 +105,23 @@ class User(Base):
     name = Column(String, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(SAEnum(UserRole), default=UserRole.user, nullable=False)
+    # Portal mode: the provider account this user is. NULL in search/curated mode
+    # and for the platform superadmin, who deliberately belongs to no tenant.
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    organization = relationship("Organization", back_populates="members")
 
     lms_instances = relationship(
         "LMSInstance",
         foreign_keys="LMSInstance.submitted_by",
         back_populates="submitter",
     )
+
+    @property
+    def is_provider(self) -> bool:
+        """True for a provider account — i.e. one scoped to an organization."""
+        return self.organization_id is not None
 
 
 class LMSInstance(Base):
@@ -134,10 +181,15 @@ class LMSInstance(Base):
     review_requested_at = Column(DateTime, nullable=True)
 
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Portal mode: the organization whose directory this instance appears in. NULL in
+    # search/curated mode. Every /p/<slug> query filters on it, so a NULL row is
+    # invisible to every provider directory — which is the safe default.
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     submitter = relationship("User", foreign_keys=[submitted_by], back_populates="lms_instances")
+    organization = relationship("Organization", back_populates="lms_instances")
     reports = relationship("Report", back_populates="lms", cascade="all, delete-orphan")
 
     @property

@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from .database import Base, engine, get_db
 from .models import (
-    User, LMSInstance, LMSStatus, UserRole, Visibility,
+    User, LMSInstance, LMSStatus, UserRole, Visibility, Organization,
     Report, ReportCategory, ReportStatus, ReportSeverity, CATEGORY_SEVERITY,
     ModerationEvent,
 )
@@ -24,14 +24,20 @@ from .schemas import (
     RegisterRequest, LoginRequest, TokenResponse, UserResponse,
     AdminCreateRequest, UserRoleUpdateRequest,
     LMSCreateRequest, LMSUpdateStatusRequest, LMSFullUpdateRequest,
-    LMSReviewRequest, LMSResponse,
+    LMSReviewRequest, LMSResponse, LMSOwnerUpdateRequest, PublicLMSResponse,
     ReportCreateRequest, ReportCreateResponse, ReportUpdateRequest,
     ReportResponse, ReportStats, PublicConfigResponse, NotifyOwnerResponse,
     ModerationEventResponse, AffectedLMS, ReportLMSBrief,
+    OrganizationResponse, OrganizationUpdateRequest,
+    OrganizationAdminResponse, OrganizationStatusRequest,
+)
+from .tenancy import (
+    directory_url_for, get_public_org, org_by_slug, public_origin,
+    require_org, require_portal_mode, unique_slug,
 )
 from .auth import (
     hash_password, verify_password, create_access_token,
-    get_current_user, require_admin,
+    get_current_user, get_optional_user, require_admin,
 )
 from .color_utils import adapt_accent_for_dark
 from .config import get_config
@@ -107,13 +113,40 @@ def _save_report_screenshot(b64: str | None) -> str:
 
 @app.post("/auth/register", response_model=TokenResponse)
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
-    if get_config().is_curated:
+    cfg = get_config()
+    if cfg.is_curated:
         # Curated (institution) registry: it lists the org's own platforms, so there is
         # no public self-service sign-up. Admins are provisioned deliberately and manage
         # the list themselves.
         raise HTTPException(status_code=403, detail="Sign-up is disabled for this registry.")
     if db.query(User).filter(User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    if cfg.is_portal:
+        # Portal mode: signing up IS creating the organization. One account per
+        # provider, so the two are created together and can never drift apart —
+        # there is no state where an account exists with no directory to manage.
+        org_name = (req.organization_name or "").strip()
+        if not org_name:
+            raise HTTPException(status_code=400, detail="Tell us your organization's name.")
+        if len(org_name) > 120:
+            raise HTTPException(status_code=400, detail="Organization name is too long.")
+        slug = unique_slug(db, req.organization_slug or org_name)
+        org = Organization(slug=slug, name=org_name, contact_email=req.email)
+        db.add(org)
+        db.flush()
+        user = User(
+            email=req.email,
+            name=req.name,
+            password_hash=hash_password(req.password),
+            role=UserRole.user,
+            organization_id=org.id,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return TokenResponse(access_token=create_access_token(user.id, user.role.value))
+
     user = User(email=req.email, name=req.name, password_hash=hash_password(req.password))
     db.add(user)
     db.commit()
@@ -146,7 +179,14 @@ async def upload_file(
     content = await file.read()
     if len(content) > MAX_SIZE:
         raise HTTPException(status_code=400, detail="File too large (max 2MB)")
-    ext = Path(file.filename or "file").suffix or ".png"
+    # The extension comes from the bytes, never from the declared type or the
+    # supplied filename. Uploads are served same-origin as the console, so trusting
+    # either would let an "image/png" named evil.html land at /uploads/evil.html and
+    # run as a page — and with several organizations on one deployment, run against
+    # every other tenant's session.
+    ext = _sniff_image_ext(content)
+    if not ext:
+        raise HTTPException(status_code=400, detail="That file is not a PNG, JPEG or WebP image.")
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = UPLOAD_DIR / filename
     filepath.write_bytes(content)
@@ -214,23 +254,61 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
 
 
 @app.post("/validate-lms")
-async def validate_lms(req: LMSValidateRequest, request: Request):
-    """Validate LMS reachability and OAuth Client ID without user credentials."""
-    if not validate_limiter.allow(client_ip(request), limit=20, window_seconds=60):
+async def validate_lms(
+    req: LMSValidateRequest,
+    request: Request,
+    user: User | None = Depends(get_optional_user),
+):
+    """
+    Validate LMS reachability and OAuth Client ID without user credentials.
+
+    This makes the server fetch a URL of the caller's choosing, so on a portal
+    deployment — where anyone can sign up — it is behind auth and its quota is
+    counted per account. Without that, one tenant could burn the shared quota, or
+    a stranger could use the registry as a free probe from its IP.
+    """
+    if get_config().is_portal:
+        if user is None:
+            raise HTTPException(status_code=401, detail="Sign in to check a platform URL.")
+        bucket = f"u{user.id}"
+    else:
+        bucket = client_ip(request)
+    if not validate_limiter.allow(bucket, limit=20, window_seconds=60):
         raise HTTPException(status_code=429, detail="Too many checks. Try again in a minute.")
     return await _probe_lms(req.base_url, req.oauth_client_id)
 
 
 # ── Public LMS list ───────────────────────────────────
 
-@app.get("/lms", response_model=list[LMSResponse])
+@app.get("/lms", response_model=list[PublicLMSResponse])
 def list_approved_lms(db: Session = Depends(get_db)):
+    """
+    The deployment's public catalog.
+
+    Empty in portal mode: there is no single catalog there, only one per
+    organization at /p/<slug>/api/v1/directory. Returning every tenant's rows
+    here would hand any stranger the whole list of providers.
+    """
+    if get_config().is_portal:
+        return []
     return db.query(LMSInstance).filter(LMSInstance.status == LMSStatus.approved).all()
 
 
-@app.get("/lms/{lms_id}", response_model=LMSResponse)
+@app.get("/lms/{lms_id}", response_model=PublicLMSResponse)
 def get_lms(lms_id: int, db: Session = Depends(get_db)):
-    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    """
+    One published platform, as an anonymous caller may see it.
+
+    Only approved instances resolve — a pending or blocked one 404s rather than
+    exposing its moderation state — and the response carries no owner email or
+    block reason. Owners load their own full record from /my/lms/{id}.
+    """
+    if get_config().is_portal:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    lms = db.query(LMSInstance).filter(
+        LMSInstance.id == lms_id,
+        LMSInstance.status == LMSStatus.approved,
+    ).first()
     if not lms:
         raise HTTPException(status_code=404, detail="LMS not found")
     return lms
@@ -243,7 +321,21 @@ def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db
     data = req.model_dump()
     data["accent_color_dark"] = adapt_accent_for_dark(data.get("accent_color", "#007AFF"))
     cfg = get_config()
-    if cfg.is_curated:
+    if cfg.is_portal:
+        # Portal mode: a platform belongs to the caller's organization, taken from
+        # their account. Nothing in the request body can set or change it.
+        org = require_org(user=user, db=db)
+        data.pop("featured", None)
+        lms = LMSInstance(
+            **data,
+            submitted_by=user.id,
+            organization_id=org.id,
+            status=LMSStatus.approved,
+            admin_reviewed=True,
+            reviewed_at=datetime.datetime.utcnow(),
+            reviewed_by=user.id,
+        )
+    elif cfg.is_curated:
         # Curated (institution) mode: the registry lists the org's own platforms, so
         # every addition is trusted and live immediately — no review step, no "unreviewed".
         lms = LMSInstance(
@@ -265,25 +357,237 @@ def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db
     return lms
 
 
+def _own_lms_query(user: User, db: Session):
+    """
+    The platforms this caller may read and edit.
+
+    In portal mode that is the whole organization's set, so the workspace keeps
+    working if a provider ever gets a second seat; everywhere else it is exactly
+    the rows the caller submitted. Every owner-scoped route funnels through here
+    rather than filtering by hand, so there is one place to get it right.
+    """
+    query = db.query(LMSInstance)
+    if get_config().is_portal:
+        org = require_org(user=user, db=db)
+        return query.filter(LMSInstance.organization_id == org.id)
+    return query.filter(LMSInstance.submitted_by == user.id)
+
+
+def _own_lms_or_404(lms_id: int, user: User, db: Session) -> LMSInstance:
+    """404 — not 403 — when the row belongs to someone else, so the response
+    cannot be used to probe which platform ids exist in other organizations."""
+    lms = _own_lms_query(user, db).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    return lms
+
+
 @app.get("/my/lms", response_model=list[LMSResponse])
 def my_lms(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(LMSInstance).filter(LMSInstance.submitted_by == user.id).all()
+    return _own_lms_query(user, db).order_by(
+        LMSInstance.sort_order.asc(), LMSInstance.name.asc()
+    ).all()
+
+
+@app.get("/my/lms/{lms_id}", response_model=LMSResponse)
+def my_lms_detail(
+    lms_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The owner's full record for one platform — what the wizard loads to edit."""
+    return _own_lms_or_404(lms_id, user, db)
+
+
+@app.put("/my/lms/{lms_id}", response_model=LMSResponse)
+def my_lms_update(
+    lms_id: int,
+    req: LMSOwnerUpdateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Owner edits their own platform.
+
+    Moderation fields are not in LMSOwnerUpdateRequest at all, so a provider
+    cannot approve, feature or un-block their own listing by editing it.
+    """
+    lms = _own_lms_or_404(lms_id, user, db)
+    updates = req.model_dump(exclude_none=True)
+    if "accent_color" in updates:
+        updates["accent_color_dark"] = adapt_accent_for_dark(updates["accent_color"])
+    for key, value in updates.items():
+        setattr(lms, key, value)
+    db.commit()
+    db.refresh(lms)
+    return lms
 
 
 @app.post("/my/lms/{lms_id}/request-review", response_model=LMSResponse)
 def request_review(lms_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Owner asks for a re-review after fixing a blocked instance."""
-    lms = db.query(LMSInstance).filter(
-        LMSInstance.id == lms_id, LMSInstance.submitted_by == user.id
-    ).first()
-    if not lms:
-        raise HTTPException(status_code=404, detail="LMS not found")
+    lms = _own_lms_or_404(lms_id, user, db)
     lms.review_requested_at = datetime.datetime.utcnow()
     _log_event(db, actor_id=user.id, actor_name=user.name, lms_id=lms.id,
                action="review_requested", detail="owner says the issue is fixed")
     db.commit()
     db.refresh(lms)
     return lms
+
+
+# ── Provider portal: the caller's own organization ────
+
+def _org_counts(org: Organization, db: Session) -> tuple[int, int]:
+    """(platforms, published) — published = what the provider's app actually shows."""
+    total = (
+        db.query(func.count(LMSInstance.id))
+        .filter(LMSInstance.organization_id == org.id)
+        .scalar()
+        or 0
+    )
+    published = (
+        db.query(func.count(LMSInstance.id))
+        .filter(
+            LMSInstance.organization_id == org.id,
+            LMSInstance.status == LMSStatus.approved,
+            LMSInstance.visibility == Visibility.public,
+        )
+        .scalar()
+        or 0
+    )
+    return total, published
+
+
+def _org_response(org: Organization, db: Session, request: Request | None) -> OrganizationResponse:
+    total, published = _org_counts(org, db)
+    return OrganizationResponse(
+        id=org.id,
+        slug=org.slug,
+        name=org.name,
+        tagline=org.tagline or "",
+        logo_url=org.logo_url or "",
+        contact_email=org.contact_email or "",
+        active=org.active,
+        created_at=org.created_at,
+        directory_url=directory_url_for(org, request),
+        platform_count=total,
+        published_count=published,
+    )
+
+
+@app.get("/provider/org", response_model=OrganizationResponse)
+def provider_org(
+    request: Request,
+    org: Organization = Depends(require_org),
+    db: Session = Depends(get_db),
+):
+    """The provider's own organization, including the directory URL they ship."""
+    return _org_response(org, db, request)
+
+
+@app.patch("/provider/org", response_model=OrganizationResponse)
+def provider_update_org(
+    req: OrganizationUpdateRequest,
+    request: Request,
+    org: Organization = Depends(require_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Update the organization's branding.
+
+    `slug` is intentionally not accepted: it is already compiled into whatever
+    mobile builds the provider has shipped, and changing it would take every
+    installed app offline with no way for the provider to undo it.
+    """
+    updates = req.model_dump(exclude_none=True)
+    for key, value in updates.items():
+        setattr(org, key, value)
+    db.commit()
+    db.refresh(org)
+    return _org_response(org, db, request)
+
+
+# ── Admin: organizations (platform superadmin) ────────
+
+@app.get("/admin/orgs", response_model=list[OrganizationAdminResponse])
+def admin_list_orgs(
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Every tenant on this deployment, for the operator running the portal."""
+    require_portal_mode()
+    out: list[OrganizationAdminResponse] = []
+    for org in db.query(Organization).order_by(Organization.created_at.desc()).all():
+        total, published = _org_counts(org, db)
+        owner = (
+            db.query(User)
+            .filter(User.organization_id == org.id)
+            .order_by(User.created_at.asc())
+            .first()
+        )
+        out.append(OrganizationAdminResponse(
+            id=org.id,
+            slug=org.slug,
+            name=org.name,
+            tagline=org.tagline or "",
+            logo_url=org.logo_url or "",
+            contact_email=org.contact_email or "",
+            active=org.active,
+            created_at=org.created_at,
+            directory_url=directory_url_for(org, request),
+            platform_count=total,
+            published_count=published,
+            owner_email=owner.email if owner else "",
+            owner_name=owner.name if owner else "",
+        ))
+    return out
+
+
+@app.patch("/admin/orgs/{org_id}", response_model=OrganizationAdminResponse)
+def admin_set_org_status(
+    org_id: int,
+    req: OrganizationStatusRequest,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Suspend or restore one tenant.
+
+    Suspending takes /p/<slug> offline and locks the provider out of their
+    workspace, but deletes nothing — restoring puts the same directory back at
+    the same URL, so the apps in the field recover on their own.
+    """
+    require_portal_mode()
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    org.active = req.active
+    db.commit()
+    db.refresh(org)
+    total, published = _org_counts(org, db)
+    owner = (
+        db.query(User)
+        .filter(User.organization_id == org.id)
+        .order_by(User.created_at.asc())
+        .first()
+    )
+    return OrganizationAdminResponse(
+        id=org.id,
+        slug=org.slug,
+        name=org.name,
+        tagline=org.tagline or "",
+        logo_url=org.logo_url or "",
+        contact_email=org.contact_email or "",
+        active=org.active,
+        created_at=org.created_at,
+        directory_url=directory_url_for(org, request),
+        platform_count=total,
+        published_count=published,
+        owner_email=owner.email if owner else "",
+        owner_name=owner.name if owner else "",
+    )
 
 
 # ── Admin: LMS ────────────────────────────────────────
@@ -321,6 +625,25 @@ def admin_list_lms(
         )
     query = query.order_by(LMSInstance.created_at.desc())
     return query.offset(max(0, offset)).limit(min(max(1, limit), 500)).all()
+
+
+@app.get("/admin/lms/{lms_id}", response_model=LMSResponse)
+def admin_get_lms(
+    lms_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    One instance's full record for the operator.
+
+    The public /lms/{id} no longer carries the owner email, block reason or the
+    moderation state, so the wizard needs an authenticated route to prefill an
+    edit of an instance the caller does not own.
+    """
+    lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    return lms
 
 
 @app.get("/admin/overview")
@@ -512,7 +835,13 @@ def create_report(
     db: Session = Depends(get_db),
 ):
     """Public endpoint: a mobile user files a complaint about an LMS."""
-    if get_config().is_curated:
+    cfg = get_config()
+    if cfg.is_portal:
+        # Portal deployments have no catalog at the root, so there is nothing here to
+        # report about. Per-organization directories close reporting too — see
+        # org_reports_closed.
+        _portal_root_guard()
+    if cfg.is_curated:
         # Curated (institution) registry lists the org's own platforms — there is no
         # trust-&-safety reporting flow. The apps hide the entry point; reject here too.
         raise HTTPException(status_code=403, detail="Reporting is not available for this registry.")
@@ -893,8 +1222,35 @@ def _lms_to_summary(lms: LMSInstance, base: str) -> dict:
     }
 
 
+def _portal_root_guard() -> None:
+    """
+    A portal deployment has no catalog at its own root — only one per organization.
+
+    Failing loudly here matters: if the root answered with an empty list instead,
+    a provider who pasted the bare origin into DIRECTORY_URL (forgetting the
+    /p/<slug> part) would ship an app that looks like it works and shows nothing.
+    """
+    if get_config().is_portal:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "This is a provider portal. Use your organization's directory URL "
+                "(<origin>/p/<your-slug>), not the site root."
+            ),
+        )
+
+
 @app.get("/api/v1/config", response_model=PublicConfigResponse)
 def public_config():
+    """
+    This deployment's own config.
+
+    In portal mode it reports `directory_mode: "portal"` rather than 404ing: the
+    console reads this endpoint to decide which workspace to render. An app
+    pointed here by mistake still fails loudly, because "portal" is not a
+    catalog behaviour either app implements and the directory endpoint below
+    refuses outright.
+    """
     return get_config().public_dict()
 
 
@@ -915,6 +1271,7 @@ def directory_search(
       hidden instance whose base_url exactly matches the query.
     * search mode without a query: the public catalog.
     """
+    _portal_root_guard()
     base = str(request.base_url).rstrip("/") if request else ""
     cfg = get_config()
     approved = db.query(LMSInstance).filter(LMSInstance.status == LMSStatus.approved)
@@ -956,6 +1313,7 @@ def directory_search(
 
 @app.get("/api/v1/directory/{lms_id}")
 def directory_detail(lms_id: str, request: Request, db: Session = Depends(get_db)):
+    _portal_root_guard()
     if not lms_id.isdigit():
         raise HTTPException(status_code=404, detail="LMS not found")
     lms = db.query(LMSInstance).filter(
@@ -983,8 +1341,146 @@ def ul_detail(lms_id: str, request: Request, db: Session = Depends(get_db)):
 
 
 @app.post("/api/universal-login/reports", response_model=ReportCreateResponse, status_code=201)
-def ul_report(req: ReportCreateRequest, background: BackgroundTasks, db: Session = Depends(get_db)):
-    return create_report(req=req, background=background, db=db)
+def ul_report(
+    req: ReportCreateRequest,
+    background: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    # `request` is declared here as well as forwarded: create_report needs it for
+    # the rate-limit key, and omitting it made every call to this alias 500.
+    return create_report(req=req, background=background, request=request, db=db)
+
+
+# ── Provider directory (portal mode): /p/{slug}/... ───
+#
+# This prefix is the entire public contract of portal mode. A provider pastes
+# `<origin>/p/<slug>` into LMS_DIRECTORY.DIRECTORY_URL and both apps append their
+# own paths to it — iOS via URL.appendingPathComponent, Android via Retrofit's
+# relative-path resolution — so these routes are exactly the root ones the apps
+# already speak, scoped to one organization. That is why a provider build needs
+# no mobile code change at all.
+
+def _org_directory_rows(org: Organization, db: Session) -> list[LMSInstance]:
+    """The organization's published platforms, in the order the provider chose."""
+    return (
+        db.query(LMSInstance)
+        .filter(
+            LMSInstance.organization_id == org.id,
+            LMSInstance.status == LMSStatus.approved,
+            LMSInstance.visibility == Visibility.public,
+        )
+        .order_by(LMSInstance.sort_order.asc(), LMSInstance.name.asc())
+        .all()
+    )
+
+
+@app.get("/p/{slug}/api/v1/config", response_model=PublicConfigResponse)
+def org_public_config(
+    request: Request,
+    org: Organization = Depends(get_public_org),
+):
+    """
+    The provider's app config.
+
+    Reports `curated`, not `portal`: the apps understand two catalog behaviours,
+    and "show this fixed list, no search box" is exactly what a provider build
+    needs. Sending an unknown value would silently fall back to open search,
+    which is the one outcome a white-label build must never have.
+    """
+    origin = public_origin(request)
+    logo = org.logo_url or ""
+    if logo.startswith("/"):
+        logo = origin + logo
+    return {
+        "directory_mode": "curated",
+        "provider_name": org.name,
+        "provider_tagline": org.tagline or "",
+        "provider_logo_url": logo or None,
+    }
+
+
+@app.get("/p/{slug}/api/v1/directory")
+def org_directory_search(
+    request: Request,
+    limit: int = 50,
+    org: Organization = Depends(get_public_org),
+    db: Session = Depends(get_db),
+):
+    """
+    The organization's platform list.
+
+    `q` and `featured` are accepted and ignored on purpose — the apps send
+    `?featured=true` in curated mode, and a provider's list is short enough that
+    filtering it would only create a way to return the wrong thing.
+    """
+    origin = public_origin(request)
+    rows = _org_directory_rows(org, db)[: min(max(1, limit), 200)]
+    return {"items": [_lms_to_summary(lms, origin) for lms in rows]}
+
+
+@app.get("/p/{slug}/api/v1/directory/{lms_id}")
+def org_directory_detail(
+    lms_id: str,
+    request: Request,
+    org: Organization = Depends(get_public_org),
+    db: Session = Depends(get_db),
+):
+    """
+    One platform's full config, scoped to the organization in the path.
+
+    The organization filter is the point of this route: an id-only lookup under a
+    slug prefix would let anyone read any tenant's platform by counting integers.
+    """
+    if not lms_id.isdigit():
+        raise HTTPException(status_code=404, detail="LMS not found")
+    lms = (
+        db.query(LMSInstance)
+        .filter(
+            LMSInstance.id == int(lms_id),
+            LMSInstance.organization_id == org.id,
+            LMSInstance.status == LMSStatus.approved,
+        )
+        .first()
+    )
+    if not lms:
+        raise HTTPException(status_code=404, detail="LMS not found")
+    return _lms_to_directory_detail(lms, base_url=public_origin(request))
+
+
+@app.post("/p/{slug}/api/v1/reports", status_code=403)
+def org_reports_closed(org: Organization = Depends(get_public_org)):
+    """
+    Provider directories have no complaint channel.
+
+    A provider's learners were handed these platforms by their own institution;
+    trust & safety reporting exists for the open catalog, where a stranger can
+    list anything. The apps hide the entry point in curated mode — this closes
+    the endpoint too, so a hand-crafted request cannot open one.
+    """
+    raise HTTPException(status_code=403, detail="Reporting is not available for this directory.")
+
+
+# iOS backend.md aliases, org-scoped.
+
+@app.get("/p/{slug}/api/universal-login/lms/search")
+def org_ul_search(
+    request: Request,
+    limit: int = 20,
+    org: Organization = Depends(get_public_org),
+    db: Session = Depends(get_db),
+):
+    return org_directory_search(request=request, limit=limit, org=org, db=db)
+
+
+@app.get("/p/{slug}/api/universal-login/lms/{lms_id}")
+def org_ul_detail(
+    lms_id: str,
+    request: Request,
+    org: Organization = Depends(get_public_org),
+    db: Session = Depends(get_db),
+):
+    return org_directory_detail(lms_id=lms_id, request=request, org=org, db=db)
 
 
 # ── Web UI ────────────────────────────────────────────
