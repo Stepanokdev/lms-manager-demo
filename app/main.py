@@ -9,7 +9,7 @@ import httpx
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel as _BaseModel
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session, joinedload
@@ -1498,8 +1498,21 @@ if ADMIN_DIR.exists():
     app.mount("/admin", StaticFiles(directory=str(ADMIN_DIR), html=True), name="admin")
 
 # User documentation (built MkDocs site) served at /guide/.
+#
+# When DOCS_URL points elsewhere, /guide/* redirects there instead of serving a
+# second copy. Several deployments of this project then share one set of docs at
+# one address, rather than each publishing a mirror that drifts out of step the
+# moment only one of them is rebuilt. Redirecting rather than dropping the route
+# keeps every link already printed in the console, the apps and the guide working.
 GUIDE_DIR = STATIC_DIR / "guide"
-if GUIDE_DIR.exists():
+_DOCS_URL = get_config().docs_url
+
+if _DOCS_URL:
+    @app.get("/guide", include_in_schema=False)
+    @app.get("/guide/{path:path}", include_in_schema=False)
+    def guide_redirect(path: str = ""):
+        return RedirectResponse(f"{_DOCS_URL}/{path.lstrip('/')}", status_code=308)
+elif GUIDE_DIR.exists():
     app.mount("/guide", StaticFiles(directory=str(GUIDE_DIR), html=True), name="guide")
 
 

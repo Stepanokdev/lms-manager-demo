@@ -40,6 +40,11 @@ _DEFAULTS = {
     "webhook_url": "",                    # outgoing POST on each new complaint
     "webhook_secret": "",                 # optional shared secret header
     "registry_public_url": "",            # canonical https origin for absolute asset URLs
+    # Where the documentation actually lives. Empty = serve our own copy at
+    # /guide/. Set to an absolute URL on a second deployment and /guide/* redirects
+    # there instead, so several deployments share ONE set of docs at one address
+    # rather than each publishing its own drifting mirror.
+    "docs_url": "",
     # SMTP — used to email an LMS owner when their instance is moderated.
     # When unset, the console falls back to opening the admin's mail client.
     "smtp_host": "",
@@ -97,6 +102,7 @@ class AppConfig:
         self.webhook_url: str = resolved["webhook_url"]
         self.webhook_secret: str = resolved["webhook_secret"]
         self.registry_public_url: str = resolved["registry_public_url"]
+        self.docs_url: str = str(resolved["docs_url"]).strip().rstrip("/")
         self.smtp_host: str = resolved["smtp_host"]
         try:
             self.smtp_port: int = int(resolved["smtp_port"])

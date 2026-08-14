@@ -124,8 +124,8 @@ def test_the_portal_front_door_is_the_portal_not_the_pilot_landing(portal):
     res = portal.get("/")
     assert res.status_code == 200
     body = res.text
-    assert "one mobile app for every Open edX instance" not in body
-    assert 'id="root"' in body  # the console shell
+    assert 'id="how-it-works"' not in body  # not the pilot's landing
+    assert 'id="root"' in body              # the console shell
 
 
 def test_the_deployment_root_serves_no_catalog(portal):

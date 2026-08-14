@@ -94,7 +94,10 @@ def test_the_universal_login_report_alias_works(search):
 def test_search_mode_still_serves_the_landing_page_at_the_root(search):
     res = search.get("/")
     assert res.status_code == 200
-    assert "one mobile app for every Open edX instance" in res.text
+    # Structural markers, not copy: the landing owns these section ids and the
+    # console owns #root, so this keeps holding when the wording changes.
+    assert 'id="how-it-works"' in res.text
+    assert 'id="root"' not in res.text
 
 
 # ── curated mode unchanged ────────────────────────────
@@ -196,3 +199,28 @@ def test_migrate_runs_clean_against_a_copy_of_the_real_database(tmp_path, monkey
     assert check.execute("SELECT COUNT(*) FROM lms_instances").fetchone()[0] == before
     assert "organization_id" in {r[1] for r in check.execute("PRAGMA table_info(lms_instances)")}
     check.close()
+
+
+# ── one set of docs, one address ──────────────────────
+
+def test_guide_is_served_locally_when_docs_url_is_unset(search):
+    res = search.get("/guide/", follow_redirects=False)
+    assert res.status_code == 200
+
+
+def test_guide_redirects_to_the_canonical_docs_when_docs_url_is_set(tmp_path):
+    """
+    Two deployments must not publish two sets of docs that drift apart. The
+    second one redirects instead, so every link already printed in the console
+    and the apps still resolves — to the one canonical copy.
+    """
+    from conftest import build_app
+    client = build_app(tmp_path, "portal", DOCS_URL="https://openedx-lms.stepanok.com/guide")
+
+    root = client.get("/guide/", follow_redirects=False)
+    assert root.status_code == 308
+    assert root.headers["location"] == "https://openedx-lms.stepanok.com/guide/"
+
+    deep = client.get("/guide/portal-mode/", follow_redirects=False)
+    assert deep.status_code == 308
+    assert deep.headers["location"] == "https://openedx-lms.stepanok.com/guide/portal-mode/"
