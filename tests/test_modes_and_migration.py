@@ -91,6 +91,12 @@ def test_the_universal_login_report_alias_works(search):
     assert res.status_code == 201, res.text
 
 
+def test_search_mode_still_serves_the_landing_page_at_the_root(search):
+    res = search.get("/")
+    assert res.status_code == 200
+    assert "one mobile app for every Open edX instance" in res.text
+
+
 # ── curated mode unchanged ────────────────────────────
 
 def test_curated_mode_still_closes_sign_up_and_reporting(curated):

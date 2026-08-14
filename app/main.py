@@ -1513,6 +1513,13 @@ def _admin_index() -> FileResponse:
 
 @app.get("/", response_class=FileResponse)
 def root():
+    # A provider portal's front door is the portal. The landing page markets the
+    # public pilot — "one mobile app for every Open edX instance", "register your
+    # LMS" — which is a different product from the one a provider arrives here
+    # for, and serving it would send them looking for a catalog that this
+    # deployment deliberately does not have.
+    if get_config().is_portal:
+        return _admin_index()
     if LANDING_DIR.exists():
         return FileResponse(LANDING_DIR / "index.html")
     return _admin_index()

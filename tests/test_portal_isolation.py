@@ -118,6 +118,16 @@ def test_reporting_is_closed_on_provider_directories(portal):
     assert res.status_code == 403
 
 
+def test_the_portal_front_door_is_the_portal_not_the_pilot_landing(portal):
+    # The landing page sells the public catalog. A provider arriving at a portal
+    # must land on the portal, or they go looking for a catalog that is not here.
+    res = portal.get("/")
+    assert res.status_code == 200
+    body = res.text
+    assert "one mobile app for every Open edX instance" not in body
+    assert 'id="root"' in body  # the console shell
+
+
 def test_the_deployment_root_serves_no_catalog(portal):
     register_provider(portal, email="a@example.com", org_name="Alpha College")
     # Loud, not empty: a provider who pasted the bare origin into DIRECTORY_URL
