@@ -1,12 +1,19 @@
 __pycache__/
 *.pyc
+# Live databases — bind-mounted at runtime, never baked into an image.
 data/
+data-portal/
 .env
+.env.portal
 .git
 .venv/
 venv/
+# Front-end sources; only their built output under app/static/ ships.
 wizard/
 admin/
+# Docs sources; the built guide lives in app/static/guide.
 docs/
+site/
+tests/
 .claude/
 *.log
