@@ -204,3 +204,10 @@ export const IconPhone = (p: SVGProps<SVGSVGElement>) => (
     <path d="M10.5 18.5h3" />
   </Base>
 )
+export const IconDownload = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}>
+    <path d="M12 3v12" />
+    <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+    <path d="M4 20h16" />
+  </Base>
+)

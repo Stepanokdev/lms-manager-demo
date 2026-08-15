@@ -445,3 +445,108 @@ def test_document_image_urls_are_absolute(tmp_path):
     # Whoever downloads the file has to be able to fetch the images from wherever
     # they open it, so a relative path would be useless to them.
     assert doc["platforms"][0]["logo_url"] == "https://providers.example.com/uploads/alpha.png"
+
+
+# ── the directory as a drop-in bundle ─────────────────
+
+def _zip_of(portal, slug):
+    import io, zipfile
+    res = portal.get(f"/p/{slug}/directory.zip")
+    assert res.status_code == 200, res.text
+    assert res.headers["content-type"] == "application/zip"
+    assert f"{slug}-directory.zip" in res.headers["content-disposition"]
+    return zipfile.ZipFile(io.BytesIO(res.content))
+
+
+def _upload_image(portal, token):
+    """A 1x1 PNG through the real upload route, so it lands where uploads live."""
+    png = bytes.fromhex(
+        "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4"
+        "890000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082"
+    )
+    res = portal.post("/uploads", files={"file": ("logo.png", png, "image/png")}, headers=auth(token))
+    assert res.status_code == 200, res.text
+    return res.json()["url"]
+
+
+def test_the_bundle_packs_hosted_images_and_points_the_document_at_them(portal):
+    import json
+    token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
+    logo = _upload_image(portal, token)
+    assert logo.startswith("/uploads/")
+    add_platform(portal, token, name="Alpha Main", base_url="https://alpha.example.edu",
+                 logo_url=logo)
+
+    archive = _zip_of(portal, org["slug"])
+    names = set(archive.namelist())
+    assert "lms_directory.json" in names
+    assert "README.txt" in names
+    assert "alpha-main-logo.png" in names, names
+
+    doc = json.loads(archive.read("lms_directory.json"))
+    # The document must refer to the packed file by name, not by address —
+    # otherwise bundling the images achieved nothing.
+    assert doc["platforms"][0]["logo_url"] == "alpha-main-logo.png"
+    assert archive.read("alpha-main-logo.png")[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_a_fully_hosted_bundle_leaves_no_addresses_behind(portal):
+    import json
+    token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
+    logo = _upload_image(portal, token)
+    add_platform(portal, token, name="Alpha Main", base_url="https://alpha.example.edu",
+                 logo_url=logo, login_background_url=logo)
+
+    doc = json.loads(_zip_of(portal, org["slug"]).read("lms_directory.json"))
+    platform = doc["platforms"][0]
+    values = [platform.get("logo_url"), (platform.get("theme") or {}).get("login_background_url")]
+    assert all(v and not v.startswith("http") for v in values), values
+
+
+def test_images_hosted_elsewhere_stay_addresses_and_are_called_out(portal):
+    import json
+    token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
+    add_platform(portal, token, name="Alpha Main", base_url="https://alpha.example.edu",
+                 logo_url="https://cdn.example.com/alpha.png")
+
+    archive = _zip_of(portal, org["slug"])
+    doc = json.loads(archive.read("lms_directory.json"))
+    # The server does not fetch other people's URLs, so this one is left alone —
+    # and the README has to say so rather than let someone believe it is offline.
+    assert doc["platforms"][0]["logo_url"] == "https://cdn.example.com/alpha.png"
+    readme = archive.read("README.txt").decode()
+    assert "hosted somewhere" in readme
+    assert not any(n.endswith(".png") for n in archive.namelist())
+
+
+def test_the_bundle_is_scoped_like_everything_else(portal):
+    import json
+    (a_token, a_org, _), (_, b_org, _) = two_providers(portal)
+    doc = json.loads(_zip_of(portal, a_org["slug"]).read("lms_directory.json"))
+    assert [p["title"] for p in doc["platforms"]] == ["Alpha Main"]
+    assert portal.get("/p/nope/directory.zip").status_code == 404
+
+
+def test_a_crafted_upload_path_cannot_escape_the_uploads_directory(portal):
+    import json
+    from app.database import SessionLocal
+    from app.models import LMSInstance
+
+    token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
+    lms = add_platform(portal, token, name="Alpha Main", base_url="https://alpha.example.edu")
+
+    # Nothing in the API can set this, but the packer reads from disk, so the
+    # traversal guard is worth holding down directly.
+    db = SessionLocal()
+    try:
+        row = db.query(LMSInstance).filter(LMSInstance.id == lms["id"]).first()
+        row.logo_url = "/uploads/../../../etc/passwd"
+        db.commit()
+    finally:
+        db.close()
+
+    archive = _zip_of(portal, org["slug"])
+    assert not any("passwd" in n for n in archive.namelist())
+    doc = json.loads(archive.read("lms_directory.json"))
+    # Unreadable, so it is left as an address rather than silently dropped.
+    assert doc["platforms"][0]["logo_url"].endswith("/uploads/../../../etc/passwd")

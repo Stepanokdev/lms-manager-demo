@@ -8,16 +8,19 @@ import {
   IconAlert,
   IconBook,
   IconCheck,
+  IconDownload,
   IconExternal,
   IconMobile,
   IconServer,
 } from '@/components/icons'
 import {
   configSnippet,
+  DELIVERY_LABEL,
   KEY_NOTES,
   PLATFORM_FILE,
   PLATFORM_LABEL,
   PLATFORM_REPO,
+  type Delivery,
   type Platform,
 } from './providerMeta'
 
@@ -34,6 +37,7 @@ export function AppConfigView() {
   const org = useStore((s) => s.org)
   const loadOrg = useStore((s) => s.loadOrg)
   const [platform, setPlatform] = useState<Platform>('ios')
+  const [delivery, setDelivery] = useState<Delivery>('hosted')
   const [gaveUp, setGaveUp] = useState(false)
 
   useEffect(() => {
@@ -64,7 +68,8 @@ export function AppConfigView() {
     )
   }
 
-  const snippet = configSnippet(platform, org.directory_url)
+  const snippet = configSnippet(platform, org.directory_url, delivery)
+  const bundled = delivery === 'bundled'
   const nothingPublished = org.published_count === 0
 
   return (
@@ -111,25 +116,76 @@ export function AppConfigView() {
 
       <Step
         n={1}
-        title="Copy your directory address"
-        detail="This address is permanent. It is compiled into every build you ship, so it never changes — even if you rename your organization."
+        title="Choose how your app gets the list"
+        detail="Read it from this address and it updates without a release. Ship it inside the app and it works with no network at all. Same list either way — you can switch later."
       >
-        <div className="flex max-w-2xl flex-col gap-3.5">
-          <CopyField value={org.directory_url} />
+        <div className="flex flex-col gap-5">
+          <div role="tablist" aria-label="Delivery" className="flex flex-wrap items-center gap-2">
+            {(['hosted', 'bundled'] as Delivery[]).map((d) => (
+              <button
+                key={d}
+                role="tab"
+                aria-selected={delivery === d}
+                onClick={() => setDelivery(d)}
+                className={cn(
+                  'rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+                  'outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+                  delivery === d
+                    ? 'border-brand-500/40 bg-brand-50 text-brand-700'
+                    : 'border-line text-muted hover:text-ink',
+                )}
+              >
+                {DELIVERY_LABEL[d]}
+              </button>
+            ))}
+          </div>
+
+          {bundled ? (
+            <div className="flex max-w-2xl flex-col gap-3.5">
+              <a
+                href={`${org.directory_url}/directory.zip`}
+                className="inline-flex w-fit items-center gap-2 rounded bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+              >
+                <IconDownload /> Download the bundle
+              </a>
+              <p className="max-w-xl text-[13px] leading-relaxed text-muted">
+                A zip with <span className="font-mono text-[12.5px]">lms_directory.json</span>, every
+                image it uses, and a note on where to put them. The images are referenced by file
+                name, so keep them together.
+              </p>
+            </div>
+          ) : (
+            <div className="flex max-w-2xl flex-col gap-3.5">
+              <CopyField value={`${org.directory_url}/directory.json`} />
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted">
+                <a
+                  href={`${org.directory_url}/directory.json`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-link transition-colors hover:text-link-hover"
+                >
+                  See exactly what the app receives <IconExternal />
+                </a>
+                <a
+                  href={`${org.directory_url}/directory.json?download=1`}
+                  className="inline-flex items-center gap-1 font-medium text-link transition-colors hover:text-link-hover"
+                >
+                  <IconDownload /> Download the file
+                </a>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted">
             <span className="inline-flex items-center gap-1.5">
               <IconCheck />
               <span className="tnum">{org.published_count}</span> platform
               {org.published_count === 1 ? '' : 's'} visible in your app
             </span>
-            <a
-              href={`${org.directory_url}/api/v1/directory`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-link transition-colors hover:text-link-hover"
-            >
-              See exactly what the app receives <IconExternal />
-            </a>
+            <span>
+              Your address is permanent:{' '}
+              <span className="font-mono text-[12.5px] text-ink-soft">{org.directory_url}</span>
+            </span>
           </div>
         </div>
       </Step>
@@ -137,7 +193,11 @@ export function AppConfigView() {
       <Step
         n={2}
         title="Paste it into your app's config"
-        detail={`Replace the LMS_DIRECTORY block in your fork of ${PLATFORM_REPO[platform]}. Do the same in each environment you build (dev, stage, prod).`}
+        detail={
+          bundled
+            ? `Put the files from the bundle into your fork of ${PLATFORM_REPO[platform]} — the app target on iOS, app/src/main/assets on Android — then replace the LMS_DIRECTORY block. Do the same in each environment you build.`
+            : `Replace the LMS_DIRECTORY block in your fork of ${PLATFORM_REPO[platform]}. Do the same in each environment you build (dev, stage, prod).`
+        }
       >
         <div className="flex flex-col gap-4">
           <div
@@ -167,7 +227,7 @@ export function AppConfigView() {
           <CodeBlock code={snippet} filename={PLATFORM_FILE[platform]} />
 
           <dl className="flex flex-col divide-y divide-line overflow-hidden rounded-md border border-line">
-            {KEY_NOTES.map(({ key, what }) => (
+            {KEY_NOTES[delivery].map(({ key, what }) => (
               <div key={key} className="flex flex-col gap-1 px-3.5 py-3 sm:flex-row sm:gap-4">
                 <dt className="shrink-0 font-mono text-[12.5px] font-semibold text-ink sm:w-40">
                   {key}
@@ -182,7 +242,11 @@ export function AppConfigView() {
       <Step
         n={3}
         title="Rebuild and ship"
-        detail="Your build now reads its platform list from here. Add, hide or reorder a platform in this console and installed apps pick it up on their next launch — no app update, no review."
+        detail={
+          bundled
+            ? 'Your build carries its own list, so it never asks the network for one. Changing the list later means downloading the bundle again and shipping an update.'
+            : 'Your build now reads its platform list from here. Add, hide or reorder a platform in this console and installed apps pick it up on their next launch — no app update, no review.'
+        }
       >
         <ul className="flex flex-col gap-2.5 text-[13px] leading-relaxed text-ink-soft">
           <Bullet>
@@ -197,6 +261,12 @@ export function AppConfigView() {
             Your app never shows a search box and never lists another organization's
             platforms.
           </Bullet>
+          {bundled && (
+            <Bullet>
+              Nothing here is fetched at launch, so the first screen appears with no
+              network round trip — and appears at all on a device that has none.
+            </Bullet>
+          )}
         </ul>
       </Step>
     </div>

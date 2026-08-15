@@ -25,29 +25,60 @@ export const PLATFORM_FILE: Record<Platform, string> = {
   android: 'default_config/prod/config.yaml',
 }
 
-export function configSnippet(platform: Platform, directoryUrl: string): string {
+/** How the app gets the list: from your address, or from a file inside the app. */
+export type Delivery = 'hosted' | 'bundled'
+
+export const DELIVERY_LABEL: Record<Delivery, string> = {
+  hosted: 'Read from this address',
+  bundled: 'Ship the file in the app',
+}
+
+export function configSnippet(
+  platform: Platform,
+  directoryUrl: string,
+  delivery: Delivery = 'hosted',
+): string {
   // iOS's config files are indented four spaces, Android's two. Matching each
   // repository's own convention means the block can be pasted without reflowing.
   const pad = platform === 'ios' ? '    ' : '  '
-  return [
-    'LMS_DIRECTORY:',
-    `${pad}ENABLED: true`,
-    `${pad}DIRECTORY_URL: "${directoryUrl}"`,
-    `${pad}DIRECTORY_MODE: "curated"`,
-  ].join('\n')
+  const lines = ['LMS_DIRECTORY:', `${pad}ENABLED: true`]
+  if (delivery === 'bundled') {
+    lines.push(`${pad}DIRECTORY_URL: ""`)
+    lines.push(`${pad}DIRECTORY_FILE: "lms_directory.json"`)
+  } else {
+    lines.push(`${pad}DIRECTORY_URL: "${directoryUrl}/directory.json"`)
+    lines.push(`${pad}DIRECTORY_FILE: ""`)
+  }
+  return lines.join('\n')
 }
 
-export const KEY_NOTES: { key: string; what: string }[] = [
-  {
-    key: 'ENABLED',
-    what: 'Turns the directory on. Left false, the app ignores everything below and behaves like a stock single-platform build.',
-  },
-  {
-    key: 'DIRECTORY_URL',
-    what: 'Your address, exactly as shown above — including the /p/… part. Point it at the bare site root and the app finds no catalog.',
-  },
-  {
-    key: 'DIRECTORY_MODE',
-    what: 'Set it to "curated". The registry says the same thing, but this is what the app falls back on when it cannot reach the registry at all — without it, an offline start opens a search box over every public platform instead of yours.',
-  },
-]
+export const KEY_NOTES: Record<Delivery, { key: string; what: string }[]> = {
+  hosted: [
+    {
+      key: 'ENABLED',
+      what: 'Turns the directory on. Left false, the app ignores everything below and behaves like a stock single-platform build.',
+    },
+    {
+      key: 'DIRECTORY_URL',
+      what: 'Your address, exactly as shown above — including the /p/… part and the /directory.json on the end. Point it at the bare site root and the app finds no list.',
+    },
+    {
+      key: 'DIRECTORY_FILE',
+      what: 'Left empty here. Set it and the app reads the file instead, ignoring the address above.',
+    },
+  ],
+  bundled: [
+    {
+      key: 'ENABLED',
+      what: 'Turns the directory on. Left false, the app ignores everything below and behaves like a stock single-platform build.',
+    },
+    {
+      key: 'DIRECTORY_FILE',
+      what: 'The file from the bundle you downloaded. Add it to the app target on iOS, or to app/src/main/assets on Android, together with the images beside it.',
+    },
+    {
+      key: 'DIRECTORY_URL',
+      what: 'Empty, so the app never asks the network for its list. It works on a device that has never been online.',
+    },
+  ],
+}

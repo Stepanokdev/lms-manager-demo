@@ -6,7 +6,7 @@ import datetime
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, Response, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
@@ -43,7 +43,7 @@ from .color_utils import adapt_accent_for_dark
 from .config import get_config
 from .database import migrate
 from .seed import seed
-from . import webhook, email_notify
+from . import bundle_export, webhook, email_notify
 from .netguard import is_public_url
 from .ratelimit import reports_limiter, validate_limiter, client_ip
 
@@ -1446,6 +1446,37 @@ def org_directory_document(
         ),
         filename=f"{org.slug}-directory.json",
         download=download,
+    )
+
+
+@app.get("/p/{slug}/directory.zip")
+def org_directory_bundle(
+    request: Request,
+    org: Organization = Depends(get_public_org),
+    db: Session = Depends(get_db),
+):
+    """
+    The directory and its images, ready to drop into an app.
+
+    Built with an empty origin so image fields are still the stored
+    "/uploads/..." paths — that is how the packer tells an image this deployment
+    holds from one hosted elsewhere.
+    """
+    doc = _directory_document(
+        name=org.name,
+        tagline=org.tagline or "",
+        logo_url=org.logo_url or "",
+        rows=_org_directory_rows(org, db),
+        origin="",
+    )
+    payload = bundle_export.build_zip(doc, origin=public_origin(request))
+    return Response(
+        content=payload,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{org.slug}-directory.zip"',
+            "Cache-Control": "no-cache",
+        },
     )
 
 
