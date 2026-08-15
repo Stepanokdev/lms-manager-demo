@@ -82,20 +82,27 @@ and went stale, so a build switched to a document would still show a button
 pointing at a registry it no longer talked to. It now derives from the configured
 source on both platforms.
 
-## A remembered answer is stamped with the source that gave it
+## The directory has three states, not two, and is re-asked every launch
 
-Only the server can say whether a live catalog is curated, and it says so on a
-screen the app stops showing once a platform is picked. So the answer has to be
-remembered — and remembering it is what went wrong before.
+Only the server can say whether a live catalog is open to anyone, and it says so
+on a screen the app stops showing once a platform is picked. So the answer has to
+be remembered — and remembering it as a boolean is what went wrong.
 
-Both apps now store the answer next to a key identifying the directory it came
-from (`service:<url>`, `document:<url>`, `file:<name>`), and read it back only
-while that key still matches. Point a build somewhere else and what it remembers
-is discarded rather than obeyed; a value written by an older build carries no key
-at all and is never trusted. `LMSDirectoryState` (iOS) and `LmsDirectoryState`
-(Android) hold the whole rule, so the Profile screen asks a question instead of
-reading a flag.
+A boolean has no room for "nobody has said yet", so the absent value had to mean
+something, and it meant *open*. That is the wrong default twice over: an upgraded
+install and a build pointed at a new registry both start there, and both would
+show a learner a "Report this LMS" button for a catalog nobody had vouched for.
 
-The alternative was to clear the flag on every launch and re-ask. Rejected: a
-document has nobody to ask, and a service is not reachable at launch, so the
-window between launch and the answer would show the wrong screen.
+So: `unknown | search | curated`, stored next to a key naming the directory it
+came from (`service:<url>`, `document:<url>`, `file:<name>`) and read back only
+while that key still matches. Reporting appears only on `search`. A document
+settles it locally; `DIRECTORY_MODE` settles it either way; everything else is
+unknown until the server answers, and unknown shows nothing.
+
+The answer is refreshed at launch rather than only by the platform picker,
+because a learner who has chosen a platform never sees the picker again — without
+it, a registry that switched modes at the same address would go unnoticed for the
+life of the install. A failed refresh changes nothing: a network error is not
+evidence about what kind of catalog this is. And the state is observable
+(`@Published` / a `StateFlow`), so the entry point appears when the answer
+arrives rather than on the next visit to the screen.
