@@ -87,11 +87,22 @@ endpoints the app depends on.
 
 ### 3. Wire it into your apps
 
-**App config** gives you the address and the exact block to paste.
+**App config** asks the question that decides everything else: should the app
+read the list from your address, or carry its own copy?
+
+| | Read from your address | Ship the file in the app |
+|---|---|---|
+| Changing the list | Installed apps pick it up on next launch | Needs a new app release |
+| Needs a network | Yes, at launch | No, ever |
+| What you copy | One URL | A zip: the file plus every image |
+
+Neither is more correct. A provider who edits their list often wants the first;
+one shipping into places with poor connectivity wants the second. The list is
+the same either way, and switching later is a config change.
 
 <figure markdown>
-  ![The App config view: address, snippet and what each key does](screenshots/18-portal-app-config.png)
-  <figcaption>Copy the address, paste the block, rebuild</figcaption>
+  ![The App config view](screenshots/18-portal-app-config.png)
+  <figcaption>Reading from your address: copy it, paste it, rebuild</figcaption>
 </figure>
 
 In your fork of `openedx-app-ios` or `openedx-app-android`, edit
@@ -100,34 +111,72 @@ In your fork of `openedx-app-ios` or `openedx-app-android`, edit
 ```yaml
 LMS_DIRECTORY:
   ENABLED: true
-  DIRECTORY_URL: "https://providers.example.com/p/your-org"
-  DIRECTORY_MODE: "curated"
+  DIRECTORY_URL: "https://providers.example.com/p/your-org/directory.json"
+  DIRECTORY_FILE: ""
 ```
 
 | Key | What it does |
 |-----|--------------|
 | `ENABLED` | Turns the directory on. Left `false`, the app ignores the rest and behaves like a stock single-platform build. |
-| `DIRECTORY_URL` | Your address, **including the `/p/…` part**. Point it at the bare site root and the app finds no catalog. |
-| `DIRECTORY_MODE` | Set it to `"curated"`. See the warning below — this one is load-bearing. |
+| `DIRECTORY_URL` | Your address with `/directory.json` on the end. Point it at the bare site root and the app finds no list. |
+| `DIRECTORY_FILE` | Empty here. Set it and the app reads the file instead, ignoring the address. |
 
-!!! danger "Always set `DIRECTORY_MODE: \"curated\"`"
-    The registry already tells the app it is curated, so this looks redundant. It
-    isn't. Both apps fall back to **search** mode when they can't reach the
-    registry at all, and Android does so silently. Without the local flag, a
-    learner opening your branded app on a bad connection gets a search box over
-    every public Open edX platform instead of your five. With it, the app stays
-    yours no matter what the network does.
+!!! tip "No `DIRECTORY_MODE` needed"
+    A document is a fixed list, so the app has no server to ask what mode to be
+    in — and therefore nothing to fall back to. That removes a real trap: with a
+    live service, both apps quietly reverted to open search when they could not
+    reach it, so a branded build starting offline showed every public platform.
+    `DIRECTORY_MODE` still matters for the live-service address, and is still
+    documented there.
+
+### 3b. Shipping the list inside the app
+
+Pick **Ship the file in the app** and the console hands you a zip:
+
+```
+lms_directory.json    your platform list
+venus-logo.png …      every image it uses
+README.txt            where to put them
+```
 
 <figure markdown>
-  ![Steps two and three of the App config view](screenshots/19-portal-app-config-steps.png)
-  <figcaption>The block is per-platform because the two repositories indent their config differently — copy the one you're building</figcaption>
+  ![Downloading the bundle](screenshots/24-portal-app-config-bundled.png)
+  <figcaption>The bundle names the images by file, so the app needs no network at all</figcaption>
 </figure>
+
+- **iOS** — drag every file into your app target in Xcode ("Copy items if needed").
+- **Android** — copy every file into `app/src/main/assets/`.
+
+Then:
+
+```yaml
+LMS_DIRECTORY:
+  ENABLED: true
+  DIRECTORY_URL: ""
+  DIRECTORY_FILE: "lms_directory.json"
+```
+
+<figure markdown>
+  ![The picker filled from a bundled document](screenshots/ios/07-document-picker.png){ width="300" }
+  <figcaption>iOS reading a bundled document: five platforms and five logos, none of it fetched</figcaption>
+</figure>
+
+<figure markdown>
+  ![An Android screen branded from bundled images](screenshots/android-01-branded-header.png){ width="300" }
+  <figcaption>Android, same bundle: the header image and the accent colour both come out of the app</figcaption>
+</figure>
+
+!!! note "Images hosted elsewhere are left as addresses"
+    The zip packs the images this registry holds. If you pointed a platform at a
+    logo on your own CDN, that address stays in the file and is downloaded at
+    runtime — the registry will not fetch other people's URLs on your behalf. The
+    README in the zip says how many were left and what to do about them.
 
 ### 4. Check it before you ship
 
-Open `https://providers.example.com/p/your-org/api/v1/directory` in a browser —
-the **See exactly what the app receives** link in the console does the same. You
-should see your platforms, in your order, and nothing else:
+Open `https://providers.example.com/p/your-org/directory.json` in a browser —
+the **See exactly what the app receives** link in the console does the same. It
+is the exact file your app reads, so what you see here is what it gets:
 
 ```json
 {
@@ -212,9 +261,11 @@ running catalog. See [Configuration & deployment](deploying.md).
 
 ## Troubleshooting
 
-**The app shows a search box.** `DIRECTORY_MODE` isn't set to `"curated"` in the
-config you actually built, or the app couldn't reach the registry on launch. Set
-the local flag; it can only ever add curated mode, never remove it.
+**The app shows a search box.** Your `DIRECTORY_URL` points at a service rather
+than a document — a document build has no search box to show. Check the address
+ends in `/directory.json`. If you are deliberately using the live service, set
+`DIRECTORY_MODE: "curated"` as well; without it the app reverts to search
+whenever it cannot reach the server.
 
 **The app shows nothing.** Nothing is published. Check the platform count in
 **App config**; a platform that is hidden, or still pending, isn't served.
@@ -225,3 +276,13 @@ nobody can enumerate the providers on a portal — check with the operator.
 
 **A trailing space in `DIRECTORY_URL`.** iOS keeps it, encodes it as `%20`, and
 every request 404s. Copy the address from the console rather than retyping it.
+
+**A bundled build shows initials instead of logos.** The images did not make it
+into the app. On iOS they must be in the app target, on Android in
+`app/src/main/assets/`, with the same file names the JSON uses — the zip has them
+correct, so the usual cause is copying only the JSON.
+
+**A bundled build shows nothing at all.** `DIRECTORY_FILE` does not match the
+file name in the app, or the file was added to the project without being added
+to the target. Both apps fall back to their stock single-platform behaviour when
+the file cannot be read.

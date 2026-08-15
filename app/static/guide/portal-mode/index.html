@@ -525,6 +525,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#3b-shipping-the-list-inside-the-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3b. Shipping the list inside the app
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#4-check-it-before-you-ship" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -740,6 +751,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#3b-shipping-the-list-inside-the-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3b. Shipping the list inside the app
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#4-check-it-before-you-ship" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -913,18 +935,48 @@ set the order the app lists them in.</p>
 <p>Open edX <strong>Ulmo or newer</strong> is required. Older releases are missing mobile API
 endpoints the app depends on.</p>
 <h3 id="3-wire-it-into-your-apps">3. Wire it into your apps<a class="headerlink" href="#3-wire-it-into-your-apps" title="Permanent link">&para;</a></h3>
-<p><strong>App config</strong> gives you the address and the exact block to paste.</p>
+<p><strong>App config</strong> asks the question that decides everything else: should the app
+read the list from your address, or carry its own copy?</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Read from your address</th>
+<th>Ship the file in the app</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Changing the list</td>
+<td>Installed apps pick it up on next launch</td>
+<td>Needs a new app release</td>
+</tr>
+<tr>
+<td>Needs a network</td>
+<td>Yes, at launch</td>
+<td>No, ever</td>
+</tr>
+<tr>
+<td>What you copy</td>
+<td>One URL</td>
+<td>A zip: the file plus every image</td>
+</tr>
+</tbody>
+</table>
+<p>Neither is more correct. A provider who edits their list often wants the first;
+one shipping into places with poor connectivity wants the second. The list is
+the same either way, and switching later is a config change.</p>
 <figure>
-<p><img alt="The App config view: address, snippet and what each key does" src="../screenshots/18-portal-app-config.png" />
+<p><img alt="The App config view" src="../screenshots/18-portal-app-config.png" />
   </p>
-<figcaption>Copy the address, paste the block, rebuild</figcaption>
+<figcaption>Reading from your address: copy it, paste it, rebuild</figcaption>
 </figure>
 <p>In your fork of <code>openedx-app-ios</code> or <code>openedx-app-android</code>, edit
 <code>default_config/&lt;env&gt;/config.yaml</code> — for every environment you actually build:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">LMS_DIRECTORY</span><span class="p">:</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">ENABLED</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">DIRECTORY_URL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://providers.example.com/p/your-org&quot;</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">DIRECTORY_MODE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;curated&quot;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">DIRECTORY_URL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://providers.example.com/p/your-org/directory.json&quot;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">DIRECTORY_FILE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
 </code></pre></div>
 <table>
 <thead>
@@ -940,38 +992,71 @@ endpoints the app depends on.</p>
 </tr>
 <tr>
 <td><code>DIRECTORY_URL</code></td>
-<td>Your address, <strong>including the <code>/p/…</code> part</strong>. Point it at the bare site root and the app finds no catalog.</td>
+<td>Your address with <code>/directory.json</code> on the end. Point it at the bare site root and the app finds no list.</td>
 </tr>
 <tr>
-<td><code>DIRECTORY_MODE</code></td>
-<td>Set it to <code>"curated"</code>. See the warning below — this one is load-bearing.</td>
+<td><code>DIRECTORY_FILE</code></td>
+<td>Empty here. Set it and the app reads the file instead, ignoring the address.</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition danger">
-<p class="admonition-title">Always set <code>DIRECTORY_MODE: \"curated\"</code></p>
-<p>The registry already tells the app it is curated, so this looks redundant. It
-isn't. Both apps fall back to <strong>search</strong> mode when they can't reach the
-registry at all, and Android does so silently. Without the local flag, a
-learner opening your branded app on a bad connection gets a search box over
-every public Open edX platform instead of your five. With it, the app stays
-yours no matter what the network does.</p>
+<div class="admonition tip">
+<p class="admonition-title">No <code>DIRECTORY_MODE</code> needed</p>
+<p>A document is a fixed list, so the app has no server to ask what mode to be
+in — and therefore nothing to fall back to. That removes a real trap: with a
+live service, both apps quietly reverted to open search when they could not
+reach it, so a branded build starting offline showed every public platform.
+<code>DIRECTORY_MODE</code> still matters for the live-service address, and is still
+documented there.</p>
 </div>
+<h3 id="3b-shipping-the-list-inside-the-app">3b. Shipping the list inside the app<a class="headerlink" href="#3b-shipping-the-list-inside-the-app" title="Permanent link">&para;</a></h3>
+<p>Pick <strong>Ship the file in the app</strong> and the console hands you a zip:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>lms_directory.json    your platform list
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>venus-logo.png …      every image it uses
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>README.txt            where to put them
+</code></pre></div>
 <figure>
-<p><img alt="Steps two and three of the App config view" src="../screenshots/19-portal-app-config-steps.png" />
+<p><img alt="Downloading the bundle" src="../screenshots/24-portal-app-config-bundled.png" />
   </p>
-<figcaption>The block is per-platform because the two repositories indent their config differently — copy the one you're building</figcaption>
+<figcaption>The bundle names the images by file, so the app needs no network at all</figcaption>
 </figure>
+<ul>
+<li><strong>iOS</strong> — drag every file into your app target in Xcode ("Copy items if needed").</li>
+<li><strong>Android</strong> — copy every file into <code>app/src/main/assets/</code>.</li>
+</ul>
+<p>Then:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">LMS_DIRECTORY</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">ENABLED</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">DIRECTORY_URL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">DIRECTORY_FILE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;lms_directory.json&quot;</span>
+</code></pre></div>
+<figure>
+<p><img alt="The picker filled from a bundled document" src="../screenshots/ios/07-document-picker.png" width="300" />
+  </p>
+<figcaption>iOS reading a bundled document: five platforms and five logos, none of it fetched</figcaption>
+</figure>
+<figure>
+<p><img alt="An Android screen branded from bundled images" src="../screenshots/android-01-branded-header.png" width="300" />
+  </p>
+<figcaption>Android, same bundle: the header image and the accent colour both come out of the app</figcaption>
+</figure>
+<div class="admonition note">
+<p class="admonition-title">Images hosted elsewhere are left as addresses</p>
+<p>The zip packs the images this registry holds. If you pointed a platform at a
+logo on your own CDN, that address stays in the file and is downloaded at
+runtime — the registry will not fetch other people's URLs on your behalf. The
+README in the zip says how many were left and what to do about them.</p>
+</div>
 <h3 id="4-check-it-before-you-ship">4. Check it before you ship<a class="headerlink" href="#4-check-it-before-you-ship" title="Permanent link">&para;</a></h3>
-<p>Open <code>https://providers.example.com/p/your-org/api/v1/directory</code> in a browser —
-the <strong>See exactly what the app receives</strong> link in the console does the same. You
-should see your platforms, in your order, and nothing else:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Axim&quot;</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;base_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://axim-ccpv-dev.raccoongang.net&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Venus&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;base_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://venus.raccoongang.net&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span>
+<p>Open <code>https://providers.example.com/p/your-org/directory.json</code> in a browser —
+the <strong>See exactly what the app receives</strong> link in the console does the same. It
+is the exact file your app reads, so what you see here is what it gets:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Axim&quot;</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;base_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://axim-ccpv-dev.raccoongang.net&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Venus&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;base_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://venus.raccoongang.net&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
 </code></pre></div>
 <p>If you get <code>404 Unknown directory</code>, the address is wrong or your organization is
 suspended. If you get <em>"This is a provider portal…"</em>, you dropped the <code>/p/…</code> part.</p>
@@ -1015,11 +1100,11 @@ answers <code>404</code> rather than telling you the other organization exists.<
 <h2 id="running-a-portal-yourself">Running a portal yourself<a class="headerlink" href="#running-a-portal-yourself" title="Permanent link">&para;</a></h2>
 <p>Set <code>DIRECTORY_MODE=portal</code> and give the deployment a public URL so the addresses
 it hands out are the real ones:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">DIRECTORY_MODE</span><span class="o">=</span>portal
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">REGISTRY_PUBLIC_URL</span><span class="o">=</span>https://providers.example.com
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">SECRET_KEY</span><span class="o">=</span>&lt;a<span class="w"> </span>long<span class="w"> </span>random<span class="w"> </span>string&gt;
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nv">ADMIN_EMAIL</span><span class="o">=</span>you@example.com
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>&lt;<span class="nb">set</span><span class="w"> </span>before<span class="w"> </span>first<span class="w"> </span>boot&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">DIRECTORY_MODE</span><span class="o">=</span>portal
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">REGISTRY_PUBLIC_URL</span><span class="o">=</span>https://providers.example.com
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nv">SECRET_KEY</span><span class="o">=</span>&lt;a<span class="w"> </span>long<span class="w"> </span>random<span class="w"> </span>string&gt;
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nv">ADMIN_EMAIL</span><span class="o">=</span>you@example.com
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>&lt;<span class="nb">set</span><span class="w"> </span>before<span class="w"> </span>first<span class="w"> </span>boot&gt;
 </code></pre></div>
 <p><code>REGISTRY_PUBLIC_URL</code> matters more here than in the other modes: behind a reverse
 proxy the request the app sees is plain HTTP on an internal hostname, and the
@@ -1030,9 +1115,11 @@ no organization and are therefore invisible to every <code>/p/&lt;slug&gt;</code
 but not what you want. Run a portal as its own deployment rather than converting a
 running catalog. See <a href="../deploying/">Configuration &amp; deployment</a>.</p>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<p><strong>The app shows a search box.</strong> <code>DIRECTORY_MODE</code> isn't set to <code>"curated"</code> in the
-config you actually built, or the app couldn't reach the registry on launch. Set
-the local flag; it can only ever add curated mode, never remove it.</p>
+<p><strong>The app shows a search box.</strong> Your <code>DIRECTORY_URL</code> points at a service rather
+than a document — a document build has no search box to show. Check the address
+ends in <code>/directory.json</code>. If you are deliberately using the live service, set
+<code>DIRECTORY_MODE: "curated"</code> as well; without it the app reverts to search
+whenever it cannot reach the server.</p>
 <p><strong>The app shows nothing.</strong> Nothing is published. Check the platform count in
 <strong>App config</strong>; a platform that is hidden, or still pending, isn't served.</p>
 <p><strong><code>404 Unknown directory</code>.</strong> The slug is wrong, or the organization is suspended.
@@ -1040,6 +1127,14 @@ An unknown slug and a suspended one answer identically on purpose, so that
 nobody can enumerate the providers on a portal — check with the operator.</p>
 <p><strong>A trailing space in <code>DIRECTORY_URL</code>.</strong> iOS keeps it, encodes it as <code>%20</code>, and
 every request 404s. Copy the address from the console rather than retyping it.</p>
+<p><strong>A bundled build shows initials instead of logos.</strong> The images did not make it
+into the app. On iOS they must be in the app target, on Android in
+<code>app/src/main/assets/</code>, with the same file names the JSON uses — the zip has them
+correct, so the usual cause is copying only the JSON.</p>
+<p><strong>A bundled build shows nothing at all.</strong> <code>DIRECTORY_FILE</code> does not match the
+file name in the app, or the file was added to the project without being added
+to the target. Both apps fall back to their stock single-platform behaviour when
+the file cannot be read.</p>
 
 
 

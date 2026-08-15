@@ -808,6 +808,35 @@ and the site root serves no catalog at all:</p>
 </tbody>
 </table>
 <p><code>/p/{slug}/api/universal-login/lms/search</code> and <code>/…/{id}</code> are aliases.</p>
+<p>The same directory is also published as one self-contained file:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/p/{slug}/directory.json</code></td>
+<td>The whole directory in one document: provider branding plus every platform, with <code>platforms[]</code> entries byte-identical to <code>/api/v1/directory/{id}</code>. Add <code>?download=1</code> for a file download.</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/p/{slug}/directory.zip</code></td>
+<td>The document plus every image this registry hosts, with the image fields rewritten to file names, and a README. For a build that ships its list and never asks the network.</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/directory.json</code></td>
+<td>The same document for a <code>curated</code> deployment, which serves one organization. <code>404</code> in <code>search</code> and <code>portal</code> modes.</td>
+</tr>
+</tbody>
+</table>
+<p>Images hosted elsewhere are not packed into the zip and keep their addresses —
+the registry does not fetch arbitrary URLs on request.</p>
 <p>An unknown slug and a suspended organization both answer <code>404 Unknown directory</code>,
 so the responses can't be used to enumerate the providers on a portal.</p>
 <p>The apps need no change for this: they resolve their paths <strong>relative to
