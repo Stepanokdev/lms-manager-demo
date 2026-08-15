@@ -9,7 +9,7 @@ import httpx
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel as _BaseModel
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session, joinedload
@@ -1372,6 +1372,128 @@ def _org_directory_rows(org: Organization, db: Session) -> list[LMSInstance]:
         )
         .order_by(LMSInstance.sort_order.asc(), LMSInstance.name.asc())
         .all()
+    )
+
+
+DIRECTORY_DOCUMENT_VERSION = 1
+
+
+def _directory_document(
+    *,
+    name: str,
+    tagline: str,
+    logo_url: str,
+    rows: list[LMSInstance],
+    origin: str,
+) -> dict:
+    """
+    The whole directory as one self-contained document.
+
+    This is the only artifact the mobile apps need. They can fetch it from a URL
+    or carry a copy inside the app bundle, and neither case tells them anything
+    about where it came from — the same file works either way.
+
+    Image fields are absolute URLs onto this server. Anyone who would rather host
+    the images elsewhere, or ship them inside their app, edits those strings; the
+    apps treat a value that is not an http(s) URL as the name of a bundled asset.
+
+    `platforms` entries are byte-identical to what /api/v1/directory/{id} returns,
+    so a client that already reads that endpoint needs no new parsing.
+    """
+    if logo_url.startswith("/"):
+        logo_url = origin + logo_url
+    return {
+        "version": DIRECTORY_DOCUMENT_VERSION,
+        "generated_at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "provider": {
+            "name": name,
+            "tagline": tagline or "",
+            "logo_url": logo_url or None,
+        },
+        "platforms": [_lms_to_directory_detail(lms, base_url=origin) for lms in rows],
+    }
+
+
+def _document_response(doc: dict, filename: str, download: bool) -> JSONResponse:
+    """Serve the document inline, or as a file when the console asks for one."""
+    headers = {"Cache-Control": "no-cache"}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return JSONResponse(doc, headers=headers)
+
+
+@app.get("/p/{slug}/directory.json")
+def org_directory_document(
+    request: Request,
+    download: bool = False,
+    org: Organization = Depends(get_public_org),
+    db: Session = Depends(get_db),
+):
+    """
+    The organization's directory as a single JSON file.
+
+    Point a mobile build at this URL, or download it with `?download=1` and ship
+    the file inside the app. Both are the same bytes.
+    """
+    origin = public_origin(request)
+    return _document_response(
+        _directory_document(
+            name=org.name,
+            tagline=org.tagline or "",
+            logo_url=org.logo_url or "",
+            rows=_org_directory_rows(org, db),
+            origin=origin,
+        ),
+        filename=f"{org.slug}-directory.json",
+        download=download,
+    )
+
+
+@app.get("/directory.json")
+def directory_document(
+    request: Request,
+    download: bool = False,
+    db: Session = Depends(get_db),
+):
+    """
+    The same document for a deployment that serves one organization.
+
+    Available in `curated` mode, where the whole registry is one provider's own
+    catalog. A portal has no directory at its root — each provider has their own
+    at /p/<slug>/directory.json — and `search` mode is a live catalog that no
+    static file could stand in for.
+    """
+    cfg = get_config()
+    if not cfg.is_curated:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "This deployment has no single directory. "
+                "In portal mode each organization has its own at /p/<slug>/directory.json."
+                if cfg.is_portal
+                else "A searchable catalog cannot be served as a static file."
+            ),
+        )
+    rows = (
+        db.query(LMSInstance)
+        .filter(
+            LMSInstance.status == LMSStatus.approved,
+            LMSInstance.visibility == Visibility.public,
+        )
+        .order_by(LMSInstance.sort_order.asc(), LMSInstance.name.asc())
+        .all()
+    )
+    origin = public_origin(request)
+    return _document_response(
+        _directory_document(
+            name=cfg.provider_name,
+            tagline=cfg.provider_tagline,
+            logo_url=cfg.provider_logo_url or "",
+            rows=rows,
+            origin=origin,
+        ),
+        filename="directory.json",
+        download=download,
     )
 
 

@@ -377,3 +377,71 @@ def test_uploads_take_their_extension_from_the_bytes(portal):
         headers=auth(token),
     )
     assert not_an_image.status_code == 400
+
+
+# ── the directory as one downloadable file ────────────
+
+def test_the_document_carries_the_whole_directory(portal):
+    token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
+    add_platform(portal, token, name="Alpha Main", base_url="https://alpha.example.edu")
+    add_platform(portal, token, name="Alpha Online", base_url="https://online.example.edu")
+
+    doc = portal.get(f"/p/{org['slug']}/directory.json").json()
+    assert doc["version"] == 1
+    assert doc["provider"]["name"] == "Alpha College"
+    assert [p["title"] for p in doc["platforms"]] == ["Alpha Main", "Alpha Online"]
+    # Everything a client needs is in the one file — no follow-up request for
+    # detail, which is what lets an app prefetch images before anything is tapped.
+    first = doc["platforms"][0]
+    for key in ("id", "title", "base_url", "api", "feature_flags", "theme", "ui_components"):
+        assert key in first, key
+    assert first["api"]["oauth_client_id"]
+
+
+def test_the_document_and_the_endpoint_describe_the_same_platforms(portal):
+    token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
+    lms = add_platform(portal, token, name="Alpha Main", base_url="https://alpha.example.edu")
+
+    doc = portal.get(f"/p/{org['slug']}/directory.json").json()
+    live = portal.get(f"/p/{org['slug']}/api/v1/directory/{lms['id']}").json()
+    # A client that already reads the live endpoint can read the file unchanged.
+    assert doc["platforms"][0] == live
+
+
+def test_hidden_platforms_are_absent_from_the_document(portal):
+    token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
+    add_platform(portal, token, name="Live", base_url="https://live.example.edu")
+    draft = add_platform(portal, token, name="Draft", base_url="https://draft.example.edu")
+    portal.put(f"/my/lms/{draft['id']}", json={"visibility": "hidden"}, headers=auth(token))
+
+    doc = portal.get(f"/p/{org['slug']}/directory.json").json()
+    assert [p["title"] for p in doc["platforms"]] == ["Live"]
+
+
+def test_the_document_is_scoped_and_downloadable(portal):
+    (_, a_org, _), (_, b_org, _) = two_providers(portal)
+
+    a_doc = portal.get(f"/p/{a_org['slug']}/directory.json").json()
+    assert [p["title"] for p in a_doc["platforms"]] == ["Alpha Main"]
+
+    dl = portal.get(f"/p/{a_org['slug']}/directory.json?download=1")
+    assert dl.status_code == 200
+    assert "attachment" in dl.headers["content-disposition"]
+    assert f"{a_org['slug']}-directory.json" in dl.headers["content-disposition"]
+
+    assert portal.get("/p/nope/directory.json").status_code == 404
+    # A portal has no directory at its root; each organization has its own.
+    assert portal.get("/directory.json").status_code == 404
+
+
+def test_document_image_urls_are_absolute(tmp_path):
+    from conftest import build_app
+    client = build_app(tmp_path, "portal", REGISTRY_PUBLIC_URL="https://providers.example.com")
+    token, org = register_provider(client, email="a@example.com", org_name="Alpha College")
+    add_platform(client, token, name="Alpha Main", base_url="https://alpha.example.edu",
+                 logo_url="/uploads/alpha.png")
+
+    doc = client.get(f"/p/{org['slug']}/directory.json").json()
+    # Whoever downloads the file has to be able to fetch the images from wherever
+    # they open it, so a relative path would be useless to them.
+    assert doc["platforms"][0]["logo_url"] == "https://providers.example.com/uploads/alpha.png"
