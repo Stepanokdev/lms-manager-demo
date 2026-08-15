@@ -65,3 +65,19 @@ appearance refetched and showed a placeholder first, which is the flicker that
 prompted this. Handing the view something already decoded means it draws in its
 first frame. Kingfisher does the fetching and caching; Theme does not depend on
 it, because `Core` depends on `Theme` and the reverse would be a cycle.
+
+## Reporting a platform belongs to the universal app
+
+The "Report this LMS" entry point appears only when the directory comes from a
+live service. A build reading a document — hosted or bundled — never shows it.
+
+Ivan's call, 2026-08-15: reporting is phase 2. It exists because the open catalog
+lets a stranger list anything, which is not a problem a provider shipping their
+own five platforms has.
+
+Worth noting what the gate used to be: `isReachable && !curated`, where `curated`
+came from a flag the picker wrote and nothing ever cleared. That asked the wrong
+question — "is this a curated list?" rather than "is there anywhere to post?" —
+and went stale, so a build switched to a document would still show a button
+pointing at a registry it no longer talked to. It now derives from the configured
+source on both platforms.
