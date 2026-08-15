@@ -1433,7 +1433,10 @@ def org_directory_document(
     The organization's directory as a single JSON file.
 
     Point a mobile build at this URL, or download it with `?download=1` and ship
-    the file inside the app. Both are the same bytes.
+    the file inside the app — the bytes are identical either way.
+
+    The zip at /directory.zip is the same document in the same format, but not the
+    same bytes: its image fields are rewritten to the file names packed beside it.
     """
     origin = public_origin(request)
     return _document_response(

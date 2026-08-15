@@ -55,7 +55,11 @@ Rebuild, and the app reads its platform list from the file. It asks the network
 for nothing, so it works on a device that has never been online.
 
 To go back to a hosted list, clear DIRECTORY_FILE and put your directory URL in
-DIRECTORY_URL instead. The two files are the same bytes either way.
+DIRECTORY_URL instead.
+
+The two are the same list in the same format, but not the same file: this copy
+has its image fields rewritten to the file names beside it, and each download
+carries its own generated_at. Whichever you use, the app reads it the same way.
 
 {external_note}"""
 

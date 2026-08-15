@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "generated_at": "2026-08-15T21:00:00Z",
+  "provider": {
+    "name": "Night Verification",
+    "tagline": "Stub platforms for a Profile-tab check"
+  },
+  "platforms": [
+    {
+      "id": "1",
+      "title": "Stub College",
+      "description": "A stand-in platform used to reach the Profile tab without an account.",
+      "short_description": "Stub platform",
+      "base_url": "http://10.0.2.2:8099",
+      "logo_url": null,
+      "accent_color": "#2e7d32",
+      "visibility": "public",
+      "featured": true,
+      "api": {
+        "host_url": "http://10.0.2.2:8099",
+        "feedback_email": "support@example.com",
+        "oauth_client_id": "stub-client-id"
+      },
+      "feature_flags": {
+        "pre_login_discovery": false,
+        "unknown_units_mode": "webview",
+        "offline_downloads": true,
+        "smart_push_automation": false
+      },
+      "theme": {
+        "accent_color_dark": "#81c784",
+        "login_background_url": null,
+        "logo_upload_url": null
+      },
+      "ui_components": {
+        "course_unit_progress_enabled": true,
+        "course_dropdown_navigation_enabled": true,
+        "pre_login_experience_enabled": false
+      },
+      "dashboard": {
+        "type": "list"
+      }
+    }
+  ]
+}

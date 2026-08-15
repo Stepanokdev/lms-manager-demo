@@ -81,3 +81,21 @@ question — "is this a curated list?" rather than "is there anywhere to post?" 
 and went stale, so a build switched to a document would still show a button
 pointing at a registry it no longer talked to. It now derives from the configured
 source on both platforms.
+
+## A remembered answer is stamped with the source that gave it
+
+Only the server can say whether a live catalog is curated, and it says so on a
+screen the app stops showing once a platform is picked. So the answer has to be
+remembered — and remembering it is what went wrong before.
+
+Both apps now store the answer next to a key identifying the directory it came
+from (`service:<url>`, `document:<url>`, `file:<name>`), and read it back only
+while that key still matches. Point a build somewhere else and what it remembers
+is discarded rather than obeyed; a value written by an older build carries no key
+at all and is never trusted. `LMSDirectoryState` (iOS) and `LmsDirectoryState`
+(Android) hold the whole rule, so the Profile screen asks a question instead of
+reading a flag.
+
+The alternative was to clear the flag on every launch and re-ask. Rejected: a
+document has nobody to ask, and a service is not reachable at launch, so the
+window between launch and the answer would show the wrong screen.
