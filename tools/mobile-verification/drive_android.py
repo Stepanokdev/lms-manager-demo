@@ -79,20 +79,57 @@ def wait_for(text: str, timeout: int = 40, clickable: bool = False):
     return None
 
 
-def sign_in() -> None:
-    email = wait_for("Enter email or username", timeout=20)
-    if email is None:
-        raise SystemExit("sign-in form never appeared")
-    tap(email)
-    time.sleep(1)
-    adb("shell", "input", "text", USERNAME)
+def type_into(placeholder: str, value: str, attempts: int = 3) -> None:
+    """
+    Put `value` in the field showing `placeholder`, and check that it landed.
 
+    `adb shell input text` drops and doubles characters often enough to matter —
+    a doubled first letter once sent the stub a username it rightly rejected,
+    which surfaced as "never signed in" three steps later. So: clear, type, read
+    the field back, and try again rather than carrying on with a half-typed word.
+    """
+    for attempt in range(attempts):
+        field = find(screen(), placeholder)
+        if field is None:
+            field = find_by_prefix(value)
+        if field is None:
+            raise SystemExit(f"no field for {placeholder!r}")
+        tap(field)
+        time.sleep(1)
+        adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
+        for _ in range(len(value) + 8):
+            adb("shell", "input", "keyevent", "KEYCODE_DEL")
+        adb("shell", "input", "text", value)
+        time.sleep(1)
+        if find(screen(), value) is not None:
+            return
+        print(f"retyping {placeholder!r} (attempt {attempt + 1} did not land)", file=sys.stderr)
+    raise SystemExit(f"could not type into {placeholder!r}")
+
+
+def find_by_prefix(value: str):
+    """The field already holding part of what we tried to type."""
+    for node in screen().iter("node"):
+        text = node.get("text") or ""
+        if text and (value.startswith(text) or text.startswith(value[:4])):
+            return node
+    return None
+
+
+def sign_in() -> None:
+    if wait_for("Enter email or username", timeout=20) is None:
+        raise SystemExit("sign-in form never appeared")
+    type_into("Enter email or username", USERNAME)
+
+    # The password renders as dots, so it cannot be read back the same way; its
+    # length is the most the screen will admit to.
     password = find(screen(), "Enter password")
     if password is None:
         raise SystemExit("password field never appeared")
     tap(password)
     time.sleep(1)
     adb("shell", "input", "text", PASSWORD)
+    time.sleep(1)
 
     # The keyboard covers the button; put it away before reaching for it.
     adb("shell", "input", "keyevent", "4")
@@ -117,14 +154,38 @@ def main() -> int:
         adb("shell", "am", "force-stop", PACKAGE)
 
     adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
-    time.sleep(6)
+
+    # Wait for the app to settle on one of the two screens it can start on
+    # rather than for a fixed number of seconds: a freshly installed build takes
+    # its time, and tapping a list that is still drawing does nothing at all.
+    deadline = time.time() + 60
+    platform = None
+    while time.time() < deadline:
+        current = screen()
+        platform = find(current, PLATFORM)
+        if platform is not None or find(current, "Profile", clickable=True) is not None:
+            break
+        time.sleep(2)
 
     # A signed-in build skips the picker entirely — the case that matters most.
-    platform = find(screen(), PLATFORM)
     if platform is not None:
-        tap(platform)
-        time.sleep(3)
-        sign_in()
+        for attempt in range(3):
+            tap(platform)
+            if wait_for("Enter email or username", timeout=15) is not None:
+                break
+            print(f"the platform row did not open (attempt {attempt + 1})", file=sys.stderr)
+            found = find(screen(), PLATFORM)
+            if found is not None:
+                platform = found
+        # Submitting is its own retry: the button sits under the keyboard, and a
+        # tap that lands on the keyboard instead looks exactly like a slow login.
+        for attempt in range(3):
+            sign_in()
+            if wait_for("Profile", timeout=25, clickable=True) is not None:
+                break
+            if find(screen(), "Enter email or username") is None:
+                break
+            print(f"still on the sign-in screen (attempt {attempt + 1})", file=sys.stderr)
 
     profile_tab = wait_for("Profile", timeout=40, clickable=True)
     if profile_tab is None:

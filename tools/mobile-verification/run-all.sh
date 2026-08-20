@@ -60,14 +60,28 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# The shipped config has the feature off with empty sources, which is what an
+# app should default to; a run has to switch it on and point it somewhere.
 set_directory() {  # <config file> <url>
     python3 - "$1" "$2" <<'PY'
 import re, sys
 path, url = sys.argv[1], sys.argv[2]
-text = open(path).read()
-text = re.sub(r'(DIRECTORY_URL:\s*)".*?"', lambda m: m.group(1) + f'"{url}"', text, count=1)
-text = re.sub(r'(DIRECTORY_MODE:\s*)".*?"', lambda m: m.group(1) + '""', text, count=1)
-open(path, "w").write(text)
+lines = open(path).read().split("\n")
+# Only the LMS_DIRECTORY block. ENABLED appears under other sections too, and
+# editing the first one found switches on somebody else's feature while leaving
+# this one off — which makes the "reporting hidden" cases pass for the wrong reason.
+top = next(i for i, l in enumerate(lines) if l.startswith("LMS_DIRECTORY:"))
+end = top + 1
+while end < len(lines) and lines[end].strip() and lines[end][:1].isspace():
+    end += 1
+block = "\n".join(lines[top:end])
+block = re.sub(r'(ENABLED:\s*)\S+', lambda m: m.group(1) + 'true', block, count=1)
+block = re.sub(r'(DIRECTORY_URL:\s*)".*?"', lambda m: m.group(1) + f'"{url}"', block, count=1)
+block = re.sub(r'(DIRECTORY_MODE:\s*)".*?"', lambda m: m.group(1) + '""', block, count=1)
+lines[top:end] = block.split("\n")
+open(path, "w").write("\n".join(lines))
+assert 'ENABLED: true' in block and url in block, "the block was not rewritten"
+print(block.strip().replace("\n", " | "))
 PY
 }
 
