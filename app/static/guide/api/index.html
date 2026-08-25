@@ -821,7 +821,7 @@ and the site root serves no catalog at all:</p>
 <tr>
 <td><code>GET</code></td>
 <td><code>/p/{slug}/directory.json</code></td>
-<td>The whole directory in one document: provider branding plus every platform, with <code>platforms[]</code> entries byte-identical to <code>/api/v1/directory/{id}</code>. Add <code>?download=1</code> for a file download.</td>
+<td>The whole directory in one document: <code>format</code>, <code>provider</code> and <code>include[]</code>, in the key names the Open edX mobile apps read. Add <code>?download=1</code> for a file download.</td>
 </tr>
 <tr>
 <td><code>GET</code></td>

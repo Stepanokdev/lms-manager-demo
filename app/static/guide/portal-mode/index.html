@@ -1001,13 +1001,11 @@ the same either way, and switching later is a config change.</p>
 </tbody>
 </table>
 <div class="admonition tip">
-<p class="admonition-title">No <code>DIRECTORY_MODE</code> needed</p>
+<p class="admonition-title">Two keys, and that is the whole config</p>
 <p>A document is a fixed list, so the app has no server to ask what mode to be
 in — and therefore nothing to fall back to. That removes a real trap: with a
 live service, both apps quietly reverted to open search when they could not
-reach it, so a branded build starting offline showed every public platform.
-<code>DIRECTORY_MODE</code> still matters for the live-service address, and is still
-documented there.</p>
+reach it, so a branded build starting offline showed every public platform.</p>
 </div>
 <h3 id="3b-shipping-the-list-inside-the-app">3b. Shipping the list inside the app<a class="headerlink" href="#3b-shipping-the-list-inside-the-app" title="Permanent link">&para;</a></h3>
 <p>Pick <strong>Ship the file in the app</strong> and the console hands you a zip:</p>
@@ -1115,11 +1113,9 @@ no organization and are therefore invisible to every <code>/p/&lt;slug&gt;</code
 but not what you want. Run a portal as its own deployment rather than converting a
 running catalog. See <a href="../deploying/">Configuration &amp; deployment</a>.</p>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<p><strong>The app shows a search box.</strong> Your <code>DIRECTORY_URL</code> points at a service rather
-than a document — a document build has no search box to show. Check the address
-ends in <code>/directory.json</code>. If you are deliberately using the live service, set
-<code>DIRECTORY_MODE: "curated"</code> as well; without it the app reverts to search
-whenever it cannot reach the server.</p>
+<p><strong>The app shows no platforms.</strong> Check that <code>DIRECTORY_URL</code> is the full address
+of your document, ending in <code>/directory.json</code>, and that the app build has
+<code>ENABLED: true</code>. Pointed at a bare site root, the app finds no list.</p>
 <p><strong>The app shows nothing.</strong> Nothing is published. Check the platform count in
 <strong>App config</strong>; a platform that is hidden, or still pending, isn't served.</p>
 <p><strong><code>404 Unknown directory</code>.</strong> The slug is wrong, or the organization is suspended.
