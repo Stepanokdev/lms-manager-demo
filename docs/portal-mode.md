@@ -121,13 +121,11 @@ LMS_DIRECTORY:
 | `DIRECTORY_URL` | Your address with `/directory.json` on the end. Point it at the bare site root and the app finds no list. |
 | `DIRECTORY_FILE` | Empty here. Set it and the app reads the file instead, ignoring the address. |
 
-!!! tip "No `DIRECTORY_MODE` needed"
+!!! tip "Two keys, and that is the whole config"
     A document is a fixed list, so the app has no server to ask what mode to be
     in — and therefore nothing to fall back to. That removes a real trap: with a
     live service, both apps quietly reverted to open search when they could not
     reach it, so a branded build starting offline showed every public platform.
-    `DIRECTORY_MODE` still matters for the live-service address, and is still
-    documented there.
 
 ### 3b. Shipping the list inside the app
 
@@ -261,11 +259,9 @@ running catalog. See [Configuration & deployment](deploying.md).
 
 ## Troubleshooting
 
-**The app shows a search box.** Your `DIRECTORY_URL` points at a service rather
-than a document — a document build has no search box to show. Check the address
-ends in `/directory.json`. If you are deliberately using the live service, set
-`DIRECTORY_MODE: "curated"` as well; without it the app reverts to search
-whenever it cannot reach the server.
+**The app shows no platforms.** Check that `DIRECTORY_URL` is the full address
+of your document, ending in `/directory.json`, and that the app build has
+`ENABLED: true`. Pointed at a bare site root, the app finds no list.
 
 **The app shows nothing.** Nothing is published. Check the platform count in
 **App config**; a platform that is hidden, or still pending, isn't served.

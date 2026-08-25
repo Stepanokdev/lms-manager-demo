@@ -42,7 +42,7 @@ The same directory is also published as one self-contained file:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/p/{slug}/directory.json` | The whole directory in one document: provider branding plus every platform, with `platforms[]` entries byte-identical to `/api/v1/directory/{id}`. Add `?download=1` for a file download. |
+| `GET` | `/p/{slug}/directory.json` | The whole directory in one document: `format`, `provider` and `include[]`, in the key names the Open edX mobile apps read. Add `?download=1` for a file download. |
 | `GET` | `/p/{slug}/directory.zip` | The document plus every image this registry hosts, with the image fields rewritten to file names, and a README. For a build that ships its list and never asks the network. |
 | `GET` | `/directory.json` | The same document for a `curated` deployment, which serves one organization. `404` in `search` and `portal` modes. |
 

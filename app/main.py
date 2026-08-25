@@ -1209,6 +1209,67 @@ def _lms_to_directory_detail(lms: LMSInstance, base_url: str = "") -> dict:
     }
 
 
+def _lms_to_document_entry(lms: LMSInstance, base_url: str = "") -> dict:
+    """
+    One platform, in the shape the mobile apps read.
+
+    The key names follow the schema the Open edX mobile working group settled on
+    — `name`, `description`, `logo`, `url` — rather than this registry's own
+    column names. Everything past those four is optional: branding and feature
+    flags the platform's own backend cannot yet serve, which the apps read when
+    present and default when absent.
+
+    `api` is written only when there is something to say. A multi-instance app
+    carries one OAuth client of its own, which each platform registers; a client
+    id here overrides that for this platform alone, and most files should not
+    carry one.
+    """
+    # `host_url` is never written: this registry stores one address per
+    # platform, and that is already `url`. The key exists in the format for a
+    # platform whose API answers somewhere else.
+    api = {
+        key: value
+        for key, value in (
+            ("feedback_email", lms.feedback_email or None),
+            ("oauth_client_id", lms.oauth_client_id or None),
+        )
+        if value
+    }
+    entry = {
+        "id": str(lms.id),
+        "name": lms.name,
+        "description": lms.platform_name or "",
+        "url": lms.base_url,
+        "logo": _make_absolute(
+            getattr(lms, "logo_upload_url", None) or lms.logo_url, base_url
+        ) or None,
+        "accent_color": lms.accent_color or None,
+        "feature_flags": {
+            "pre_login_discovery": lms.pre_login_discovery,
+            "unknown_units_mode": getattr(lms, "unknown_units_mode", "block"),
+            "offline_downloads": getattr(lms, "offline_downloads", True),
+            "smart_push_automation": getattr(lms, "smart_push_automation", False),
+        },
+        "theme": {
+            "accent_color_dark": getattr(lms, "accent_color_dark", None) or None,
+            "login_background": _make_absolute(
+                getattr(lms, "login_background_url", None), base_url
+            ),
+        },
+        "ui_components": {
+            "course_unit_progress_enabled": getattr(lms, "course_unit_progress", True),
+            "course_dropdown_navigation_enabled": getattr(lms, "course_dropdown_nav", True),
+            "pre_login_experience_enabled": getattr(lms, "pre_login_experience", True),
+        },
+        "dashboard": {
+            "type": getattr(lms, "dashboard_type", "gallery"),
+        },
+    }
+    if api:
+        entry["api"] = api
+    return entry
+
+
 def _lms_to_summary(lms: LMSInstance, base: str) -> dict:
     return {
         "id": str(lms.id),
@@ -1375,7 +1436,7 @@ def _org_directory_rows(org: Organization, db: Session) -> list[LMSInstance]:
     )
 
 
-DIRECTORY_DOCUMENT_VERSION = 1
+DIRECTORY_DOCUMENT_FORMAT = "v1"
 
 
 def _directory_document(
@@ -1397,20 +1458,21 @@ def _directory_document(
     the images elsewhere, or ship them inside their app, edits those strings; the
     apps treat a value that is not an http(s) URL as the name of a bundled asset.
 
-    `platforms` entries are byte-identical to what /api/v1/directory/{id} returns,
-    so a client that already reads that endpoint needs no new parsing.
+    The key names are the ones the Open edX mobile working group settled on, not
+    this registry's own column names, so a file written by hand and a file
+    exported from here are the same shape.
     """
     if logo_url.startswith("/"):
         logo_url = origin + logo_url
     return {
-        "version": DIRECTORY_DOCUMENT_VERSION,
+        "format": DIRECTORY_DOCUMENT_FORMAT,
         "generated_at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "provider": {
             "name": name,
             "tagline": tagline or "",
-            "logo_url": logo_url or None,
+            "logo": logo_url or None,
         },
-        "platforms": [_lms_to_directory_detail(lms, base_url=origin) for lms in rows],
+        "include": [_lms_to_document_entry(lms, base_url=origin) for lms in rows],
     }
 
 

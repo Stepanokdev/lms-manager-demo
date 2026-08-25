@@ -387,25 +387,30 @@ def test_the_document_carries_the_whole_directory(portal):
     add_platform(portal, token, name="Alpha Online", base_url="https://online.example.edu")
 
     doc = portal.get(f"/p/{org['slug']}/directory.json").json()
-    assert doc["version"] == 1
+    assert doc["format"] == "v1"
     assert doc["provider"]["name"] == "Alpha College"
-    assert [p["title"] for p in doc["platforms"]] == ["Alpha Main", "Alpha Online"]
+    assert [p["name"] for p in doc["include"]] == ["Alpha Main", "Alpha Online"]
     # Everything a client needs is in the one file — no follow-up request for
     # detail, which is what lets an app prefetch images before anything is tapped.
-    first = doc["platforms"][0]
-    for key in ("id", "title", "base_url", "api", "feature_flags", "theme", "ui_components"):
+    first = doc["include"][0]
+    for key in ("id", "name", "description", "url", "feature_flags", "theme", "ui_components"):
         assert key in first, key
-    assert first["api"]["oauth_client_id"]
 
 
-def test_the_document_and_the_endpoint_describe_the_same_platforms(portal):
+def test_the_document_uses_the_agreed_key_names_not_this_registrys(portal):
     token, org = register_provider(portal, email="a@example.com", org_name="Alpha College")
     lms = add_platform(portal, token, name="Alpha Main", base_url="https://alpha.example.edu")
 
-    doc = portal.get(f"/p/{org['slug']}/directory.json").json()
+    entry = portal.get(f"/p/{org['slug']}/directory.json").json()["include"][0]
     live = portal.get(f"/p/{org['slug']}/api/v1/directory/{lms['id']}").json()
-    # A client that already reads the live endpoint can read the file unchanged.
-    assert doc["platforms"][0] == live
+
+    # The file speaks the schema the mobile working group settled on; this
+    # registry's own column names stay behind its own API.
+    assert entry["name"] == live["title"]
+    assert entry["url"] == live["base_url"]
+    assert entry["description"] == live["short_description"]
+    for gone in ("title", "base_url", "short_description", "logo_url", "visibility", "featured"):
+        assert gone not in entry, gone
 
 
 def test_hidden_platforms_are_absent_from_the_document(portal):
@@ -415,14 +420,14 @@ def test_hidden_platforms_are_absent_from_the_document(portal):
     portal.put(f"/my/lms/{draft['id']}", json={"visibility": "hidden"}, headers=auth(token))
 
     doc = portal.get(f"/p/{org['slug']}/directory.json").json()
-    assert [p["title"] for p in doc["platforms"]] == ["Live"]
+    assert [p["name"] for p in doc["include"]] == ["Live"]
 
 
 def test_the_document_is_scoped_and_downloadable(portal):
     (_, a_org, _), (_, b_org, _) = two_providers(portal)
 
     a_doc = portal.get(f"/p/{a_org['slug']}/directory.json").json()
-    assert [p["title"] for p in a_doc["platforms"]] == ["Alpha Main"]
+    assert [p["name"] for p in a_doc["include"]] == ["Alpha Main"]
 
     dl = portal.get(f"/p/{a_org['slug']}/directory.json?download=1")
     assert dl.status_code == 200
@@ -444,7 +449,7 @@ def test_document_image_urls_are_absolute(tmp_path):
     doc = client.get(f"/p/{org['slug']}/directory.json").json()
     # Whoever downloads the file has to be able to fetch the images from wherever
     # they open it, so a relative path would be useless to them.
-    assert doc["platforms"][0]["logo_url"] == "https://providers.example.com/uploads/alpha.png"
+    assert doc["include"][0]["logo"] == "https://providers.example.com/uploads/alpha.png"
 
 
 # ── the directory as a drop-in bundle ─────────────────
@@ -486,7 +491,7 @@ def test_the_bundle_packs_hosted_images_and_points_the_document_at_them(portal):
     doc = json.loads(archive.read("lms_directory.json"))
     # The document must refer to the packed file by name, not by address —
     # otherwise bundling the images achieved nothing.
-    assert doc["platforms"][0]["logo_url"] == "alpha-main-logo.png"
+    assert doc["include"][0]["logo"] == "alpha-main-logo.png"
     assert archive.read("alpha-main-logo.png")[:8] == b"\x89PNG\r\n\x1a\n"
 
 
@@ -498,8 +503,8 @@ def test_a_fully_hosted_bundle_leaves_no_addresses_behind(portal):
                  logo_url=logo, login_background_url=logo)
 
     doc = json.loads(_zip_of(portal, org["slug"]).read("lms_directory.json"))
-    platform = doc["platforms"][0]
-    values = [platform.get("logo_url"), (platform.get("theme") or {}).get("login_background_url")]
+    platform = doc["include"][0]
+    values = [platform.get("logo"), (platform.get("theme") or {}).get("login_background")]
     assert all(v and not v.startswith("http") for v in values), values
 
 
@@ -513,7 +518,7 @@ def test_images_hosted_elsewhere_stay_addresses_and_are_called_out(portal):
     doc = json.loads(archive.read("lms_directory.json"))
     # The server does not fetch other people's URLs, so this one is left alone —
     # and the README has to say so rather than let someone believe it is offline.
-    assert doc["platforms"][0]["logo_url"] == "https://cdn.example.com/alpha.png"
+    assert doc["include"][0]["logo"] == "https://cdn.example.com/alpha.png"
     readme = archive.read("README.txt").decode()
     assert "hosted somewhere" in readme
     assert not any(n.endswith(".png") for n in archive.namelist())
@@ -523,7 +528,7 @@ def test_the_bundle_is_scoped_like_everything_else(portal):
     import json
     (a_token, a_org, _), (_, b_org, _) = two_providers(portal)
     doc = json.loads(_zip_of(portal, a_org["slug"]).read("lms_directory.json"))
-    assert [p["title"] for p in doc["platforms"]] == ["Alpha Main"]
+    assert [p["name"] for p in doc["include"]] == ["Alpha Main"]
     assert portal.get("/p/nope/directory.zip").status_code == 404
 
 
@@ -549,4 +554,4 @@ def test_a_crafted_upload_path_cannot_escape_the_uploads_directory(portal):
     assert not any("passwd" in n for n in archive.namelist())
     doc = json.loads(archive.read("lms_directory.json"))
     # Unreadable, so it is left as an address rather than silently dropped.
-    assert doc["platforms"][0]["logo_url"].endswith("/uploads/../../../etc/passwd")
+    assert doc["include"][0]["logo"].endswith("/uploads/../../../etc/passwd")

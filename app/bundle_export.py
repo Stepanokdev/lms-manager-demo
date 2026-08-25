@@ -20,9 +20,8 @@ UPLOAD_PREFIX = "/uploads/"
 
 # Fields that hold an image, and the stem each one gets in the zip.
 _IMAGE_FIELDS = [
-    (("logo_url",), "logo"),
-    (("theme", "logo_upload_url"), "logo-upload"),
-    (("theme", "login_background_url"), "background"),
+    (("logo",), "logo"),
+    (("theme", "login_background"), "background"),
 ]
 
 README = """This is your directory, ready to ship inside your app.
@@ -135,8 +134,8 @@ def build_zip(document: dict, origin: str) -> bytes:
     external = 0
 
     entries: list[tuple[dict, str]] = [
-        (platform, _safe_stem(platform.get("title") or platform.get("id") or ""))
-        for platform in doc.get("platforms", [])
+        (platform, _safe_stem(platform.get("name") or platform.get("id") or ""))
+        for platform in doc.get("include", [])
     ]
     provider = doc.get("provider")
     if isinstance(provider, dict):
