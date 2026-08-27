@@ -393,7 +393,7 @@ def test_the_document_carries_the_whole_directory(portal):
     # Everything a client needs is in the one file — no follow-up request for
     # detail, which is what lets an app prefetch images before anything is tapped.
     first = doc["include"][0]
-    for key in ("id", "name", "description", "url", "feature_flags", "theme", "ui_components"):
+    for key in ("name", "description", "url", "feature_flags", "theme", "ui_components"):
         assert key in first, key
 
 
@@ -409,8 +409,10 @@ def test_the_document_uses_the_agreed_key_names_not_this_registrys(portal):
     assert entry["name"] == live["title"]
     assert entry["url"] == live["base_url"]
     assert entry["description"] == live["short_description"]
-    for gone in ("title", "base_url", "short_description", "logo_url", "visibility", "featured"):
+    # A platform is its address. This registry's row id stays behind its own API.
+    for gone in ("id", "title", "base_url", "short_description", "logo_url", "visibility", "featured"):
         assert gone not in entry, gone
+    assert live["id"]
 
 
 def test_hidden_platforms_are_absent_from_the_document(portal):

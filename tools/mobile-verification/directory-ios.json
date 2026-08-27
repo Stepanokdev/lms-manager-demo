@@ -6,7 +6,6 @@
   },
   "include": [
     {
-      "id": "1",
       "name": "Stub College",
       "description": "Stub platform",
       "url": "http://127.0.0.1:8099",

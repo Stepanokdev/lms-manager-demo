@@ -134,7 +134,7 @@ def build_zip(document: dict, origin: str) -> bytes:
     external = 0
 
     entries: list[tuple[dict, str]] = [
-        (platform, _safe_stem(platform.get("name") or platform.get("id") or ""))
+        (platform, _safe_stem(platform.get("name") or platform.get("url") or ""))
         for platform in doc.get("include", [])
     ]
     provider = doc.get("provider")

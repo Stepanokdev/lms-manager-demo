@@ -1219,6 +1219,10 @@ def _lms_to_document_entry(lms: LMSInstance, base_url: str = "") -> dict:
     flags the platform's own backend cannot yet serve, which the apps read when
     present and default when absent.
 
+    A platform is identified by its `url`. This registry's own row id stays
+    behind its own API: it means nothing to a reader, and a second identifier
+    is a second thing that can disagree with the first.
+
     `api` is written only when there is something to say. A multi-instance app
     carries one OAuth client of its own, which each platform registers; a client
     id here overrides that for this platform alone, and most files should not
@@ -1236,7 +1240,6 @@ def _lms_to_document_entry(lms: LMSInstance, base_url: str = "") -> dict:
         if value
     }
     entry = {
-        "id": str(lms.id),
         "name": lms.name,
         "description": lms.platform_name or "",
         "url": lms.base_url,
