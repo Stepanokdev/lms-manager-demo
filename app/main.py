@@ -1,9 +1,12 @@
+import mimetypes
 import os
 import uuid
 import base64
 import binascii
 import datetime
+import ipaddress
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, Response, BackgroundTasks
@@ -18,7 +21,7 @@ from .database import Base, engine, get_db
 from .models import (
     User, LMSInstance, LMSStatus, UserRole, Visibility, Organization,
     Report, ReportCategory, ReportStatus, ReportSeverity, CATEGORY_SEVERITY,
-    ModerationEvent,
+    ModerationEvent, new_catalog_key,
 )
 from .schemas import (
     RegisterRequest, LoginRequest, TokenResponse, UserResponse,
@@ -44,8 +47,8 @@ from .config import get_config
 from .database import migrate
 from .seed import seed
 from . import bundle_export, webhook, email_notify
-from .netguard import is_public_url
-from .ratelimit import reports_limiter, validate_limiter, client_ip
+from .netguard import is_public_url, probe_client, read_capped
+from .ratelimit import reports_limiter, validate_limiter, auth_limiter, client_ip
 
 os.makedirs("data", exist_ok=True)
 os.makedirs("data/uploads", exist_ok=True)
@@ -112,8 +115,10 @@ def _save_report_screenshot(b64: str | None) -> str:
 # ── Auth ──────────────────────────────────────────────
 
 @app.post("/auth/register", response_model=TokenResponse)
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
+def register(req: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     cfg = get_config()
+    if not auth_limiter.allow(f"register:{client_ip(request)}", limit=10, window_seconds=3600):
+        raise HTTPException(status_code=429, detail="Too many sign-ups from this address. Try again later.")
     if cfg.is_curated:
         # Curated (institution) registry: it lists the org's own platforms, so there is
         # no public self-service sign-up. Admins are provisioned deliberately and manage
@@ -155,7 +160,9 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/auth/login", response_model=TokenResponse)
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    if not auth_limiter.allow(f"login:{client_ip(request)}", limit=30, window_seconds=600):
+        raise HTTPException(status_code=429, detail="Too many sign-in attempts. Try again in a few minutes.")
     user = db.query(User).filter(User.email == req.email).first()
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -205,12 +212,14 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
     base = base_url.rstrip("/")
     result = {"url_valid": False, "oauth_valid": False, "url_error": None, "oauth_error": None}
 
-    # SSRF guard: never let an owner-supplied URL point at our own network.
+    # SSRF guard: never let an owner-supplied URL point at our own network. This is the
+    # quick answer for the form; probe_client() enforces it again on every connection,
+    # so neither a redirect nor a name that re-resolves later can get past it.
     if not is_public_url(base):
         result["url_error"] = "This address could not be reached (must be a public https URL)."
         return result
 
-    async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
+    async with probe_client() as client:
         try:
             r = await client.get(f"{base}/user_api/v1/account/registration/")
             if 200 <= r.status_code < 300:
@@ -228,10 +237,10 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
         except Exception as e:  # noqa: BLE001
             result["url_error"] = f"Connection failed: {str(e)[:100]}"
 
-    if result["url_valid"] and oauth_client_id:
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
+        if result["url_valid"] and oauth_client_id:
             try:
-                r = await client.post(
+                async with client.stream(
+                    "POST",
                     f"{base}/oauth2/access_token",
                     data={
                         "client_id": oauth_client_id,
@@ -239,12 +248,10 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
                         "username": "_validate_",
                         "password": "_validate_",
                     },
-                )
-                body = r.text.lower()
+                ) as r:
+                    body = (await read_capped(r)).lower()
                 if "invalid_client" in body:
                     result["oauth_error"] = "OAuth Client ID not found on this LMS. Check the ID."
-                elif "invalid_grant" in body or "unauthorized" in body:
-                    result["oauth_valid"] = True
                 else:
                     result["oauth_valid"] = True
             except Exception as e:  # noqa: BLE001
@@ -316,8 +323,37 @@ def get_lms(lms_id: int, db: Session = Depends(get_db)):
 
 # ── User: submit LMS ─────────────────────────────────
 
+def _check_public_catalog_address(base_url: str | None) -> None:
+    """
+    In the public catalog anyone can list a platform, and every learner's app may
+    connect to it, so the address must be an https URL with a real host name or a
+    public IP. Whether it actually answers is the wizard's live check; this only
+    keeps addresses no app could, or should, sign in to out of the list.
+    """
+    if base_url is None or get_config().directory_mode != "search":
+        return
+    parsed = urlparse(base_url.strip())
+    host = (parsed.hostname or "").lower()
+    bad = parsed.scheme != "https" or not host or host == "localhost" or host.endswith(
+        (".localhost", ".local", ".internal", ".lan")
+    )
+    if not bad:
+        try:
+            ip = ipaddress.ip_address(host.strip("[]"))
+        except ValueError:
+            bad = "." not in host
+        else:
+            bad = not ip.is_global
+    if bad:
+        raise HTTPException(
+            status_code=422,
+            detail="Use the platform's public https address, for example https://lms.example.edu.",
+        )
+
+
 @app.post("/lms", response_model=LMSResponse, status_code=201)
 def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    _check_public_catalog_address(req.base_url)
     data = req.model_dump()
     data["accent_color_dark"] = adapt_accent_for_dark(data.get("accent_color", "#007AFF"))
     cfg = get_config()
@@ -382,6 +418,23 @@ def _own_lms_or_404(lms_id: int, user: User, db: Session) -> LMSInstance:
     return lms
 
 
+def _apply_lms_updates(lms: LMSInstance, updates: dict) -> None:
+    """
+    Write edited fields onto a platform.
+
+    A new address is a new platform as far as the mobile apps are concerned, so it
+    gets a new catalog key: an app that had the old key selected, with that site's
+    tokens stored under it, must never start sending those tokens to the new host.
+    """
+    if "accent_color" in updates:
+        updates["accent_color_dark"] = adapt_accent_for_dark(updates["accent_color"])
+    new_url = updates.get("base_url")
+    if new_url is not None and new_url.rstrip("/") != (lms.base_url or "").rstrip("/"):
+        lms.catalog_key = new_catalog_key()
+    for key, value in updates.items():
+        setattr(lms, key, value)
+
+
 @app.get("/my/lms", response_model=list[LMSResponse])
 def my_lms(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return _own_lms_query(user, db).order_by(
@@ -414,13 +467,32 @@ def my_lms_update(
     """
     lms = _own_lms_or_404(lms_id, user, db)
     updates = req.model_dump(exclude_none=True)
-    if "accent_color" in updates:
-        updates["accent_color_dark"] = adapt_accent_for_dark(updates["accent_color"])
-    for key, value in updates.items():
-        setattr(lms, key, value)
+    _check_public_catalog_address(updates.get("base_url"))
+    _apply_lms_updates(lms, updates)
     db.commit()
     db.refresh(lms)
     return lms
+
+
+@app.delete("/my/lms/{lms_id}", status_code=204)
+def my_lms_delete(
+    lms_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Owner removes their own platform from the registry and from the mobile catalog.
+
+    Ownership goes through _own_lms_or_404 like every other owner route, so someone
+    else's id answers 404 and deletes nothing. Learner reports go with the row; the
+    moderation trail is kept, since it records what admins did, not what the owner has.
+    """
+    lms = _own_lms_or_404(lms_id, user, db)
+    _log_event(db, actor_id=user.id, actor_name=user.name, lms_id=lms.id,
+               action="deleted", detail=f"owner removed {lms.base_url}")
+    db.delete(lms)
+    db.commit()
+    return Response(status_code=204)
 
 
 @app.post("/my/lms/{lms_id}/request-review", response_model=LMSResponse)
@@ -695,11 +767,7 @@ def admin_full_update_lms(
     lms = db.query(LMSInstance).filter(LMSInstance.id == lms_id).first()
     if not lms:
         raise HTTPException(status_code=404, detail="LMS not found")
-    updates = req.model_dump(exclude_none=True)
-    if "accent_color" in updates:
-        updates["accent_color_dark"] = adapt_accent_for_dark(updates["accent_color"])
-    for key, value in updates.items():
-        setattr(lms, key, value)
+    _apply_lms_updates(lms, req.model_dump(exclude_none=True))
     db.commit()
     db.refresh(lms)
     return lms
@@ -1596,6 +1664,91 @@ def directory_document(
     )
 
 
+def _lms_to_catalog_instance(lms: LMSInstance, origin: str) -> dict:
+    """
+    One platform in the instance catalog both mobile apps read from
+    INSTANCES_CATALOG_URL: snake_case keys, the same schema as their bundled
+    INSTANCES list (see Documentation/Multi_Instance_Configuration.md in either app).
+    """
+    accent = lms.accent_color or None
+    accent_dark = lms.accent_color_dark or None
+    theme: dict = {}
+    if accent:
+        theme["light"] = {"accent_color": accent}
+    if accent_dark:
+        theme["dark"] = {"accent_color": accent_dark}
+    logo = _make_absolute(lms.logo_upload_url or lms.logo_url or None, origin)
+    if logo:
+        theme["logo_url"] = logo
+    header = _make_absolute(getattr(lms, "login_background_url", None) or None, origin)
+    if header:
+        theme["header_background_url"] = header
+    entry = {
+        "key": lms.catalog_key,
+        "name": lms.name,
+        "api_host_url": lms.base_url.rstrip("/"),
+        "oauth_client_id": lms.oauth_client_id,
+    }
+    if accent:
+        entry["color"] = accent
+    if lms.platform_name:
+        # Not in the apps' snake_case map, so it travels in the schema's own spelling.
+        entry["PLATFORM_NAME"] = lms.platform_name
+    if lms.sso_url:
+        entry["sso_url"] = lms.sso_url
+    if lms.sso_finished_url:
+        entry["sso_url_successful_login"] = lms.sso_finished_url
+    if lms.feedback_email:
+        entry["FEEDBACK_EMAIL_ADDRESS"] = lms.feedback_email
+    if theme:
+        entry["theme"] = theme
+    return entry
+
+
+def _catalog_ready(lms: LMSInstance) -> bool:
+    """Only what an app can actually sign in to: an https address and an OAuth client."""
+    return bool(
+        lms.catalog_key
+        and lms.oauth_client_id
+        and (lms.base_url or "").startswith("https://")
+    )
+
+
+@app.get("/instances.json")
+def instances_catalog(request: Request, db: Session = Depends(get_db)):
+    """
+    Every published platform, in the instance-catalog format of the Open edX
+    multi-instance apps. Point a build's INSTANCES_CATALOG_URL here.
+
+    The apps refetch it on every launch and identify a platform by `key`, which
+    survives renames, reordering and other owners' deletions. A portal has no
+    single catalog, so it has no file here either.
+    """
+    if get_config().is_portal:
+        raise HTTPException(status_code=404, detail="Each organization has its own catalog.")
+    rows = (
+        db.query(LMSInstance)
+        .filter(
+            LMSInstance.status == LMSStatus.approved,
+            LMSInstance.visibility == Visibility.public,
+        )
+        .all()
+    )
+    origin = public_origin(request)
+    instances = [
+        _lms_to_catalog_instance(lms, origin)
+        for lms in sorted(rows, key=lambda r: ((r.name or "").casefold(), r.id))
+        if _catalog_ready(lms)
+    ]
+    return JSONResponse(
+        {
+            "generated_at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "instances": instances,
+        },
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
 @app.get("/p/{slug}/api/v1/config", response_model=PublicConfigResponse)
 def org_public_config(
     request: Request,
@@ -1708,7 +1861,14 @@ def org_ul_detail(
 
 STATIC_DIR = Path(__file__).parent / "static"
 ADMIN_DIR = STATIC_DIR / "admin"
-LANDING_DIR = STATIC_DIR / "landing"
+# A deployment can front itself with its own landing page: LANDING_DIR points at a
+# folder holding index.html and whatever it links to under /site/. Without it, the
+# pilot's bundled landing in static/landing is used.
+CUSTOM_LANDING_DIR = Path(os.environ["LANDING_DIR"]) if os.environ.get("LANDING_DIR") else None
+LANDING_DIR = CUSTOM_LANDING_DIR or STATIC_DIR / "landing"
+# Files a deployment offers for download (a signed APK, say), served from the data
+# volume so they can be replaced without rebuilding the image.
+DOWNLOADS_DIR = Path(os.environ.get("DOWNLOADS_DIR", "data/downloads"))
 
 app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
 app.mount("/wizard", StaticFiles(directory=str(STATIC_DIR / "wizard"), html=True), name="wizard")
@@ -1759,8 +1919,15 @@ def root():
     return _admin_index()
 
 
-# Serve landing static assets (_next/*, images, video, etc.)
-if (STATIC_DIR / "landing").exists():
+if CUSTOM_LANDING_DIR is not None and CUSTOM_LANDING_DIR.exists():
+    app.mount("/site", StaticFiles(directory=str(CUSTOM_LANDING_DIR)), name="custom_landing")
+
+if DOWNLOADS_DIR.exists():
+    mimetypes.add_type("application/vnd.android.package-archive", ".apk")
+    app.mount("/downloads", StaticFiles(directory=str(DOWNLOADS_DIR)), name="downloads")
+
+# Serve the pilot landing's static assets (_next/*, images, video, etc.)
+if CUSTOM_LANDING_DIR is None and (STATIC_DIR / "landing").exists():
     app.mount("/_next", StaticFiles(directory=str(LANDING_DIR / "_next")), name="landing_next")
 
     @app.get("/quick-demo.mp4", response_class=FileResponse)

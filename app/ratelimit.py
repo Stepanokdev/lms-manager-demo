@@ -34,6 +34,7 @@ class RateLimiter:
 
 reports_limiter = RateLimiter()
 validate_limiter = RateLimiter()
+auth_limiter = RateLimiter()
 
 
 def client_ip(request) -> str:

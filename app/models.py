@@ -1,4 +1,5 @@
 import datetime
+import secrets
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SAEnum, Boolean, Text
 from sqlalchemy.orm import relationship
 import enum
@@ -124,10 +125,20 @@ class User(Base):
         return self.organization_id is not None
 
 
+def new_catalog_key() -> str:
+    """A platform's identity in the published mobile catalog. Random, never reused."""
+    return secrets.token_hex(8)
+
+
 class LMSInstance(Base):
     __tablename__ = "lms_instances"
 
     id = Column(Integer, primary_key=True, index=True)
+    # What the mobile apps key a learner's selection and stored session by. Not the row
+    # id: SQLite hands a deleted row's id to the next insert, and a selection that
+    # silently resolved to another owner's platform would send the learner's tokens to
+    # that host. Replaced whenever the platform's address changes, for the same reason.
+    catalog_key = Column(String, default=new_catalog_key)
     name = Column(String, nullable=False)
     base_url = Column(String, nullable=False)
     platform_name = Column(String, nullable=False)

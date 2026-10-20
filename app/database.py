@@ -78,11 +78,24 @@ def migrate():
         # SQLite refuses ADD COLUMN NOT NULL without a default, so nullable is also
         # the only form that works on both engines.
         ("organization_id", "INTEGER"),
+        # v0.5 — the key the mobile catalog identifies a platform by (models.new_catalog_key)
+        ("catalog_key", "VARCHAR"),
     ]
     with engine.begin() as conn:
         for col_name, col_def in new_columns:
             if col_name not in existing:
                 conn.execute(text(f"ALTER TABLE lms_instances ADD COLUMN {col_name} {col_def}"))
+        # Rows from before v0.5 get their key here, once; a key is never rewritten later
+        # except when the platform's address changes.
+        from .models import new_catalog_key
+        missing = conn.execute(
+            text("SELECT id FROM lms_instances WHERE catalog_key IS NULL OR catalog_key = ''")
+        ).fetchall()
+        for (row_id,) in missing:
+            conn.execute(
+                text("UPDATE lms_instances SET catalog_key = :key WHERE id = :id"),
+                {"key": new_catalog_key(), "id": row_id},
+            )
         # Removing deprecated columns is not supported in SQLite, so we leave them.
 
     # users table — portal mode attaches each provider account to an organization
@@ -119,6 +132,7 @@ def migrate():
         ("ix_lms_org", "lms_instances", "organization_id"),
         ("ix_lms_org_status", "lms_instances", "organization_id, status"),
         ("ix_users_org", "users", "organization_id"),
+        ("ix_lms_catalog_key", "lms_instances", "catalog_key"),
     ]
     with engine.begin() as conn:
         for name, table, cols in index_specs:

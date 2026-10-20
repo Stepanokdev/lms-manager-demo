@@ -24,6 +24,11 @@ def _purge_app_modules() -> None:
         del sys.modules[name]
 
 
+#: Extra variables earlier build_app calls set. Each call clears them first, so a
+#: setting one test asked for (AUTO_APPROVE=false, say) never leaks into the next.
+_extra_env: set[str] = set()
+
+
 def build_app(tmp_path: Path, mode: str = "portal", **env):
     """A TestClient for a freshly imported app in `mode`, with its own SQLite file."""
     from fastapi.testclient import TestClient
@@ -39,8 +44,14 @@ def build_app(tmp_path: Path, mode: str = "portal", **env):
     os.environ.pop("ADMIN_EMAIL", None)
     os.environ.pop("ADMIN_PASSWORD", None)
     os.environ.pop("REGISTRY_PUBLIC_URL", None)
+    os.environ.pop("LANDING_DIR", None)
+    os.environ.pop("DOWNLOADS_DIR", None)
+    for key in _extra_env:
+        os.environ.pop(key, None)
+    _extra_env.clear()
     for key, value in env.items():
         os.environ[key] = value
+        _extra_env.add(key)
 
     _purge_app_modules()
     main = importlib.import_module("app.main")
