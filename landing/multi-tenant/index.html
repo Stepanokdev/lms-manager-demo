@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Open edX Multi-tenant</title>
+  <meta name="description" content="One Open edX mobile app for several platforms. Try the shared iOS and Android demo, add your LMS, or build with your own catalog.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Open edX Multi-tenant">
+  <meta property="og:description" content="One app. Every campus you run. Explore multi-tenant Open edX for iOS and Android and add your LMS to the shared demo.">
+  <link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Playfair+Display:ital,wght@1,500&amp;display=swap">
+  <link rel="stylesheet" href="/site/styles.css">
+  <script src="/site/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="navigation">
+    <a class="brand" href="/" aria-label="Open edX Multi-tenant home">
+      <svg class="brand-mark" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3" y="8" width="17" height="21" rx="5" stroke="currentColor" stroke-width="1.5"/><rect x="12" y="3" width="17" height="21" rx="5" fill="currentColor"/><path d="M17 10h7m-7 4h7m-7 4h3" stroke="var(--nav-bg)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Open edX <span class="brand-subtitle">Multi-tenant</span></span><span class="demo-tag">Demo</span>
+    </a>
+    <button class="menu-toggle" type="button" aria-controls="nav-links" aria-expanded="false" aria-label="Open navigation" hidden><span></span><span></span></button>
+    <nav id="nav-links" aria-label="Main navigation">
+      <a href="#how">How it works</a><a href="#try">Try it</a><a href="#catalog">Catalog</a><a href="#format">JSON format</a>
+      <a class="button button-small" href="/dashboard?mode=register">Add your LMS <span class="arrow" aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Open edX mobile · iOS and Android</p>
+        <h1 id="hero-title">One app.<br><em>Every</em> campus<br>you run.</h1>
+        <p class="lead">The Open edX mobile app can now serve several Open edX platforms from one iOS and one Android build. Learners pick their school, stay signed in to more than one, and switch without signing in again. Each school keeps its own branding, data and session.</p>
+        <div class="actions"><a class="button" href="/dashboard?mode=register">Add your LMS <span class="arrow" aria-hidden="true">↗</span></a><a class="text-link" href="#try">Get the demo app <span aria-hidden="true">↓</span></a></div>
+        <p class="fine-print">This demo lists every LMS added here, so you can see the picker with real platforms in it.</p>
+      </div>
+      <figure class="hero-visual">
+        <div class="phone-stage">
+          <span class="stage-label">One build. Several learning sites.</span>
+          <div class="phone-pair">
+            <div class="phone-wrap phone-ios"><span class="device-label">01 / iOS</span><div class="phone"><img src="/site/img/ios-sites.jpg" width="640" height="1391" fetchpriority="high" alt="iOS Learning Sites with Verawood North selected and Verawood South also signed in."></div></div>
+            <div class="phone-wrap phone-android"><span class="device-label">02 / Android</span><div class="phone"><img src="/site/img/android-sites.jpg" width="640" height="1422" alt="Android Learning Sites with Verawood North selected and Verawood South also signed in."></div></div>
+          </div>
+          <span class="stage-foot"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 6h13m-4-3 4 3-4 3M17 14H4m4-3-4 3 4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Pick a site. Switch. Stay signed in.</span>
+        </div>
+        <figcaption>Real app screens. Verawood North/South are two test platforms running on a local Open edX.</figcaption>
+      </figure>
+    </section>
+    <section class="section container" id="how" aria-labelledby="how-title">
+      <p class="eyebrow">How it works</p><h2 id="how-title">Where multi-tenant <em>fits.</em></h2>
+      <div class="progression">
+        <article class="stage stage-before"><p class="mono">01 / Today</p><h3>Single site</h3><p>One app per platform. Every Open edX site that wants a mobile app builds, signs and publishes its own.</p></article>
+        <article class="bezel stage-current"><div class="core"><p class="mono">02 / This project</p><h3>Multi-tenant</h3><p class="stage-intro">One provider, one app,<br>several platforms.</p><p>A university with faculties on separate Open edX sites, or a company running academies for different clients, ships one app. The provider decides the list: compiled into the build, or fetched from a URL they host.</p></div></article>
+        <article class="stage stage-next"><p class="mono">03 / Next</p><h3>Universal</h3><p>One app for everyone, the way Moodle and Canvas work. Learners find their school in a public directory. Multi-tenant is the first step: the app already holds many sites at once.</p></article>
+      </div>
+      <div class="separation"><h3>What stays separate</h3><div><ul class="separate-list"><li>Sign-in and tokens</li><li>Branding (color, logo, header)</li><li>Downloaded videos and cached courses</li><li>Push registration</li></ul><p>Switching keeps you signed in to the site you left.</p></div></div>
+    </section>
+    <section class="demo-section" aria-labelledby="demo-title">
+      <div class="container demo-layout">
+        <div class="demo-copy"><p class="eyebrow">About this demo</p><h2 id="demo-title">Why you'll see<br>other people's <em>platforms.</em></h2><p>A real multi-tenant app lists only its provider's platforms. This demo does the opposite on purpose: every LMS added here goes into one shared list, and both demo apps read it. It is the quickest way to try the picker, switching and per-site branding with a platform you know.</p><ul class="check-list"><li>Your LMS appears for everyone who installs the demo.</li><li>You can remove it at any time from your workspace.</li><li>The apps pick up changes the next time they are opened.</li></ul></div>
+        <figure class="branding-figure"><div class="bezel"><div class="core branding-core"><span class="mono">A platform's own branding</span><div class="phone"><img src="/site/img/ios-dashboard-south.jpg" width="640" height="1391" loading="lazy" alt="Verawood South's iOS learning dashboard with pink accents and the Open edX Demo Course."></div></div></div><figcaption>Verawood South · iOS · local Open edX test platform.</figcaption></figure>
+      </div>
+    </section>
+    <section class="section container" id="try" aria-labelledby="try-title">
+      <p class="eyebrow">Three ways in</p><h2 id="try-title"><em>Try</em> it.</h2>
+      <div class="try-layout">
+        <article class="bezel wizard-card"><div class="core"><p class="path-label">A / Start with your platform</p><h3>Add your LMS</h3><ol class="steps"><li><strong>Create an account.</strong></li><li><strong>Run the wizard:</strong> your platform's address and a mobile OAuth client. The wizard checks both live.</li><li><strong>Open the demo app;</strong> your platform is in the list.</li></ol><div class="actions"><a class="button" href="/dashboard?mode=register">Add your LMS <span class="arrow" aria-hidden="true">↗</span></a><a class="text-link" href="/dashboard">Already registered? Sign in</a></div><aside class="requirements"><h4>What your Open edX needs</h4><p>In Django admin, open Django OAuth Toolkit → Applications and add an application: client type <strong>Public</strong>, authorization grant type <strong>Resource owner password-based</strong>. Copy its Client id. Turn on <strong>Mobile course available</strong> for the courses you want in the app. Your platform must be reachable over https.</p></aside></div></article>
+        <div class="other-paths">
+          <article class="install-card"><p class="path-label">B / On your phone</p><h3>Install the demo app</h3><p id="install-fallback">Install links appear here once each build is approved.</p><div id="install-status" aria-live="polite" aria-busy="false"></div><p class="fine-print">iOS: open the TestFlight link on your iPhone; you need Apple's TestFlight app.</p><p class="fine-print">Android: your phone asks to allow installs from the browser; the APK is signed by Raccoon Gang and is not on Google Play.</p></article>
+          <article class="build-card"><p class="path-label">C / Make it yours</p><h3>Build it with your own list</h3><p>Fork the apps and list your platforms in <code>INSTANCES</code> in <code>config.yaml</code>, or host a JSON file and set <code>INSTANCES_CATALOG_URL</code>.</p><a class="text-link" href="#format">Read the JSON format <span aria-hidden="true">↗</span></a><div class="repo-links"><a href="https://github.com/openedx/openedx-app-ios">iOS repository</a><a href="https://github.com/openedx/openedx-app-android">Android repository</a></div></article>
+        </div>
+      </div>
+    </section>
+    <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
+      <div class="container"><div class="section-heading"><div><p class="eyebrow">Live catalog</p><h2 id="catalog-title">In the demo <em>right now.</em></h2></div><span class="count mono" id="catalog-count" hidden></span></div>
+        <div class="bezel catalog-shell"><div class="core">
+          <p id="catalog-message" role="status">The live catalog loads with JavaScript. You can also <a href="/instances.json">read the catalog JSON</a>.</p>
+          <ul class="catalog-list" id="catalog-list" aria-label="Platforms in the demo" hidden></ul>
+          <a class="button" id="empty-catalog-cta" href="/dashboard?mode=register" hidden>Add your LMS <span class="arrow" aria-hidden="true">↗</span></a>
+        </div></div>
+        <p class="catalog-note">The app shows the site picker once the list has at least two platforms; with one, it opens straight to that platform's sign-in.</p>
+        <div class="catalog-address"><label class="mono" for="catalog-url">Catalog URL</label><div class="copy-field"><input id="catalog-url" type="text" readonly spellcheck="false" value="https://multi-tenant.stepanok.com/instances.json"><button id="copy-url" type="button" hidden>Copy URL</button></div><span id="copy-message" class="fine-print" role="status"></span></div>
+      </div>
+    </section>
+    <section class="section container" id="format" aria-labelledby="format-title">
+      <p class="eyebrow">For developers</p><h2 id="format-title">The catalog <em>format.</em></h2>
+      <p class="format-intro">Both apps read the same schema from two places: <code>INSTANCES</code> in the build's <code>config.yaml</code> (keys in UPPER_SNAKE_CASE) and a JSON file at <code>INSTANCES_CATALOG_URL</code> (keys in snake_case).</p>
+      <div class="bezel code-shell"><div class="core">
+        <div class="code-tabs" id="code-tabs" role="tablist" aria-label="Configuration examples" hidden><button id="json-tab" type="button" role="tab" aria-controls="json-panel" aria-selected="true">JSON</button><button id="yaml-tab" type="button" role="tab" aria-controls="yaml-panel" aria-selected="false" tabindex="-1">config.yaml</button></div>
+        <section id="json-panel" class="code-panel" aria-labelledby="json-heading"><h3 id="json-heading">JSON</h3><pre tabindex="0" aria-label="JSON catalog example"><code>{
+  "instances": [
+    {
+      "key": "north",
+      "name": "North Campus",
+      "api_host_url": "https://lms.north.example.edu",
+      "oauth_client_id": "mobile-north",
+      "color": "#1F5FBF",
+      "theme": {
+        "light": { "accent_color": "#1F5FBF" },
+        "dark": { "accent_color": "#7FA8FF" },
+        "logo_url": "https://cdn.example.edu/north-logo.png"
+      }
+    },
+    {
+      "key": "south",
+      "name": "South Campus",
+      "api_host_url": "https://lms.south.example.edu",
+      "oauth_client_id": "mobile-south"
+    }
+  ]
+}</code></pre></section>
+        <section id="yaml-panel" class="code-panel" aria-labelledby="yaml-heading"><h3 id="yaml-heading">config.yaml</h3><pre tabindex="0" aria-label="Build configuration YAML example"><code>API_HOST_URL: 'https://lms.north.example.edu'
+OAUTH_CLIENT_ID: 'mobile-north'
+INSTANCES_CATALOG_URL: 'https://example.edu/instances.json'
+INSTANCES:
+  - KEY: 'north'
+    NAME: 'North Campus'
+    API_HOST_URL: 'https://lms.north.example.edu'
+    OAUTH_CLIENT_ID: 'mobile-north'</code></pre></section>
+      </div></div>
+      <div class="table-scroll" role="region" aria-label="Catalog field reference" tabindex="0"><table><caption>Catalog fields · JSON keys</caption><thead><tr><th scope="col">Key</th><th scope="col">Required</th><th scope="col">Meaning</th></tr></thead><tbody>
+        <tr><th scope="row"><code>key</code></th><td>No, but set it</td><td>Identifies the platform on the device; the learner's selection and session are stored under it. Never change it for a live platform, and never give a removed platform's key to another one. Falls back to a slug of the name.</td></tr>
+        <tr><th scope="row"><code>name</code></th><td>Yes</td><td>Shown in the site list.</td></tr>
+        <tr><th scope="row"><code>api_host_url</code></th><td>Yes</td><td>The platform's https address.</td></tr>
+        <tr><th scope="row"><code>oauth_client_id</code></th><td>Yes</td><td>The public OAuth client the app signs in with.</td></tr>
+        <tr><th scope="row"><code>instance_name</code></th><td>No</td><td>Localized display names, e.g. <code>{"en": "...", "uk": "..."}</code>.</td></tr>
+        <tr><th scope="row"><code>color</code></th><td>No</td><td>Accent color when the theme sets none.</td></tr>
+        <tr><th scope="row"><code>theme.light / theme.dark</code></th><td>No</td><td>Palette overrides; field names such as <code>accent_color</code>, <code>text_primary</code>, <code>background</code>.</td></tr>
+        <tr><th scope="row"><code>theme.logo_url,<br>theme.header_background_url</code></th><td>No</td><td>Remote images (or a bundled asset name).</td></tr>
+        <tr><th scope="row"><code>sso_url,<br>sso_url_successful_login</code></th><td>No</td><td>SSO sign-in for that platform.</td></tr>
+        <tr><th scope="row"><code>PLATFORM_NAME</code></th><td>No</td><td>Sent in upper case; defaults to the display name.</td></tr>
+      </tbody></table></div>
+      <div class="format-rules"><h3>A few rules for the list</h3><ul><li>An entry without <code>name</code>, <code>api_host_url</code> or <code>oauth_client_id</code> is skipped; the rest still load.</li><li>The apps fetch the URL on every launch. A failed or empty answer keeps the last good list.</li><li>One platform: the app behaves like a single-site app. Two or more: the Learning Sites screen.</li><li>The file is public. Put nothing in it you wouldn't show anyone.</li><li>Need a hosted file for your own build? Point it at <a href="/instances.json">this demo's URL</a> to start, then host your own.</li></ul></div>
+    </section>
+    <section class="source-section container" aria-labelledby="source-title"><p class="eyebrow">Open source</p><div class="source-layout"><h2 id="source-title">Follow the <em>source.</em></h2><ul class="source-list"><li><span class="mono">iOS</span><p>The multi-instance work is merged into <a href="https://github.com/openedx/openedx-app-ios">openedx/openedx-app-ios</a> (develop).</p></li><li><span class="mono">Android</span><p>The port is in review as <a href="https://github.com/openedx/openedx-app-android/pulls">openedx/openedx-app-android #511–#521</a>.</p></li><li><span class="mono">This registry</span><p>openedx-lms-manager (Raccoon Gang).</p></li></ul></div></section>
+    <section class="section container faq-section" aria-labelledby="faq-title"><div><p class="eyebrow">Good to know</p><h2 id="faq-title">A few <em>answers.</em></h2></div><div class="faq-list">
+      <details><summary>Do the platforms see each other's data?</summary><p>No. Each platform has its own sign-in, tokens, cached courses and downloads on the device, and a token is only ever sent to the platform that issued it.</p></details>
+      <details><summary>How do I remove my LMS?</summary><p><a href="/dashboard">Sign in</a>, open your workspace and remove it. The apps stop listing it the next time they open.</p></details>
+      <details><summary>My LMS doesn't show up.</summary><p>It needs an https address and a public OAuth client with the password grant. Close the app completely and open it again.</p></details>
+      <details><summary>How do learners sign in?</summary><p>With their normal account on that platform, through the standard Open edX mobile sign-in.</p></details>
+      <details><summary>Who runs this?</summary><p>Raccoon Gang, as a public demo. It is not an official Open edX service.</p></details>
+    </div></section>
+  </main>
+  <footer class="container footer"><div><p><strong>Open edX Multi-tenant demo</strong> · by Raccoon Gang</p><p class="fine-print">Open edX is a trademark of Axim Collaborative.</p></div><nav aria-label="Footer"><a href="/dashboard?mode=register">Add your LMS</a><a href="/dashboard">Sign in</a><a href="/instances.json">Catalog JSON</a></nav></footer>
+</body>
+</html>

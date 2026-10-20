@@ -1,0 +1,4 @@
+{
+  "ios": { "state": "pending", "url": "", "note": "Submitted to TestFlight. Waiting for Apple's beta review." },
+  "android": { "state": "pending", "url": "", "version": "", "note": "The APK is being built." }
+}
