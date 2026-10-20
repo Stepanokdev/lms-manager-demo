@@ -1,0 +1,49 @@
+# The shared multi-tenant demo at multi-tenant.stepanok.com.
+#
+# A deployment of its own, beside the pilot (openedx-lms.stepanok.com) and the
+# provider portal: its own project name, container, database and host, so neither
+# of those is touched when this one is rebuilt. Anyone may sign up and list a
+# platform (search mode, auto-approved); both demo apps read /instances.json.
+#
+# On the server, from a copy of this repository at /opt/openedx-multitenant-demo:
+#   cp deploy/multi-tenant/docker-compose.yml docker-compose.yml
+#   create .env.multitenant with SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
+#   docker compose up -d --build
+#
+# The landing folder is mounted, not baked in, so status.json (the install
+# buttons) can change without a rebuild. data/ holds the database, uploads and
+# data/downloads (the Android APK).
+name: openedx-multitenant-demo
+
+services:
+  api:
+    build: .
+    container_name: openedx-multitenant-demo
+    restart: unless-stopped
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    env_file:
+      - .env.multitenant
+    environment:
+      DIRECTORY_MODE: "search"
+      AUTO_APPROVE: "true"
+      REGISTRY_PUBLIC_URL: "https://multi-tenant.stepanok.com"
+      PROVIDER_NAME: "Open edX Multi-tenant Demo"
+      PROVIDER_TAGLINE: "Every platform added here, in one app"
+      LANDING_DIR: "/app/landing/multi-tenant"
+      DOWNLOADS_DIR: "/app/data/downloads"
+      DOCS_URL: "https://openedx-lms.stepanok.com/guide"
+    volumes:
+      - ./data:/app/data
+      - ./landing/multi-tenant:/app/landing/multi-tenant:ro
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.multitenant-demo.rule=Host(`multi-tenant.stepanok.com`)"
+      - "traefik.http.routers.multitenant-demo.entrypoints=websecure"
+      - "traefik.http.routers.multitenant-demo.tls.certresolver=letsencrypt"
+      - "traefik.http.services.multitenant-demo.loadbalancer.server.port=8000"
+
+networks:
+  web:
+    external: true
