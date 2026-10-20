@@ -11,6 +11,8 @@ export function SummaryStep() {
   const featuresSummary = useSelectedFeaturesSummary()
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null)
+  // Set once a new platform has been created, so a second click can't create a copy.
+  const [created, setCreated] = useState(false)
   const isEditing = editingLmsId !== null
 
   const enabledFeatures = featuresSummary.filter(
@@ -60,9 +62,21 @@ export function SummaryStep() {
       }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || `Error ${res.status}`)
+        throw new Error(typeof err.detail === 'string' ? err.detail : `Error ${res.status}`)
       }
-      setResult({ ok: true, msg: isEditing ? 'LMS updated successfully!' : 'LMS submitted successfully! Waiting for admin approval.' })
+      const saved = await res.json().catch(() => ({}))
+      const live = saved.status === 'approved'
+      if (!isEditing) setCreated(true)
+      setResult({
+        ok: true,
+        msg: isEditing
+          ? live
+            ? 'Saved. The app picks up the change the next time it opens.'
+            : 'Saved.'
+          : live
+            ? 'Your platform is live. Close and reopen the mobile app to see it in the list.'
+            : 'Submitted. It appears in the app once an administrator approves it.',
+      })
     } catch (e: any) {
       setResult({ ok: false, msg: e.message || 'Failed to submit' })
     } finally {
@@ -154,10 +168,10 @@ export function SummaryStep() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleSubmit}
-          disabled={submitting || !clientInfo.lmsName || !clientInfo.baseUrl || !clientInfo.oauthClientId}
+          disabled={submitting || created || !clientInfo.lmsName || !clientInfo.baseUrl || !clientInfo.oauthClientId}
           className="rounded-xl bg-accent-500 px-8 py-3 text-sm font-semibold text-surface-950 transition-colors hover:bg-accent-400 disabled:opacity-50"
         >
-          {submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Submit for Review'}
+          {submitting ? 'Saving...' : isEditing ? 'Save Changes' : created ? 'Registered' : 'Register platform'}
         </motion.button>
 
         <a
