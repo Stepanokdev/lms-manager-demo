@@ -2,7 +2,7 @@
   "ios": {
     "state": "pending",
     "url": "",
-    "note": "The iOS build is uploaded to TestFlight. The public link appears here once Apple approves the beta."
+    "note": "Submitted to Apple's TestFlight beta review on 21 October. The install link appears here once Apple approves it."
   },
   "android": {
     "state": "available",
