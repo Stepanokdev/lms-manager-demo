@@ -3,10 +3,11 @@
 
   const select = (selector) => document.querySelector(selector);
 
-  function httpURL(value) {
+  // Catalog data must be absolute; install links in status.json may be relative to this site.
+  function httpURL(value, base) {
     if (typeof value !== "string" || !value.trim()) return null;
     try {
-      const url = new URL(value);
+      const url = base ? new URL(value, base) : new URL(value);
       return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password ? url : null;
     } catch {
       return null;
@@ -141,7 +142,7 @@
         const entry = status[key];
         const state = entry && ["available", "pending", "unavailable"].includes(entry.state)
           ? entry.state : "unavailable";
-        const url = httpURL(entry?.url);
+        const url = httpURL(entry?.url, window.location.href);
         const available = state === "available" && url;
         const block = document.createElement("div");
         block.className = "distribution";
