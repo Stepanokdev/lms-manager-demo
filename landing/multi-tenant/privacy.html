@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Privacy · Open edX Multi-tenant</title>
+  <meta name="description" content="What the Open edX Multi-tenant demo apps and website collect, and what they don't.">
+  <link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Playfair+Display:ital,wght@1,500&amp;display=swap">
+  <link rel="stylesheet" href="/site/styles.css">
+  <style>
+    .legal { max-width: 68ch; margin: 0 auto; padding: 120px 16px 96px; }
+    .legal h1 { font-size: clamp(2.4rem, 6vw, 3.6rem); line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 12px; }
+    .legal h2 { font-size: 1.35rem; margin: 48px 0 12px; letter-spacing: -0.01em; }
+    .legal p, .legal li { color: var(--muted); line-height: 1.7; }
+    .legal ul { padding-left: 1.2em; }
+    .legal a { color: var(--ink); }
+    .legal .back { display: inline-block; margin-bottom: 40px; color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main class="legal">
+    <a class="back" href="/">← Open edX Multi-tenant</a>
+    <h1>Privacy</h1>
+    <p>Last updated 20 October 2026. This covers the Open edX Multi-tenant demo apps for iOS and Android and this website. Raccoon Gang runs both.</p>
+
+    <h2>The demo apps</h2>
+    <ul>
+      <li>When the app opens, it downloads the public list of platforms from <code>https://multi-tenant.stepanok.com/instances.json</code>. That request carries nothing about you.</li>
+      <li>When you pick a platform and sign in, your username and password go straight to that platform, the Open edX site you chose. They never reach us.</li>
+      <li>Your courses, progress, messages and downloaded videos come from that platform and are kept on your device. That platform's own privacy policy covers them.</li>
+      <li>The demo apps send us nothing else: no analytics, no crash reports, no push notifications, no advertising identifiers.</li>
+      <li>Removing the app removes what it stored on your device. On iPhone, sign out first: iOS keeps saved sign-in tokens in the Keychain after an app is removed.</li>
+    </ul>
+
+    <h2>This website and the platform registry</h2>
+    <ul>
+      <li>If you create an account to add a platform, we store your name, your email address, a hash of your password, and the platform details you enter: its name, address, OAuth client ID, colors and logo.</li>
+      <li>Platform details are public: they appear in the catalog and in both demo apps. Your name and email are not published.</li>
+      <li>We use your email only to let you sign in and, if your listing needs attention, to contact you about it. We don't sell it or share it.</li>
+      <li>The server keeps short-term access logs, such as IP addresses and request times, to keep the service secure.</li>
+    </ul>
+
+    <h2>Removing your data</h2>
+    <p>You can remove a platform at any time from your workspace; it leaves the catalog straight away, and the apps stop listing it the next time they open. To have your account deleted, contact Raccoon Gang through <a href="https://raccoongang.com/contact-us/">raccoongang.com/contact-us</a> and mention the Open edX Multi-tenant demo.</p>
+  </main>
+</body>
+</html>
