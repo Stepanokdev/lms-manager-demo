@@ -129,6 +129,7 @@ export const api = {
   myLMSDetail: (id: number) => request<LMS>(`/my/lms/${id}`),
   updateMyLMS: (id: number, patch: Partial<LMS>) =>
     request<LMS>(`/my/lms/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  deleteMyLMS: (id: number) => request<void>(`/my/lms/${id}`, { method: 'DELETE' }),
   listLMS: (query: LMSQuery = {}) =>
     request<LMS[]>(`/admin/lms${qs(query as Record<string, unknown>)}`),
   getLMS: (id: number) => request<LMS>(`/lms/${id}`),

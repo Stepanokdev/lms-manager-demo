@@ -7,7 +7,7 @@ import { QrDialog } from '@/components/QrDialog'
 import { hostOf, timeAgo } from '@/lib/format'
 import type { LMS, PublicConfig } from '@/lib/types'
 import { Card, Button, Pill, Skeleton, EmptyState, LogoBadge } from '@/components/ui'
-import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer, IconAlert, IconCheck, IconQr } from '@/components/icons'
+import { IconLayers, IconLogout, IconPlus, IconEdit, IconExternal, IconServer, IconAlert, IconCheck, IconQr, IconTrash } from '@/components/icons'
 
 export function OwnerView({ config }: { config: PublicConfig | null }) {
   const user = useStore((s) => s.user)
@@ -16,6 +16,22 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
   const { data, loading, error, reload } = useApiData<LMS[]>(() => api.myLMS())
   const provider = config?.provider_name || 'Open X Project'
   const [qrLms, setQrLms] = useState<LMS | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+
+  const deletePlatform = async (lms: LMS) => {
+    setDeletingId(lms.id)
+    try {
+      await api.deleteMyLMS(lms.id)
+      pushToast({ kind: 'success', title: `${lms.name} removed`, detail: 'Apps stop listing it the next time they open.' })
+      setConfirmDeleteId(null)
+      reload()
+    } catch (e) {
+      pushToast({ kind: 'error', title: 'Could not remove it', detail: (e as Error).message })
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const requestReview = async (id: number) => {
     try {
@@ -103,7 +119,32 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
                     <Button variant="ghost" size="sm" onClick={() => launchWizard(lms.id)}>
                       <IconEdit /> Edit
                     </Button>
+                    <Button
+                      variant="subtle"
+                      size="sm"
+                      onClick={() => setConfirmDeleteId(lms.id)}
+                      aria-label={`Remove ${lms.name}`}
+                      title="Remove this platform"
+                    >
+                      <IconTrash />
+                    </Button>
                   </div>
+
+                  {confirmDeleteId === lms.id && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-danger/25 bg-danger-bg px-4 py-3">
+                      <p className="min-w-[200px] flex-1 text-[13px] leading-relaxed text-danger">
+                        Remove {lms.name} from the registry? Learners stop seeing it in the app the next time they open it.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="subtle" onClick={() => setConfirmDeleteId(null)} disabled={deletingId === lms.id}>
+                          Keep it
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={() => deletePlatform(lms)} loading={deletingId === lms.id}>
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {lms.status === 'rejected' && (
                     <div className="mt-3 rounded-md border border-danger/25 bg-danger-bg px-4 py-3">
