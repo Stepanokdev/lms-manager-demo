@@ -1,3 +1,4 @@
+import json
 import mimetypes
 import os
 import uuid
@@ -207,6 +208,34 @@ class LMSValidateRequest(_BaseModel):
     oauth_client_id: str = ""
 
 
+def _judge_oauth_answer(status: int, body: str) -> dict:
+    """
+    Read the LMS's answer to a password-grant request made with made-up credentials.
+
+    Only `invalid_grant` proves the client exists and may use the password grant
+    the apps sign in with: the LMS accepted the client and refused the user.
+    Anything else is a reason the apps could not sign in, or no proof either way.
+    """
+    try:
+        error = (json.loads(body) or {}).get("error", "")
+    except (ValueError, AttributeError):
+        error = ""
+    if status in (400, 401) and error == "invalid_grant":
+        return {"oauth_valid": True, "oauth_error": None}
+    if error == "invalid_client":
+        message = "OAuth Client ID not found on this LMS. Check the ID."
+    elif error == "unauthorized_client":
+        message = (
+            "This OAuth client may not use the password grant. Set its authorization "
+            "grant type to 'Resource owner password-based'."
+        )
+    elif error:
+        message = f"The LMS refused the OAuth check ({error})."
+    else:
+        message = f"The LMS gave no OAuth answer the app could use (status {status})."
+    return {"oauth_valid": False, "oauth_error": message}
+
+
 async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
     """Check LMS reachability and (optionally) OAuth Client ID without credentials."""
     base = base_url.rstrip("/")
@@ -219,17 +248,22 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
         result["url_error"] = "This address could not be reached (must be a public https URL)."
         return result
 
+    async def status_of(path: str) -> int:
+        # Only the status line matters; the body is never read.
+        async with client.stream("GET", f"{base}{path}") as response:
+            return response.status_code
+
     async with probe_client() as client:
         try:
-            r = await client.get(f"{base}/user_api/v1/account/registration/")
-            if 200 <= r.status_code < 300:
+            status = await status_of("/user_api/v1/account/registration/")
+            if 200 <= status < 300:
                 result["url_valid"] = True
             else:
-                r2 = await client.get(f"{base}/oauth2/login/")
-                if 200 <= r2.status_code < 400:
+                status2 = await status_of("/oauth2/login/")
+                if 200 <= status2 < 400:
                     result["url_valid"] = True
                 else:
-                    result["url_error"] = f"LMS responded with status {r.status_code}"
+                    result["url_error"] = f"LMS responded with status {status}"
         except httpx.ConnectError:
             result["url_error"] = "Cannot connect to this URL. Check that the address is correct."
         except httpx.TimeoutException:
@@ -249,11 +283,9 @@ async def _probe_lms(base_url: str, oauth_client_id: str = "") -> dict:
                         "password": "_validate_",
                     },
                 ) as r:
-                    body = (await read_capped(r)).lower()
-                if "invalid_client" in body:
-                    result["oauth_error"] = "OAuth Client ID not found on this LMS. Check the ID."
-                else:
-                    result["oauth_valid"] = True
+                    status = r.status_code
+                    body = await read_capped(r)
+                result.update(_judge_oauth_answer(status, body))
             except Exception as e:  # noqa: BLE001
                 result["oauth_error"] = f"Could not verify OAuth ID: {str(e)[:100]}"
 

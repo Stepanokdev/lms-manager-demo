@@ -126,3 +126,29 @@ def test_a_probe_body_is_read_only_up_to_the_cap():
                 return await netguard.read_capped(response)
 
     assert len(asyncio.run(run())) == netguard.MAX_PROBE_BODY_BYTES
+
+
+@pytest.mark.parametrize(
+    ("status", "body", "valid"),
+    [
+        (400, '{"error": "invalid_grant", "error_description": "Invalid credentials given."}', True),
+        (401, '{"error": "invalid_grant"}', True),
+        (401, '{"error": "invalid_client"}', False),
+        (400, '{"error": "unauthorized_client"}', False),
+        (302, "", False),
+        (404, "<html>Not found</html>", False),
+        (500, "<html>Server error</html>", False),
+        (200, '{"access_token": "x"}', False),
+    ],
+)
+def test_only_a_refused_user_proves_the_oauth_client(tmp_path, status, body, valid):
+    from tests.conftest import build_app
+    import sys
+
+    build_app(tmp_path, "search")  # imports app.main against a throwaway database
+    main = sys.modules["app.main"]
+
+    verdict = main._judge_oauth_answer(status, body)
+
+    assert verdict["oauth_valid"] is valid
+    assert (verdict["oauth_error"] is None) is valid
