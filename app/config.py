@@ -37,6 +37,9 @@ _DEFAULTS = {
     "provider_tagline": "One app for every Open edX platform",
     "provider_logo_url": "",
     "auto_approve": True,                 # new submissions go live immediately
+    # A public demo anyone can add a platform to (multi-tenant.stepanok.com). Only
+    # changes wording in the console; behaviour is the search mode's.
+    "shared_demo": False,
     "webhook_url": "",                    # outgoing POST on each new complaint
     "webhook_secret": "",                 # optional shared secret header
     "registry_public_url": "",            # canonical https origin for absolute asset URLs
@@ -55,7 +58,7 @@ _DEFAULTS = {
     "smtp_use_tls": True,
 }
 
-_BOOL_KEYS = {"auto_approve", "smtp_use_tls"}
+_BOOL_KEYS = {"auto_approve", "smtp_use_tls", "shared_demo"}
 
 
 def _coerce_bool(value) -> bool:
@@ -99,6 +102,7 @@ class AppConfig:
         self.provider_tagline: str = resolved["provider_tagline"]
         self.provider_logo_url: str = resolved["provider_logo_url"]
         self.auto_approve: bool = resolved["auto_approve"]
+        self.shared_demo: bool = resolved["shared_demo"]
         self.webhook_url: str = resolved["webhook_url"]
         self.webhook_secret: str = resolved["webhook_secret"]
         self.registry_public_url: str = resolved["registry_public_url"]
@@ -132,6 +136,7 @@ class AppConfig:
             "provider_name": self.provider_name,
             "provider_tagline": self.provider_tagline,
             "provider_logo_url": self.provider_logo_url or None,
+            "shared_demo": self.shared_demo,
         }
 
 

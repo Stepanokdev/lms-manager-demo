@@ -26,6 +26,7 @@ services:
     environment:
       DIRECTORY_MODE: "search"
       AUTO_APPROVE: "true"
+      SHARED_DEMO: "true"
       REGISTRY_PUBLIC_URL: "https://multi-tenant.stepanok.com"
       PROVIDER_NAME: "Open edX Multi-tenant Demo"
       PROVIDER_TAGLINE: "Every platform added here, in one app"

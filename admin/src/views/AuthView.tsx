@@ -26,6 +26,7 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
   const isCurated = config?.directory_mode === 'curated'
   // Provider portal: signing up creates an organization, so the form asks for one.
   const isPortal = config?.directory_mode === 'portal'
+  const isDemo = !!config?.shared_demo && !isPortal && !isCurated
 
   const submit = async () => {
     setError('')
@@ -55,21 +56,31 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
 
         <div className="max-w-md">
           <h1 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-ink">
-            {isPortal
+            {isDemo
+              ? 'Add your platform to the shared demo'
+              : isPortal
               ? 'Your platforms, in your own app'
               : isCurated
                 ? 'Your organization’s platforms, in one app'
                 : 'The registry behind one app for every platform'}
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-muted">
-            {isPortal
+            {isDemo
+              ? 'Create an account, register your Open edX platform, and it appears in the demo iOS and Android apps next to everyone else’s. You can remove it at any time.'
+              : isPortal
               ? 'Register your organization, add the Open edX platforms you run, and get one address to put in your own iOS and Android builds. Your app lists your platforms and nobody else’s.'
               : isCurated
                 ? 'Manage the Open edX platforms your learners choose from in the app. Add a platform, brand it, and control which ones appear.'
                 : 'Owners register their Open edX instance here. Admins keep the catalog safe and act on what learners report from the apps.'}
           </p>
           <ul className="mt-8 flex flex-col gap-3.5 text-sm text-ink-soft">
-            {isPortal ? (
+            {isDemo ? (
+              <>
+                <Feature icon={<IconServer />} text="One shared list, read by both demo apps" />
+                <Feature icon={<IconLink />} text="Your address and OAuth client, checked live" />
+                <Feature icon={<IconShield />} text="Only you can edit or remove your platform" />
+              </>
+            ) : isPortal ? (
               <>
                 <Feature icon={<IconServer />} text="Add every platform you run, in the order you choose" />
                 <Feature icon={<IconLink />} text="One address to paste into your app config" />
@@ -91,7 +102,11 @@ export function AuthView({ config }: { config: PublicConfig | null }) {
           </ul>
         </div>
 
-        <div className="text-xs text-faint">Open edX–approved pilot · operated independently</div>
+        <div className="text-xs text-faint">
+          {isDemo
+            ? 'Public demo by Raccoon Gang · not an official Open edX service'
+            : 'Open edX–approved pilot · operated independently'}
+        </div>
       </div>
 
       {/* Form */}

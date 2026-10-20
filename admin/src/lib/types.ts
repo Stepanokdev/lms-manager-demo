@@ -174,5 +174,7 @@ export interface PublicConfig {
   directory_mode: 'search' | 'curated' | 'portal'
   provider_name: string
   provider_tagline: string
+  /** A public demo anyone can add a platform to; the console words itself for it. */
+  shared_demo?: boolean
   provider_logo_url: string | null
 }

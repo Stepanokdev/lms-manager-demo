@@ -405,3 +405,4 @@ class PublicConfigResponse(BaseModel):
     provider_name: str
     provider_tagline: str
     provider_logo_url: str | None = None
+    shared_demo: bool = False
