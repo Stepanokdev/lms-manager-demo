@@ -4,7 +4,6 @@ export { NotAvailableScreen } from './NotAvailableScreen'
 export { WebViewUnitScreen } from './WebViewUnitScreen'
 export { DiscoveryScreen } from './DiscoveryScreen'
 export { LearnScreen } from './LearnScreen'
-export { PreLoginScreen } from './PreLoginScreen'
 export { ProgramsScreen } from './ProgramsScreen'
 export {
   CourseContentScreen,

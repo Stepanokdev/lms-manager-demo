@@ -6,7 +6,6 @@ import { StepNavigation } from './StepNavigation'
 import { SlideTransition } from './SlideTransition'
 
 import { WelcomeStep } from '@/components/steps/WelcomeStep'
-import { PreLoginStep } from '@/components/steps/PreLoginStep'
 import { BrandingStep } from '@/components/steps/BrandingStep'
 import { DashboardStep } from '@/components/steps/DashboardStep'
 import { CourseFeaturesStep } from '@/components/steps/CourseFeaturesStep'
@@ -16,7 +15,6 @@ import { SummaryStep } from '@/components/steps/SummaryStep'
 const stepComponents = [
   WelcomeStep,
   BrandingStep,
-  PreLoginStep,
   DashboardStep,
   CourseFeaturesStep,
   ContentSupportStep,

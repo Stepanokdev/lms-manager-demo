@@ -1,15 +1,17 @@
+import { useProviderName } from '@/hooks/useProviderName'
 import { cn } from '@/utils/cn'
 import { steps } from '@/data/steps'
 import { useWizardStore } from '@/store/useWizardStore'
 
 export function ProgressSidebar() {
+  const providerName = useProviderName()
   const currentStepIndex = useWizardStore((s) => s.currentStepIndex)
   const setStep = useWizardStore((s) => s.setStep)
 
   return (
     <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-white/10 bg-surface-900/80 backdrop-blur-sm">
       <div className="border-b border-white/10 p-6">
-        <h1 className="text-lg font-bold text-white">Open X Project</h1>
+        <h1 className="text-lg font-bold text-white">{providerName}</h1>
         <p className="text-sm text-surface-400">App Configurator</p>
       </div>
 

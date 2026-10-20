@@ -35,8 +35,10 @@ export function SummaryStep() {
         accent_color: clientInfo.accentColor || '#42AAFF',
         logo_url: clientInfo.logoUrl,
         login_background_url: clientInfo.loginBackgroundUrl,
-        pre_login_discovery: !!selections.pre_login_experience,
-        pre_login_experience: !!selections.pre_login_experience,
+        // The apps always open at sign-in, so there is nothing to ask and
+        // nothing to choose: no pre-login browsing on either platform.
+        pre_login_discovery: false,
+        pre_login_experience: false,
         dashboard_type: (selections.dashboard_type as string) || 'gallery',
         course_unit_progress: !!selections.course_progress,
         course_dropdown_nav: !!selections.course_dropdown_nav,

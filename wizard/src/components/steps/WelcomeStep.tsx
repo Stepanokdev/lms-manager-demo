@@ -1,3 +1,4 @@
+import { useProviderName } from '@/hooks/useProviderName'
 import { motion, AnimatePresence } from 'motion/react'
 import { useWizardStore } from '@/store/useWizardStore'
 import { useState, useCallback } from 'react'
@@ -5,6 +6,7 @@ import { useState, useCallback } from 'react'
 type ValidationState = 'idle' | 'validating' | 'success' | 'error'
 
 export function WelcomeStep() {
+  const providerName = useProviderName()
   const clientInfo = useWizardStore((s) => s.clientInfo)
   const setClientInfo = useWizardStore((s) => s.setClientInfo)
   const nextStep = useWizardStore((s) => s.nextStep)
@@ -110,7 +112,7 @@ export function WelcomeStep() {
         </h1>
 
         <p className="mx-auto mt-3 max-w-md text-lg text-surface-400 text-center">
-          Configure how your Open edX instance appears in the Open X Project mobile app.
+          Configure how your Open edX instance appears in the {providerName} mobile app.
           <br />
           <span className="text-sm text-surface-500">Requires Open edX Ulmo or newer.</span>
         </p>
@@ -171,7 +173,7 @@ export function WelcomeStep() {
                 </motion.p>
               ) : <span />}
             </AnimatePresence>
-            <a href="https://openedx.atlassian.net/wiki/spaces/OEPM/pages/edit-v2/6140166146?draftShareId=09d453d6-94f5-4ef4-882d-02662905d278" target="_blank" rel="noopener noreferrer" className="text-xs text-accent-400 hover:text-accent-300 transition-colors shrink-0">
+            <a href="/guide/registering-an-lms/" target="_blank" rel="noopener noreferrer" className="text-xs text-accent-400 hover:text-accent-300 transition-colors shrink-0">
               How to get OAuth Client ID? &rarr;
             </a>
           </div>

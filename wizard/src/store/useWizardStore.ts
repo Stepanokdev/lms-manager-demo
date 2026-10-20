@@ -109,7 +109,6 @@ export const useWizardStore = create<WizardStore>()(
           },
           selections: {
             ...getDefaultSelections(),
-            pre_login_experience: lms.pre_login_experience ?? true,
             dashboard_type: lms.dashboard_type || 'gallery',
             course_progress: lms.course_unit_progress ?? true,
             course_dropdown_nav: lms.course_dropdown_nav ?? true,

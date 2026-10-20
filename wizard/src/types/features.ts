@@ -1,5 +1,4 @@
 export type FeatureCategory =
-  | 'pre-login'
   | 'authentication'
   | 'discovery'
   | 'dashboard'

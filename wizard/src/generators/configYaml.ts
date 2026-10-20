@@ -12,7 +12,8 @@ export function generateConfigYaml(selections: Record<string, string | boolean |
     PLATFORM_NAME: companyName || 'OpenEdX',
     URI_SCHEME: 'openedx',
 
-    PRE_LOGIN_EXPERIENCE_ENABLED: selections['pre_login_experience'] ?? false,
+    // The apps start at sign-in. There is no pre-login browsing to turn on.
+    PRE_LOGIN_EXPERIENCE_ENABLED: false,
     DISCOVERY: {
       TYPE: selections['discovery_type'] ?? 'native',
     },

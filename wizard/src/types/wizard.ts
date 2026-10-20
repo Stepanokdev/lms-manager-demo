@@ -1,6 +1,5 @@
 export type StepId =
   | 'welcome'
-  | 'pre-login'
   | 'authentication'
   | 'dashboard'
   | 'course-features'
