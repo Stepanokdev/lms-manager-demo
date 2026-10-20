@@ -1,4 +1,13 @@
 {
-  "ios": { "state": "pending", "url": "", "note": "The iOS build is on its way to TestFlight. The link appears here once Apple approves the beta." },
-  "android": { "state": "available", "url": "/downloads/openedx-multitenant-demo.apk", "version": "1.0.0", "note": "Signed by Raccoon Gang. SHA-256 of the signing certificate: d8:19:51:c2:03:11:c4:0e:ef:e7:cf:b1:8d:09:78:3c:3e:82:4c:e6:9c:67:7f:ed:c3:28:a2:69:67:44:7c:f5" }
+  "ios": {
+    "state": "pending",
+    "url": "",
+    "note": "The iOS build is uploaded to TestFlight. The public link appears here once Apple approves the beta."
+  },
+  "android": {
+    "state": "available",
+    "url": "/downloads/openedx-multitenant-demo.apk",
+    "version": "1.0.0",
+    "note": "Signed by Raccoon Gang. SHA-256 of the signing certificate: d8:19:51:c2:03:11:c4:0e:ef:e7:cf:b1:8d:09:78:3c:3e:82:4c:e6:9c:67:7f:ed:c3:28:a2:69:67:44:7c:f5"
+  }
 }
