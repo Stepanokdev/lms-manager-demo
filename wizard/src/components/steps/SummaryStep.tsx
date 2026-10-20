@@ -11,8 +11,7 @@ export function SummaryStep() {
   const featuresSummary = useSelectedFeaturesSummary()
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null)
-  // Set once a new platform has been created, so a second click can't create a copy.
-  const [created, setCreated] = useState(false)
+  const markRegistered = useWizardStore((s) => s.markRegistered)
   const isEditing = editingLmsId !== null
 
   const enabledFeatures = featuresSummary.filter(
@@ -66,7 +65,9 @@ export function SummaryStep() {
       }
       const saved = await res.json().catch(() => ({}))
       const live = saved.status === 'approved'
-      if (!isEditing) setCreated(true)
+      // From here on this wizard edits the platform it just created; the id is kept in
+      // the persisted store, so going back a step or reloading can't create a copy.
+      if (!isEditing && typeof saved.id === 'number') markRegistered(saved.id)
       setResult({
         ok: true,
         msg: isEditing
@@ -168,10 +169,10 @@ export function SummaryStep() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleSubmit}
-          disabled={submitting || created || !clientInfo.lmsName || !clientInfo.baseUrl || !clientInfo.oauthClientId}
+          disabled={submitting || !clientInfo.lmsName || !clientInfo.baseUrl || !clientInfo.oauthClientId}
           className="rounded-xl bg-accent-500 px-8 py-3 text-sm font-semibold text-surface-950 transition-colors hover:bg-accent-400 disabled:opacity-50"
         >
-          {submitting ? 'Saving...' : isEditing ? 'Save Changes' : created ? 'Registered' : 'Register platform'}
+          {submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Register platform'}
         </motion.button>
 
         <a

@@ -20,6 +20,8 @@ interface WizardStore {
   setLmsValidated: (v: boolean) => void
   resetWizard: () => void
   loadForEdit: (id: number, lms: any) => void
+  /** After a new platform is created, further saves edit it instead of creating another. */
+  markRegistered: (id: number) => void
 }
 
 function getDefaultSelections(): Record<string, string | boolean | number> {
@@ -82,6 +84,8 @@ export const useWizardStore = create<WizardStore>()(
         })),
 
       setLmsValidated: (v) => set({ lmsValidated: v }),
+
+      markRegistered: (id: number) => set({ editingLmsId: id }),
 
       loadForEdit: (id: number, lms: any) =>
         set({
