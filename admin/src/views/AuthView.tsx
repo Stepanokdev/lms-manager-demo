@@ -9,7 +9,10 @@ import type { PublicConfig } from '@/lib/types'
 export function AuthView({ config }: { config: PublicConfig | null }) {
   const login = useStore((s) => s.login)
   const register = useStore((s) => s.register)
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  // A landing page can link straight to sign-up with /dashboard?mode=register.
+  const [mode, setMode] = useState<'login' | 'register'>(() =>
+    new URLSearchParams(window.location.search).get('mode') === 'register' ? 'register' : 'login',
+  )
   const [name, setName] = useState('')
   const [orgName, setOrgName] = useState('')
   const [email, setEmail] = useState('')
