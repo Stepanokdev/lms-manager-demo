@@ -133,11 +133,16 @@
   async function loadDistribution() {
     const container = select("#install-status");
     const fallback = select("#install-fallback");
+    const hero = select("#hero-install-status");
+    const heroFallback = select("#hero-install-fallback");
     container.setAttribute("aria-busy", "true");
+    hero.setAttribute("aria-busy", "true");
     try {
       const status = await readJSON("/site/status.json");
       if (!status || typeof status !== "object") throw new Error("Invalid distribution state");
       const fragment = document.createDocumentFragment();
+      const heroFragment = document.createDocumentFragment();
+      const heroNotes = [];
       [["ios", "TestFlight (iOS)"], ["android", "Android APK"]].forEach(([key, label]) => {
         const entry = status[key];
         const state = entry && ["available", "pending", "unavailable"].includes(entry.state)
@@ -179,14 +184,66 @@
           note.textContent = "Please check back for an install link.";
         }
         if (note.textContent) block.append(note);
+
+        // Both placements use the same validated state and install URL.
+        const heroAction = document.createElement(available ? "a" : "button");
+        heroAction.className = "platform-link";
+        if (available) {
+          heroAction.href = url.href;
+        } else {
+          heroAction.type = "button";
+          heroAction.disabled = true;
+        }
+        const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        icon.setAttribute("viewBox", "0 0 24 24");
+        icon.setAttribute("width", "18");
+        icon.setAttribute("height", "18");
+        icon.setAttribute("aria-hidden", "true");
+        icon.setAttribute("focusable", "false");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", key === "ios"
+          ? "M16.8 2c.2 1.4-.5 2.8-1.3 3.6-.9.9-2.1 1.5-3.3 1.4-.2-1.3.5-2.7 1.3-3.5.9-.9 2.2-1.5 3.3-1.5ZM20.5 16.7c-.5 1.2-.8 1.8-1.5 2.9-1 1.5-2.4 3.3-4.1 3.3-1.5 0-1.9-1-3.9-1s-2.4 1-3.9 1c-1.7 0-3-1.7-4-3.2C.3 15.4.1 10.5 1.9 8.1c1.3-1.7 3.4-2.1 5.4-1.3 1.1.4 1.8.9 2.8.9.9 0 1.5-.4 2.8-.9 1.8-.7 4.1-.6 5.5 1.2-4.8 2.6-4 7.1 2.1 8.7Z"
+          : "M5 5 3.7 2.8l1-.6L6.1 4.6a12 12 0 0 1 11.8 0l1.4-2.4 1 .6L19 5c2.5 1.8 4 4.7 4 8H1c0-3.3 1.5-6.2 4-8ZM7 8a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm10 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM3 15h18v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z");
+        path.setAttribute("fill", "currentColor");
+        path.setAttribute("fill-rule", "evenodd");
+        icon.append(path);
+        const heroLabel = document.createElement("span");
+        heroLabel.textContent = key === "ios" ? "iPhone · TestFlight" : "Android · APK";
+        heroAction.append(icon, heroLabel);
+        if (!available) {
+          const badge = document.createElement("span");
+          badge.className = "platform-state";
+          badge.textContent = state === "pending" ? "In review" : "Unavailable";
+          heroAction.append(badge);
+        }
+        if (note.textContent) {
+          heroAction.title = note.textContent;
+          if (!available) heroNotes.push((key === "ios" ? "iOS: " : "Android: ") + note.textContent);
+        }
+        heroFragment.append(heroAction);
         fragment.append(block);
       });
+      if (heroNotes.length) {
+        const note = document.createElement("p");
+        note.id = "hero-platform-note";
+        note.className = "platform-note";
+        note.textContent = heroNotes.join(" ");
+        note.title = note.textContent;
+        heroFragment.querySelectorAll("button").forEach((button) => {
+          button.setAttribute("aria-describedby", note.id);
+        });
+        heroFragment.append(note);
+      }
       container.replaceChildren(fragment);
+      hero.replaceChildren(heroFragment);
+      hero.hidden = false;
+      heroFallback.hidden = true;
       fallback.hidden = true;
     } catch {
       fallback.textContent = "Couldn't check build availability. Refresh to try again. Install links appear here once each build is approved.";
     } finally {
       container.setAttribute("aria-busy", "false");
+      hero.setAttribute("aria-busy", "false");
     }
   }
 

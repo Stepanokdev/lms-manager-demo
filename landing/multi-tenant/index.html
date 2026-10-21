@@ -34,18 +34,24 @@
         <h1 id="hero-title">One app.<br><em>Every</em> campus<br>you run.</h1>
         <p class="lead">The Open edX mobile app can now serve several Open edX platforms from one iOS and one Android build. Learners pick their school, stay signed in to more than one, and switch without signing in again. Each school keeps its own branding, data and session.</p>
         <div class="actions"><a class="button" href="/dashboard?mode=register">Add your LMS <span class="arrow" aria-hidden="true">↗</span></a><a class="text-link" href="#try">Get the demo app <span aria-hidden="true">↓</span></a></div>
+        <div class="hero-platforms" aria-label="Demo app downloads">
+          <p id="hero-install-fallback" class="fine-print">For iOS and Android. <a href="#try">See installation options</a>.</p>
+          <div id="hero-install-status" aria-live="polite" aria-busy="false" hidden></div>
+        </div>
         <p class="fine-print">This demo lists every LMS added here, so you can see the picker with real platforms in it.</p>
       </div>
       <figure class="hero-visual">
         <div class="phone-stage">
-          <span class="stage-label">One build. Several learning sites.</span>
-          <div class="phone-pair">
-            <div class="phone-wrap phone-ios"><span class="device-label">01 / iOS</span><div class="phone"><img src="/site/img/ios-sites.jpg" width="640" height="1391" fetchpriority="high" alt="iOS Learning Sites with Verawood North selected and Verawood South also signed in."></div></div>
-            <div class="phone-wrap phone-android"><span class="device-label">02 / Android</span><div class="phone"><img src="/site/img/android-sites.jpg" width="640" height="1422" alt="Android Learning Sites with Verawood North selected and Verawood South also signed in."></div></div>
+          <div class="hero-phone">
+            <img src="/site/img/ios-sites.jpg" width="1000" height="2174" fetchpriority="high" alt="iOS Learning Sites with branded Verawood South as the current site and Verawood North under More Learning Sites.">
           </div>
-          <span class="stage-foot"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 6h13m-4-3 4 3-4 3M17 14H4m4-3-4 3 4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Pick a site. Switch. Stay signed in.</span>
+          <div class="site-chips" aria-label="Demo learning sites">
+            <span class="site-chip site-chip-south"><img src="/site/img/logo-south.png" width="192" height="192" alt=""><span>Verawood South · test</span></span>
+            <span class="site-chip site-chip-north"><img src="/site/img/logo-north.png" width="192" height="192" alt=""><span>Verawood North · test</span></span>
+          </div>
+          <span class="stage-foot">Pick a site. Switch. Stay signed in.</span>
         </div>
-        <figcaption>Real app screens. Verawood North/South are two test platforms running on a local Open edX.</figcaption>
+        <figcaption>Real iOS app screen. Verawood North/South are two test platforms running on a local Open edX.</figcaption>
       </figure>
     </section>
     <section class="section container" id="how" aria-labelledby="how-title">
@@ -69,6 +75,10 @@
         <article class="bezel wizard-card"><div class="core"><p class="path-label">A / Start with your platform</p><h3>Add your LMS</h3><ol class="steps"><li><strong>Create an account.</strong></li><li><strong>Run the wizard:</strong> your platform's address and a mobile OAuth client. The wizard checks both live.</li><li><strong>Open the demo app;</strong> your platform is in the list.</li></ol><div class="actions"><a class="button" href="/dashboard?mode=register">Add your LMS <span class="arrow" aria-hidden="true">↗</span></a><a class="text-link" href="/dashboard">Already registered? Sign in</a></div><aside class="requirements"><h4>What your Open edX needs</h4><p>In Django admin, open Django OAuth Toolkit → Applications and add an application: client type <strong>Public</strong>, authorization grant type <strong>Resource owner password-based</strong>. Copy its Client id. Turn on <strong>Mobile course available</strong> for the courses you want in the app. Your platform must be reachable over https.</p></aside></div></article>
         <div class="other-paths">
           <article class="install-card"><p class="path-label">B / On your phone</p><h3>Install the demo app</h3><p id="install-fallback">Install links appear here once each build is approved.</p><div id="install-status" aria-live="polite" aria-busy="false"></div><p class="fine-print">iOS: open the TestFlight link on your iPhone; you need Apple's TestFlight app.</p><p class="fine-print">Android: your phone asks to allow installs from the browser; the APK is signed by Raccoon Gang and is not on Google Play.</p></article>
+          <figure class="android-preview">
+            <div class="phone"><img src="/site/img/android-sites.jpg" width="640" height="1422" loading="lazy" alt="Android Learning Sites with Verawood South selected and Verawood North available to add."></div>
+            <figcaption>Android · Learning Sites</figcaption>
+          </figure>
           <article class="build-card"><p class="path-label">C / Make it yours</p><h3>Build it with your own list</h3><p>Fork the apps and list your platforms in <code>INSTANCES</code> in <code>config.yaml</code>, or host a JSON file and set <code>INSTANCES_CATALOG_URL</code>.</p><a class="text-link" href="#format">Read the JSON format <span aria-hidden="true">↗</span></a><div class="repo-links"><a href="https://github.com/openedx/openedx-app-ios">iOS repository</a><a href="https://github.com/openedx/openedx-app-android">Android repository</a></div></article>
         </div>
       </div>
