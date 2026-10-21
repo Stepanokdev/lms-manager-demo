@@ -1,8 +1,9 @@
 {
   "ios": {
-    "state": "pending",
-    "url": "",
-    "note": "Submitted to Apple's TestFlight beta review on 21 October. The install link appears here once Apple approves it."
+    "state": "available",
+    "url": "https://testflight.apple.com/join/5GcT63S3",
+    "version": "1.0.0",
+    "note": "Public TestFlight beta, build 1.0.0 (1)."
   },
   "android": {
     "state": "available",

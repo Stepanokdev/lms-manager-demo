@@ -240,7 +240,7 @@
       heroFallback.hidden = true;
       fallback.hidden = true;
     } catch {
-      fallback.textContent = "Couldn't check build availability. Refresh to try again. Install links appear here once each build is approved.";
+      // The static links in the page stay visible.
     } finally {
       container.setAttribute("aria-busy", "false");
       hero.setAttribute("aria-busy", "false");
