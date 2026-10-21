@@ -414,6 +414,16 @@ def submit_lms(req: LMSCreateRequest, user: User = Depends(get_current_user), db
             reviewed_at=datetime.datetime.utcnow(),
             reviewed_by=user.id,
         )
+    elif cfg.shared_demo:
+        # Shared demo: a platform is listed the moment its owner saves it. Nobody
+        # reviews entries here, so none is left "awaiting review".
+        lms = LMSInstance(
+            **data,
+            submitted_by=user.id,
+            status=LMSStatus.approved,
+            admin_reviewed=True,
+            reviewed_at=datetime.datetime.utcnow(),
+        )
     else:
         # Public marketplace: go live when auto-approve is on; admins then confirm they
         # checked the instance (admin_reviewed).

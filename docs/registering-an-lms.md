@@ -53,6 +53,10 @@ New platforms are **approved automatically**, so yours appears in the app catalo
 right away. It's marked *awaiting review* until an administrator confirms it's set
 up correctly. You don't need to do anything for that step.
 
+!!! note "On the shared multi-tenant demo"
+    The demo has no review step. Your platform goes into the list the moment you
+    save it, and your workspace shows it as **Live**.
+
 ## Your workspace
 
 Signing in as an owner shows **your platforms**: their status, and a link to edit

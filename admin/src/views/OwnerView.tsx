@@ -101,7 +101,7 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
                     <div className="min-w-[180px] flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[15px] font-semibold text-ink">{lms.name}</span>
-                        <StatusPill lms={lms} />
+                        <StatusPill lms={lms} hasReview={!config?.shared_demo} />
                       </div>
                       <a
                         href={lms.base_url}
@@ -180,10 +180,11 @@ export function OwnerView({ config }: { config: PublicConfig | null }) {
   )
 }
 
-function StatusPill({ lms }: { lms: LMS }) {
+// The shared demo has no review step, so a live platform there is simply live.
+function StatusPill({ lms, hasReview }: { lms: LMS; hasReview: boolean }) {
   if (lms.status === 'rejected') return <Pill tone="rose">Blocked</Pill>
   if (lms.status === 'pending') return <Pill tone="amber">Pending review</Pill>
-  if (!lms.admin_reviewed) return <Pill tone="cyan">Live · awaiting review</Pill>
+  if (hasReview && !lms.admin_reviewed) return <Pill tone="cyan">Live · awaiting review</Pill>
   return <Pill tone="emerald">Live</Pill>
 }
 

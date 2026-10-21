@@ -36,7 +36,7 @@ def _catalog(client) -> list[dict]:
 
 @pytest.fixture
 def demo(tmp_path):
-    yield build_app(tmp_path, "search", REGISTRY_PUBLIC_URL="https://multi-tenant.example.com")
+    yield build_app(tmp_path, "search", REGISTRY_PUBLIC_URL="https://multi-tenant.example.com", SHARED_DEMO="true")
 
 
 def test_every_owner_lands_in_one_catalog(demo):
@@ -57,6 +57,17 @@ def test_every_owner_lands_in_one_catalog(demo):
     assert northwind["theme"]["dark"]["accent_color"].startswith("#")
     assert northwind["theme"]["logo_url"] == "https://multi-tenant.example.com/uploads/logo.png"
     assert len({entry["key"] for entry in catalog}) == 2
+
+
+def test_a_demo_platform_is_live_with_no_review_step(demo):
+    ann = _signup(demo, "ann@one.edu")
+    lms = _add(demo, ann, "Northwind Academy", "https://lms.northwind.edu")
+
+    assert lms["status"] == "approved"
+    assert lms["admin_reviewed"] is True
+    mine = demo.get("/my/lms", headers=auth(ann)).json()
+    assert [(entry["status"], entry["admin_reviewed"]) for entry in mine] == [("approved", True)]
+    assert [entry["name"] for entry in _catalog(demo)] == ["Northwind Academy"]
 
 
 def test_the_catalog_carries_nothing_private(demo):
