@@ -43,11 +43,6 @@ Three groups of people touch the system, and the registry ties them together.
 6. **Restored.** The owner fixes the issue and requests a re-review; an admin
    restores it.
 
-<figure markdown>
-  ![A reported platform in the triage inbox, with the learner's screenshot](screenshots/09-complaint-screenshot.png)
-  <figcaption>A learner's report as the moderator sees it — message, evidence, and one-tap Block / Dismiss</figcaption>
-</figure>
-
 ## Trust & safety, in one line
 
 Anyone can register a platform, so anyone can register a **bad** one. The whole

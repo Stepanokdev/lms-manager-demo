@@ -4,7 +4,17 @@ __pycache__/
 **/.DS_Store
 /data/
 .env
-.env.portal
+.env.*
+!.env.example
+!.env.*.example
+.claude/
+.codex/
+.agents/
+.pytest_cache/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
 data-portal/
 .idea
 wizard/node_modules/
@@ -13,4 +23,3 @@ app/static/landing/openedx-universal.apk
 .venv/
 provider_config.json
 site/
-.venv/

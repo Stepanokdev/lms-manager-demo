@@ -46,9 +46,6 @@ Live instance: **https://openedx-lms.stepanok.com**
 **Admin console — overview**
 ![Overview](docs/screenshots/02-overview.png)
 
-**Complaints triage inbox** (high severity first, with the reporter's screenshot inline)
-![Complaints](docs/screenshots/03-complaints.png)
-
 **A complaint arriving live** (badge + toast the moment a high-severity report lands)
 ![Live alert](docs/screenshots/04-live-alert.png)
 
@@ -101,17 +98,14 @@ Live instance: **https://openedx-lms.stepanok.com**
 
 ## Run it locally
 
-Requirements: Python 3.12 and Node 18+.
+Requirements: Python 3.12. The built web apps are included, so Node is only
+needed when changing the frontend; Node 22 is recommended for that.
 
 ```bash
-# 1. Backend (creates ./data, seeds demo data on first run)
+# Backend (creates ./data and seeds demo data into an empty database)
 python3.12 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-python run.py                     # serves on http://localhost:8000
-
-# 2. Build the web apps (output lands in app/static/, which the server serves)
-cd wizard && npm install && npm run build && cd ..
-cd admin  && npm install && npm run build && cd ..
+SEED_DEMO=1 python run.py          # serves on http://localhost:8000
 ```
 
 Then open:
@@ -119,8 +113,30 @@ Then open:
 - `http://localhost:8000/wizard/` — registration wizard
 - `http://localhost:8000/docs` — API docs
 
-Demo logins: `admin@demo.com` / `admin123` (admin), `user@demo.com` / `user123`
-(owner).
+Demo logins (created only with `SEED_DEMO=1`): `admin@demo.com` / `admin123`
+(admin), `user@demo.com` / `user123` (owner). For a real deployment, leave
+`SEED_DEMO` unset and configure `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `SECRET_KEY`;
+see [the deployment guide](docs/deploying.md).
+
+After changing frontend source, rebuild it in another terminal. The output lands
+in `app/static/`, which the backend serves:
+
+```bash
+(cd wizard && npm ci && npm run build)
+(cd admin && npm ci && npm run build)
+```
+
+## Development
+
+Install the test dependencies and run the backend checks:
+
+```bash
+pip install -r requirements-dev.txt
+./verify.sh
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and checks
+for frontend and documentation changes.
 
 ## Configuration
 
@@ -244,3 +260,18 @@ wizard/       Registration wizard source
 docs/         Screenshots
 SPEC.md       API contract
 ```
+
+## Project history and license
+
+This repository preserves the development history of the LMS Registry pilot,
+including contributions by [IvanStepanok](https://github.com/IvanStepanok) and
+[PavloNetrebchuk](https://github.com/PavloNetrebchuk). An earlier version of the
+implementation was imported into
+[openedx-unsupported/openedx-mobile-site-registry](https://github.com/openedx-unsupported/openedx-mobile-site-registry).
+The repositories have separate Git histories; this version includes later pilot
+and provider portal work.
+
+The project is released under the [GNU Affero General Public License, version
+3](LICENSE), matching the Open edX registry's license. Third-party dependencies
+and assets retain their respective licenses and notices; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for bundled fonts.

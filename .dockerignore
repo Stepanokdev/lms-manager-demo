@@ -4,7 +4,15 @@ __pycache__/
 data/
 data-portal/
 .env
-.env.portal
+.env.*
+provider_config.json
+**/.claude/
+**/.codex/
+**/.agents/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
 .git
 .venv/
 venv/
@@ -16,4 +24,6 @@ docs/
 site/
 tests/
 .claude/
+.codex/
+.agents/
 *.log

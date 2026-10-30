@@ -43,11 +43,6 @@ Learner reports land here, **high-severity first**. Each card shows the platform
 the category, the learner's message, an optional screenshot, and where it came
 from (iOS/Android, app version).
 
-<figure markdown>
-  ![Complaints inbox](screenshots/03-complaints.png)
-  <figcaption>The triage inbox, severity-sorted</figcaption>
-</figure>
-
 For each complaint you can:
 
 - **Open LMS** — visit the platform to see the reported content yourself.
@@ -64,11 +59,6 @@ Filter by **status**, **severity**, and **category**, and page through with
 
 If the learner attached a screenshot, it shows right on the card — so you can judge
 without leaving the console.
-
-<figure markdown>
-  ![A complaint with a screenshot](screenshots/09-complaint-screenshot.png)
-  <figcaption>Reporter's screenshot, inline</figcaption>
-</figure>
 
 ### Group by platform (spotting brigading)
 
