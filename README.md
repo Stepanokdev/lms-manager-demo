@@ -12,6 +12,8 @@ learner complaints.
 
 Live instance: **https://openedx-lms.stepanok.com**
 
+Source: [Stepanokdev/lms-manager-demo](https://github.com/Stepanokdev/lms-manager-demo)
+
 ---
 
 ## How it works
